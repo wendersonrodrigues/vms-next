@@ -17,6 +17,7 @@ struct CameraEditor: View {
                     TextField("Nome", text: $form.camera.name)
                     TextField("Endereço IP", text: $form.camera.host)
                     TextField("Porta RTSP", value: $form.camera.rtspPort, format: .number.grouping(.never))
+                    TextField("Porta de controle", value: $form.camera.dvripPort, format: .number.grouping(.never))
                     Stepper("Canal: \(form.camera.channel)", value: $form.camera.channel, in: 1 ... 64)
                 }
                 Section {

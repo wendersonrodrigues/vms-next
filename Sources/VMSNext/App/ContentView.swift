@@ -75,10 +75,16 @@ struct ContentView: View {
                 Button("Nova câmera…") { ui.editing = Camera(name: "Nova câmera", host: "192.168.0.") }
             }
         } else if let id = ui.focused, let camera = store.cameras.first(where: { $0.id == id }) {
-            CameraTile(camera: camera, quality: .main, onEdit: { ui.editing = camera })
-                .id(camera)
-                .onTapGesture(count: 2) { ui.focused = nil }
-                .toolbar { gridToolbar(single: true) }
+            HStack(spacing: 0) {
+                CameraTile(camera: camera, quality: .main, onEdit: { ui.editing = camera })
+                    .id(camera)
+                    .onTapGesture(count: 2) { ui.focused = nil }
+                if ui.showPTZ {
+                    PTZPanel(camera: camera)
+                        .id(camera)
+                }
+            }
+            .toolbar { gridToolbar(single: true) }
         } else {
             grid
                 .toolbar { gridToolbar(single: false) }
@@ -135,6 +141,12 @@ struct ContentView: View {
                     Label("Voltar ao mosaico", systemImage: "square.grid.2x2")
                 }
             }
+            ToolbarItem {
+                Toggle(isOn: $ui.showPTZ) {
+                    Label("PTZ", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+                }
+                .help("Mostrar controles de PTZ")
+            }
         } else {
             ToolbarItem {
                 Picker("Layout", selection: $ui.layout) {
@@ -176,4 +188,5 @@ final class ContentUIState: ObservableObject {
     @Published var focused: Camera.ID?
     @Published var editing: Camera?
     @Published var alertMessage: String?
+    @Published var showPTZ = true
 }

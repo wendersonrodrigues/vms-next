@@ -31,6 +31,8 @@ final class CameraStore: ObservableObject {
     func setPassword(_ password: String, for camera: Camera) {
         Keychain.setPassword(password, for: camera.keychainAccount)
         passwordRevision += 1
+        let account = camera.keychainAccount
+        Task { @MainActor in DeviceSessions.shared.invalidate(account: account) }
     }
 
     func upsert(_ camera: Camera) {

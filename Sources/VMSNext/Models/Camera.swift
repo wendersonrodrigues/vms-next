@@ -10,11 +10,33 @@ struct Camera: Codable, Identifiable, Hashable {
     var username: String = "admin"
     /// Caminho RTSP com marcadores {user}, {password}, {channel} e {stream}.
     var pathTemplate: String = Camera.xiongmaiPathTemplate
+    /// Porta do protocolo DVRIP da Xiongmai (PTZ e configurações).
+    var dvripPort: Int = 34567
 
     static let xiongmaiPathTemplate = "/user={user}&password={password}&channel={channel}&stream={stream}.sdp?real_stream"
 
     /// A senha fica no Keychain por usuário@host, então todos os canais de um NVR a compartilham.
     var keychainAccount: String { "\(username)@\(host)" }
+
+    init(name: String, host: String, channel: Int = 1, username: String = "admin") {
+        self.name = name
+        self.host = host
+        self.channel = channel
+        self.username = username
+    }
+
+    /// Campos novos usam decodeIfPresent para abrir o cameras.json de versões anteriores.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        host = try c.decode(String.self, forKey: .host)
+        rtspPort = try c.decodeIfPresent(Int.self, forKey: .rtspPort) ?? 554
+        channel = try c.decodeIfPresent(Int.self, forKey: .channel) ?? 1
+        username = try c.decodeIfPresent(String.self, forKey: .username) ?? "admin"
+        pathTemplate = try c.decodeIfPresent(String.self, forKey: .pathTemplate) ?? Camera.xiongmaiPathTemplate
+        dvripPort = try c.decodeIfPresent(Int.self, forKey: .dvripPort) ?? 34567
+    }
 
     func rtspURL(password: String, quality: StreamQuality) -> String {
         var path = pathTemplate
