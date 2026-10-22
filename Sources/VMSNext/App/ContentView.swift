@@ -22,6 +22,9 @@ struct ContentView: View {
         .sheet(item: $ui.editing) { camera in
             CameraEditor(camera: camera)
         }
+        .sheet(item: $ui.configuring) { camera in
+            CameraSettingsView(camera: camera)
+        }
         .alert("VMS Next", isPresented: Binding(get: { ui.alertMessage != nil }, set: { if !$0 { ui.alertMessage = nil } })) {
             Button("OK") {}
         } message: {
@@ -39,6 +42,7 @@ struct ContentView: View {
                         .tag(camera.id)
                         .contextMenu {
                             Button("Editar…") { ui.editing = camera }
+                            Button("Configurações…") { ui.configuring = camera }
                             Button("Remover", role: .destructive) {
                                 if ui.focused == camera.id { ui.focused = nil }
                                 store.remove(camera)
@@ -76,7 +80,7 @@ struct ContentView: View {
             }
         } else if let id = ui.focused, let camera = store.cameras.first(where: { $0.id == id }) {
             HStack(spacing: 0) {
-                CameraTile(camera: camera, quality: .main, onEdit: { ui.editing = camera })
+                CameraTile(camera: camera, quality: .main, onEdit: { ui.editing = camera }, onSettings: { ui.configuring = camera })
                     .id(camera)
                     .onTapGesture(count: 2) { ui.focused = nil }
                 if ui.showPTZ {
@@ -115,7 +119,7 @@ struct ContentView: View {
                                 if index < slice.count {
                                     let camera = slice[index]
                                     CameraTile(camera: camera, quality: ui.layout == .one ? .main : .sub,
-                                               onEdit: { ui.editing = camera })
+                                               onEdit: { ui.editing = camera }, onSettings: { ui.configuring = camera })
                                         .id("\(camera.id)-\(ui.layout.rawValue)-\(camera.hashValue)")
                                         .onTapGesture(count: 2) { ui.focused = camera.id }
                                 } else {
@@ -146,6 +150,14 @@ struct ContentView: View {
                     Label("PTZ", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
                 }
                 .help("Mostrar controles de PTZ")
+            }
+            ToolbarItem {
+                Button {
+                    ui.configuring = store.cameras.first { $0.id == ui.focused }
+                } label: {
+                    Label("Configurações", systemImage: "gearshape")
+                }
+                .help("Configurações da câmera")
             }
         } else {
             ToolbarItem {
@@ -187,6 +199,7 @@ final class ContentUIState: ObservableObject {
     @Published var page = 0
     @Published var focused: Camera.ID?
     @Published var editing: Camera?
+    @Published var configuring: Camera?
     @Published var alertMessage: String?
     @Published var showPTZ = true
 }

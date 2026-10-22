@@ -4,6 +4,7 @@ struct CameraTile: View {
     let camera: Camera
     let quality: StreamQuality
     let onEdit: () -> Void
+    var onSettings: (() -> Void)? = nil
 
     @EnvironmentObject private var store: CameraStore
     @StateObject private var stream = LiveStream()
@@ -30,6 +31,7 @@ struct CameraTile: View {
         .contentShape(Rectangle())
         .contextMenu {
             Button("Editar câmera…", action: onEdit)
+            if let onSettings { Button("Configurações…", action: onSettings) }
             Button("Reconectar", action: start)
         }
         .onAppear(perform: start)

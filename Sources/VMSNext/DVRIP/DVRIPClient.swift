@@ -107,17 +107,27 @@ final class DVRIPClient: @unchecked Sendable {
 
     /// Envia um comando no formato {"Name": nome, "SessionID": ..., nome: payload}.
     @discardableResult
-    func command(code: UInt16, name: String, payload: Any) async throws -> [String: Any] {
-        let response = try await send(code: code, json: [
-            "Name": name,
-            "SessionID": sessionString,
-            name: payload,
-        ])
+    func command(code: UInt16, name: String, payload: Any?, accepted: Set<Int> = [100]) async throws -> [String: Any] {
+        var json: [String: Any] = ["Name": name, "SessionID": sessionString]
+        if let payload { json[name] = payload }
+        let response = try await send(code: code, json: json)
         let ret = response["Ret"] as? Int ?? 0
-        guard ret == 100 else {
+        guard accepted.contains(ret) else {
             throw DVRIPError.device(ret)
         }
         return response
+    }
+
+    /// Lê uma configuração (CONFIG_GET, código 1042), ex.: "Camera.Param.[0]".
+    func getConfig(_ name: String) async throws -> Any {
+        let response = try await command(code: 1042, name: name, payload: nil)
+        guard let value = response[name] else { throw DVRIPError.invalidResponse }
+        return value
+    }
+
+    /// Grava uma configuração (CONFIG_SET, código 1040). 603 = salvo, efetivo após reiniciar.
+    func setConfig(_ name: String, _ value: Any) async throws {
+        try await command(code: 1040, name: name, payload: value, accepted: [100, 603])
     }
 
     func close() {
