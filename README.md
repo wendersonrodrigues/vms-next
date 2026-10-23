@@ -32,8 +32,8 @@ Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configura�
 
 ## Instalação
 
-1. Baixe o arquivo **`VMS-Next-<versão>.zip`** na página de [Releases](https://github.com/wendersonrodrigues/vms-next/releases) e abra o zip.
-2. Arraste o **VMS Next** para a pasta **Aplicativos**.
+1. Baixe o **`VMS-Next-<versão>.dmg`** na página de [Releases](https://github.com/wendersonrodrigues/vms-next/releases/latest) e abra o arquivo.
+2. Na janela que abre, **arraste o VMS Next para a pasta Aplicativos** (a seta mostra o caminho). Depois pode ejetar o "VMS Next" na barra lateral do Finder. Também há um `.zip` para quem preferir.
 3. **Primeira abertura:** o app ainda não tem assinatura da Apple, então o macOS avisa que o desenvolvedor não foi identificado. Clique com o **botão direito** no app → **Abrir** → **Abrir**. Se o macOS não oferecer a opção, vá em **Ajustes do Sistema → Privacidade e Segurança** e clique em **Abrir Mesmo Assim**. Isso só é preciso uma vez.
 4. Permita o acesso à **Rede local** quando o macOS pedir: é assim que o app fala com as câmeras.
 5. Crie o **login do VMS Next** (usuário e senha só deste app). Ele protege o cofre onde ficam as senhas das câmeras.
@@ -168,7 +168,7 @@ A versão fica num lugar só, o `Resources/Info.plist`: o app inteiro (coluna la
 ./scripts/set-version.sh 1.1.0
 ```
 
-O `release.sh` compila, monta o app e gera `build/VMS-Next-<versão>.zip` com o resumo (SHA-256) para anexar a um Release no GitHub. As novidades de cada versão ficam no [CHANGELOG.md](CHANGELOG.md).
+O `release.sh` compila, monta o app e gera o instalador `build/VMS-Next-<versão>.dmg` (janela de arrastar para Aplicativos, feita pelo `make-dmg.sh`) e o `build/VMS-Next-<versão>.zip` com o resumo (SHA-256) para anexar a um Release no GitHub. As novidades de cada versão ficam no [CHANGELOG.md](CHANGELOG.md).
 
 ```bash
 ./scripts/release.sh
