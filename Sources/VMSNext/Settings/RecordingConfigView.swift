@@ -4,15 +4,48 @@ import SwiftUI
 /// No equipamento, cada dia tem 6 períodos ("1 00:00:00-10:30:00" = ativo + intervalo) e uma máscara por período
 /// (bit 0 normal, bit 1 detecção, bit 2 alarme). Na tela, a agenda é um quadro de 48 blocos de meia hora por dia,
 /// como no VMS antigo; ao aplicar, blocos vizinhos iguais viram um período.
+/// Gravação (Record) e foto (Storage.Snapshot) usam o mesmo formato de agenda; mudam o nome e os campos.
+struct ScheduleKind {
+    let title: String
+    /// Nomes tentados em ordem para o canal (base 0).
+    let configNames: (Int) -> [String]
+    let modeKey: String
+    let modes: [(value: String, label: String)]
+    let scheduledMode: String
+    let packetKey: String?
+    let preKey: String
+    let preLabel: String
+    let preUnit: String
+
+    static let recording = ScheduleKind(
+        title: "gravação",
+        configNames: { ["Record.[\($0)]"] },
+        modeKey: "RecordMode",
+        modes: [("ConfigRecord", "Por agenda"), ("ManualRecord", "Sempre gravando"), ("ClosedRecord", "Desligado")],
+        scheduledMode: "ConfigRecord",
+        packetKey: "PacketLength",
+        preKey: "PreRecord",
+        preLabel: "Pré-gravação",
+        preUnit: " s"
+    )
+
+    static let snapshot = ScheduleKind(
+        title: "foto",
+        configNames: { ["Storage.Snapshot.[\($0)]", "Snapshot.[\($0)]"] },
+        modeKey: "SnapMode",
+        modes: [("ConfigSnap", "Por agenda"), ("ManualSnap", "Sempre"), ("ClosedSnap", "Desligado")],
+        scheduledMode: "ConfigSnap",
+        packetKey: nil,
+        preKey: "PreSnap",
+        preLabel: "Pré-captura",
+        preUnit: " foto(s) antes do evento"
+    )
+}
+
 @MainActor
 final class RecordingConfigModel: ObservableObject {
     static let slotsPerDay = 48
     static let minutesPerSlot = 30
-    static let modes: [(value: String, label: String)] = [
-        ("ConfigRecord", "Por agenda"),
-        ("ManualRecord", "Sempre gravando"),
-        ("ClosedRecord", "Desligado"),
-    ]
     static let dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
 
     @Published private(set) var loading = false
@@ -22,7 +55,8 @@ final class RecordingConfigModel: ObservableObject {
     @Published private(set) var loaded = false
     @Published var diagnosticText: String?
 
-    @Published var mode = "ConfigRecord"
+    @Published var mode = ""
+    @Published private(set) var hasPacket = false
     @Published var packetMinutes = 60
     @Published var preRecordSeconds = 5
     @Published private(set) var hasRedundancy = false
@@ -31,23 +65,29 @@ final class RecordingConfigModel: ObservableObject {
     @Published var slots: [[Int]] = Array(repeating: Array(repeating: 0, count: 48), count: 7)
 
     let camera: Camera
+    let kind: ScheduleKind
     private var raw: Any?
     private var sectionsPerDay = 6
-    private var name: String { "Record.[\(camera.channel - 1)]" }
+    private var name: String
 
-    init(camera: Camera) {
+    init(camera: Camera, kind: ScheduleKind = .recording) {
         self.camera = camera
+        self.kind = kind
+        name = kind.configNames(camera.channel - 1)[0]
+        mode = kind.scheduledMode
     }
 
+    var isScheduled: Bool { mode == kind.scheduledMode }
+
     var modeOptions: [(value: String, label: String)] {
-        var options = Self.modes
+        var options = kind.modes
         if !options.contains(where: { $0.value == mode }) { options.append((mode, "Modo do equipamento (\(mode))")) }
         return options
     }
 
     /// Cada dia precisa caber nos períodos que o equipamento aceita.
     var validationError: String? {
-        guard mode == "ConfigRecord" else { return nil }
+        guard isScheduled else { return nil }
         for day in 0 ..< 7 where Self.runs(slots[day]).count > sectionsPerDay {
             return "\(Self.dayNames[day]) tem mais de \(sectionsPerDay) trechos diferentes; o equipamento aceita no máximo \(sectionsPerDay) por dia."
         }
@@ -61,14 +101,26 @@ final class RecordingConfigModel: ObservableObject {
         defer { loading = false }
         do {
             let client = try await DeviceSessions.shared.client(for: camera)
-            raw = try await client.getConfig(name)
+            raw = nil
+            for candidate in kind.configNames(camera.channel - 1) {
+                do {
+                    raw = try await client.getConfig(candidate)
+                    name = candidate
+                    break
+                } catch DVRIPError.device(607) {
+                    continue
+                }
+            }
             guard let record = ConfigValue.object(in: raw) else {
-                error = "Este equipamento não informou a configuração de gravação do canal \(camera.channel)."
+                error = "Este equipamento não tem configuração de \(kind.title) para o canal \(camera.channel)."
                 return
             }
-            mode = record["RecordMode"] as? String ?? "ConfigRecord"
-            packetMinutes = ConfigValue.int(record["PacketLength"]) ?? 60
-            preRecordSeconds = ConfigValue.int(record["PreRecord"]) ?? 5
+            mode = record[kind.modeKey] as? String ?? kind.scheduledMode
+            if let key = kind.packetKey, let value = ConfigValue.int(record[key]) {
+                hasPacket = true
+                packetMinutes = value
+            }
+            preRecordSeconds = ConfigValue.int(record[kind.preKey]) ?? 0
             if let value = record["Redundancy"] as? Bool {
                 hasRedundancy = true
                 redundancy = value
@@ -87,8 +139,6 @@ final class RecordingConfigModel: ObservableObject {
                 return row
             }
             loaded = true
-        } catch DVRIPError.device(let code) where code == 607 {
-            error = "Este equipamento não tem configuração de gravação para o canal \(camera.channel)."
         } catch {
             self.error = error.localizedDescription
         }
@@ -105,9 +155,9 @@ final class RecordingConfigModel: ObservableObject {
         notice = nil
         defer { saving = false }
 
-        record["RecordMode"] = mode
-        ConfigValue.set(&record, "PacketLength", packetMinutes)
-        ConfigValue.set(&record, "PreRecord", preRecordSeconds)
+        record[kind.modeKey] = mode
+        if let key = kind.packetKey { ConfigValue.set(&record, key, packetMinutes) }
+        ConfigValue.set(&record, kind.preKey, preRecordSeconds)
         if hasRedundancy { record["Redundancy"] = redundancy }
 
         var sections = record["TimeSection"] as? [[String]] ?? []
@@ -135,11 +185,11 @@ final class RecordingConfigModel: ObservableObject {
             try await client.setConfig(name, updated)
             self.raw = updated
             let check = ConfigValue.object(in: try await client.getConfig(name))
-            if let applied = check?["RecordMode"] as? String, applied != mode {
+            if let applied = check?[kind.modeKey] as? String, applied != mode {
                 error = "O equipamento aceitou o comando mas manteve o modo \(applied)."
                 return
             }
-            notice = "Configuração de gravação aplicada."
+            notice = "Configuração de \(kind.title) aplicada."
         } catch {
             self.error = error.localizedDescription
         }
@@ -154,7 +204,13 @@ final class RecordingConfigModel: ObservableObject {
     }
 
     func diagnostic() async -> String {
-        await ConfigDiagnostics.dump(camera: camera, requests: [(1042, name)])
+        let ch = camera.channel - 1
+        var names = kind.configNames(ch)
+        if kind.modeKey == ScheduleKind.snapshot.modeKey {
+            // Tela de foto do VMS antigo (intervalo / horários fixos com e-mail, FTP e disco).
+            names += ["Snap.SnapConfig", "Snap.SnapConfig.[\(ch)]", "Snap.Breviary", "Snap.Breviary.[\(ch)]"]
+        }
+        return await ConfigDiagnostics.dump(camera: camera, requests: names.map { (1042, $0) })
     }
 
     // MARK: - Conversões
@@ -198,8 +254,8 @@ final class RecordingConfigModel: ObservableObject {
 struct RecordingConfigView: View {
     @StateObject private var model: RecordingConfigModel
 
-    init(camera: Camera) {
-        _model = StateObject(wrappedValue: RecordingConfigModel(camera: camera))
+    init(camera: Camera, kind: ScheduleKind = .recording) {
+        _model = StateObject(wrappedValue: RecordingConfigModel(camera: camera, kind: kind))
     }
 
     var body: some View {
@@ -210,18 +266,20 @@ struct RecordingConfigView: View {
             } else {
                 Form {
                     if model.loaded {
-                        Section("Gravação") {
+                        Section(model.kind.title.capitalized) {
                             Picker("Modo", selection: $model.mode) {
                                 ForEach(model.modeOptions, id: \.value) { Text($0.label).tag($0.value) }
                             }
                             .pickerStyle(.segmented)
-                            Stepper("Tamanho de cada arquivo: \(model.packetMinutes) min", value: $model.packetMinutes, in: 1 ... 120)
-                            Stepper("Pré-gravação: \(model.preRecordSeconds) s", value: $model.preRecordSeconds, in: 0 ... 30)
+                            if model.hasPacket {
+                                Stepper("Tamanho de cada arquivo: \(model.packetMinutes) min", value: $model.packetMinutes, in: 1 ... 120)
+                            }
+                            Stepper("\(model.kind.preLabel): \(model.preRecordSeconds)\(model.kind.preUnit)", value: $model.preRecordSeconds, in: 0 ... 30)
                             if model.hasRedundancy {
                                 Toggle("Redundância", isOn: $model.redundancy)
                             }
                         }
-                        if model.mode == "ConfigRecord" {
+                        if model.isScheduled {
                             Section {
                                 WeekPlanGrid(slots: $model.slots, model: model)
                             } header: {

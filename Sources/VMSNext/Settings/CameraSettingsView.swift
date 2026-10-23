@@ -4,6 +4,7 @@ import SwiftUI
 enum SettingsCategory: String, CaseIterable, Identifiable {
     case imageParams
     case recording
+    case snapshot
     case disk
     case network
     case version
@@ -13,6 +14,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .imageParams: return "Parâmetros da cam"
         case .recording: return "Config. de gravação"
+        case .snapshot: return "Config. de foto"
         case .disk: return "Gerenciamento de disco"
         case .network: return "Rede"
         case .version: return "Versão"
@@ -22,6 +24,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .imageParams: return "camera.aperture"
         case .recording: return "record.circle"
+        case .snapshot: return "camera"
         case .disk: return "internaldrive"
         case .network: return "network"
         case .version: return "info.circle"
@@ -37,9 +40,9 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .recording, .disk, .network, .version]
+        case .camera: return [.imageParams, .recording, .snapshot, .disk, .network, .version]
         case .recorder: return [.disk, .network, .version]
-        case .channel: return [.imageParams, .recording]
+        case .channel: return [.imageParams, .recording, .snapshot]
         }
     }
 }
@@ -96,6 +99,9 @@ struct CameraSettingsView: View {
                         CameraParamsView(camera: camera)
                     case .recording:
                         RecordingConfigView(camera: camera)
+                    case .snapshot:
+                        RecordingConfigView(camera: camera, kind: .snapshot)
+                            .id("snapshot")
                     case .disk:
                         DiskView(camera: camera)
                     case .network:
