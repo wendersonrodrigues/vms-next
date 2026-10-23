@@ -3,8 +3,8 @@ import Foundation
 import UserNotifications
 
 /// Um alarme recebido de uma câmera ou NVR.
-struct AlarmEvent: Identifiable {
-    let id = UUID()
+struct AlarmEvent: Identifiable, Codable {
+    var id = UUID()
     let date: Date
     let deviceTime: String?
     let cameraName: String
@@ -68,7 +68,27 @@ enum AlarmKind: String, CaseIterable, Identifiable {
 final class AlarmCenter: ObservableObject {
     static let shared = AlarmCenter()
 
-    @Published private(set) var events: [AlarmEvent] = []
+    /// Histórico de alertas, guardado no Mac (events.json) para continuar depois de fechar o app.
+    @Published private(set) var events: [AlarmEvent] = [] {
+        didSet { scheduleSave() }
+    }
+    private var saveWork: DispatchWorkItem?
+    private static let historyURL: URL = {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("VMSNext", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("events.json")
+    }()
+
+    private func scheduleSave() {
+        saveWork?.cancel()
+        let snapshot = events
+        let work = DispatchWorkItem {
+            if let data = try? JSONEncoder().encode(snapshot) { try? data.write(to: Self.historyURL, options: .atomic) }
+        }
+        saveWork = work
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 2, execute: work)
+    }
     /// Estado da inscrição por equipamento (usuário@host:porta) para exibir na tela.
     @Published private(set) var deviceStatus: [String: String] = [:]
     @Published var enabled: Bool {
@@ -98,7 +118,7 @@ final class AlarmCenter: ObservableObject {
     private var subscribed: [String: DVRIPClient] = [:]
     private var timer: Timer?
     private var lastNotified: [String: Date] = [:]
-    private let maxEvents = 500
+    private var maxEvents: Int { AppPreferences.shared.maxEvents }
     private let notificationDelegate = NotificationDelegate()
     /// Último alerta por câmera física + tipo + início/fim, para juntar os repetidos.
     private var recent: [String: (date: Date, host: String)] = [:]
@@ -109,6 +129,11 @@ final class AlarmCenter: ObservableObject {
         notifyKinds = Set((saved ?? [AlarmKind.person.rawValue, AlarmKind.videoLoss.rawValue, AlarmKind.storage.rawValue])
             .compactMap(AlarmKind.init(rawValue:)))
         mergeDuplicates = defaults.object(forKey: "alarms.merge") as? Bool ?? true
+        loadSoundSettings()
+        if let data = try? Data(contentsOf: Self.historyURL),
+           let saved = try? JSONDecoder().decode([AlarmEvent].self, from: data) {
+            events = saved
+        }
     }
 
     func start(store: CameraStore) {
@@ -135,6 +160,7 @@ final class AlarmCenter: ObservableObject {
 
     func clear() {
         events.removeAll()
+        AppLog.shared.add(.alarm, "Lista de alertas limpa")
         unread = 0
     }
 
@@ -233,7 +259,38 @@ final class AlarmCenter: ObservableObject {
     }
 
     /// No máximo uma notificação por câmera e tipo a cada 60 s.
+    // MARK: - Som no Mac
+
+    /// Tipos que tocam um som no Mac quando chegam (como os sons de alarme do VMS antigo).
+    @Published var soundKinds: Set<AlarmKind> = [] {
+        didSet { defaults.set(soundKinds.map(\.rawValue), forKey: "alarms.soundKinds") }
+    }
+    /// Som de cada tipo: nome de um som do macOS ou caminho de um arquivo escolhido.
+    @Published var sounds: [String: String] = [:] {
+        didSet { defaults.set(sounds, forKey: "alarms.sounds") }
+    }
+    private var lastSound: [AlarmKind: Date] = [:]
+
+    static let systemSounds = ["Glass", "Ping", "Sosumi", "Submarine", "Funk", "Hero", "Basso", "Blow", "Bottle", "Frog", "Morse", "Pop", "Purr", "Tink"]
+
+    func sound(for kind: AlarmKind) -> String { sounds[kind.rawValue] ?? "Glass" }
+
+    func playSound(for kind: AlarmKind) {
+        let name = sound(for: kind)
+        let sound = name.hasPrefix("/") ? NSSound(contentsOfFile: name, byReference: true) : NSSound(named: NSSound.Name(name))
+        sound?.play()
+    }
+
+    private func loadSoundSettings() {
+        soundKinds = Set((defaults.stringArray(forKey: "alarms.soundKinds") ?? []).compactMap(AlarmKind.init(rawValue:)))
+        sounds = defaults.dictionary(forKey: "alarms.sounds") as? [String: String] ?? [:]
+    }
+
     private func notify(_ alarm: AlarmEvent) {
+        if soundKinds.contains(alarm.kind), Date().timeIntervalSince(lastSound[alarm.kind] ?? .distantPast) > 3 {
+            lastSound[alarm.kind] = Date()
+            playSound(for: alarm.kind)
+        }
         guard notifyKinds.contains(alarm.kind) else { return }
         let throttleKey = "\(alarm.cameraName)|\(alarm.kind.rawValue)"
         if let last = lastNotified[throttleKey], Date().timeIntervalSince(last) < 60 { return }

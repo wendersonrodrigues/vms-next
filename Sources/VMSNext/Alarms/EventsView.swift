@@ -1,20 +1,54 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Histórico de alarmes e preferências de notificação.
 struct EventsView: View {
     @ObservedObject var center: AlarmCenter
     @EnvironmentObject private var store: CameraStore
     let onOpenCamera: (Camera.ID) -> Void
+    /// Abre a gravação da câmera no momento do alerta.
+    let onOpenRecording: (Camera.ID, Date) -> Void
+
+    @StateObject private var state = EventsUIState()
 
     var body: some View {
-        HStack(spacing: 0) {
-            preferences
-                .frame(width: 300)
-            Divider()
-            history
+        Group {
+            if state.tab == .log {
+                LogsView()
+            } else {
+                alertsPane
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Mostrar", selection: $state.tab) {
+                    Text("Alertas").tag(EventsUIState.Tab.alerts)
+                    Text("Registro").tag(EventsUIState.Tab.log)
+                }
+                .pickerStyle(.segmented)
+                .help("Alertas das câmeras ou o registro de tudo o que aconteceu (no app e nos equipamentos)")
+            }
         }
         .onAppear { center.markAllRead() }
         .onChange(of: center.events.count) { center.markAllRead() }
+    }
+
+    private var alertsPane: some View {
+        history
+            .inspector(isPresented: $state.showSettings) {
+                preferences
+                    .inspectorColumnWidth(min: 280, ideal: 320, max: 400)
+            }
+            .toolbar {
+                ToolbarItem {
+                    Button {
+                        state.showSettings.toggle()
+                    } label: {
+                        Label("Ajustes dos alertas", systemImage: "slider.horizontal.3")
+                    }
+                    .help("Ajustes dos alertas: notificações, sons, alertas repetidos e mesma câmera no NVR")
+                }
+            }
     }
 
     private var preferences: some View {
@@ -73,6 +107,37 @@ struct EventsView: View {
                 }
             }
             .disabled(!center.enabled)
+            Section {
+                ForEach(AlarmKind.allCases) { kind in
+                    HStack {
+                        Toggle(isOn: Binding(
+                            get: { center.soundKinds.contains(kind) },
+                            set: { on in if on { center.soundKinds.insert(kind) } else { center.soundKinds.remove(kind) } }
+                        )) {
+                            Label(kind.label, systemImage: kind.icon)
+                        }
+                        Spacer()
+                        Menu(soundTitle(kind)) {
+                            ForEach(AlarmCenter.systemSounds, id: \.self) { name in
+                                Button(name) { center.sounds[kind.rawValue] = name; center.playSound(for: kind) }
+                            }
+                            Divider()
+                            Button("Arquivo de som…") { chooseSound(for: kind) }
+                        }
+                        .fixedSize()
+                        .disabled(!center.soundKinds.contains(kind))
+                        Button { center.playSound(for: kind) } label: { Image(systemName: "play.circle") }
+                            .buttonStyle(.borderless)
+                            .help("Ouvir")
+                    }
+                }
+            } header: {
+                Text("Som no Mac (Configurações de alarme)")
+            } footer: {
+                Text("Toca um som quando o alerta chega, mesmo com a janela fechada. Dá para usar um som do macOS ou um arquivo seu (WAV, MP3, AIFF).")
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!center.enabled)
             if !center.deviceStatus.isEmpty {
                 Section("Equipamentos") {
                     ForEach(center.deviceStatus.keys.sorted(), id: \.self) { name in
@@ -86,6 +151,20 @@ struct EventsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func soundTitle(_ kind: AlarmKind) -> String {
+        let name = center.sound(for: kind)
+        return name.hasPrefix("/") ? URL(fileURLWithPath: name).lastPathComponent : name
+    }
+
+    private func chooseSound(for kind: AlarmKind) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio]
+        panel.canChooseFiles = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        center.sounds[kind.rawValue] = url.path
+        center.playSound(for: kind)
     }
 
     @ViewBuilder
@@ -119,7 +198,10 @@ struct EventsView: View {
                 }
             } else {
                 List(center.events) { event in
-                    EventRow(event: event)
+                    EventRow(event: event,
+                             camera: event.cameraID.flatMap { id in store.cameras.first { $0.id == id } },
+                             onLive: { if let id = event.cameraID { onOpenCamera(id) } },
+                             onRecording: { if let id = event.cameraID { onOpenRecording(id, event.date) } })
                         .contentShape(Rectangle())
                         .onTapGesture(count: 2) {
                             if let id = event.cameraID { onOpenCamera(id) }
@@ -127,6 +209,7 @@ struct EventsView: View {
                         .contextMenu {
                             if let id = event.cameraID {
                                 Button("Ver ao vivo") { onOpenCamera(id) }
+                                Button("Ver gravação deste momento") { onOpenRecording(id, event.date) }
                             }
                         }
                 }
@@ -144,27 +227,65 @@ struct EventsView: View {
     }
 }
 
+final class EventsUIState: ObservableObject {
+    enum Tab { case alerts, log }
+    @Published var showSettings = false
+    @Published var tab: Tab = .alerts
+}
+
+/// Linha do histórico, compacta: hora, o que aconteceu e onde, e atalhos para o ao vivo e a gravação.
 private struct EventRow: View {
     let event: AlarmEvent
+    let camera: Camera?
+    let onLive: () -> Void
+    let onRecording: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
+            Text(event.date.formatted(date: .omitted, time: .standard))
+                .monospacedDigit()
+                .fontWeight(event.isStart ? .semibold : .regular)
+                .frame(width: 70, alignment: .leading)
             Image(systemName: event.kind.icon)
-                .frame(width: 24)
+                .frame(width: 20)
                 .foregroundStyle(event.isStart ? Color.accentColor : .secondary)
             VStack(alignment: .leading, spacing: 2) {
-                Text(event.kind == .other ? event.event : event.kind.label)
-                    .fontWeight(event.isStart ? .semibold : .regular)
-                Text(event.cameraName).font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(event.kind == .other ? event.event : event.kind.label)
+                        .fontWeight(event.isStart ? .semibold : .regular)
+                    Text(event.isStart ? "início" : "fim")
+                        .font(.caption2)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(Color.primary.opacity(0.08)))
+                        .foregroundStyle(.secondary)
+                }
+                Text(details).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(event.date.formatted(date: .omitted, time: .standard)).monospacedDigit()
-                Text(event.isStart ? "início · \(event.event)" : "fim · \(event.event)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            .frame(minWidth: 220, alignment: .leading)
+            Spacer(minLength: 12)
+            if event.cameraID != nil {
+                Button(action: onLive) {
+                    Label("Ao vivo", systemImage: "video")
+                }
+                .help("Abrir esta câmera ao vivo")
+                Button(action: onRecording) {
+                    Label("Gravação", systemImage: "play.rectangle")
+                }
+                .help("Abrir a gravação no momento deste alerta")
             }
         }
+        .controlSize(.small)
+        .frame(maxWidth: 980, alignment: .leading)
         .opacity(event.isStart ? 1 : 0.6)
+    }
+
+    /// Câmera, NVR/canal e o nome técnico do evento.
+    private var details: String {
+        var parts = [camera?.displayName ?? event.cameraName]
+        if let camera, camera.group == nil, camera.channel > 1 { parts.append("canal \(camera.channel)") }
+        if let camera, camera.group != nil { parts.append("canal \(camera.channel)") }
+        parts.append(event.event)
+        return parts.joined(separator: " · ")
     }
 }
