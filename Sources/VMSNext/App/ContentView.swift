@@ -22,6 +22,9 @@ struct ContentView: View {
             } detail: {
                 detail
             }
+            // Barra do topo com as cores do tema (não o cinza do sistema).
+            .toolbarBackground(Theme.surface, for: .windowToolbar)
+            .toolbarBackground(.visible, for: .windowToolbar)
         }
         .onChange(of: ui.mode) { old, new in
             if new == .events { alarms.markAllRead() }
@@ -560,7 +563,7 @@ struct ContentView: View {
         } label: {
             TemplateThumbnail(template: template, selected: ui.templateID == id)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hover)
         .help(template.map(Self.templateTitle) ?? "Auto: todas as câmeras, no melhor tamanho")
     }
 
@@ -641,6 +644,7 @@ struct ContentView: View {
                 templateButton(nil)
                 ForEach(ViewTemplate.builtIns) { templateButton($0) }
                 ForEach(layouts.custom) { templateButton($0) }
+                // Só o personalizado fica fora dos ícones: criar ou editar um modelo próprio.
                 Button { ui.editingTemplate = true } label: {
                     Image(systemName: "plus.rectangle.on.rectangle")
                         .font(.system(size: 15, weight: .semibold))
@@ -649,31 +653,17 @@ struct ContentView: View {
                         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.hover)
                 .help("Criar ou editar um modelo personalizado (o \"25\" do VMS antigo)")
             }
-            Menu {
-                Picker("Modelo de tela", selection: $ui.templateID) {
-                    Text("Auto (todas, no melhor tamanho)").tag(ViewTemplate.autoID)
-                    ForEach(ViewTemplate.builtIns) { Text(Self.templateTitle($0)).tag($0.id) }
-                    if !layouts.custom.isEmpty {
-                        Divider()
-                        ForEach(layouts.custom) { Text($0.name).tag($0.id) }
-                    }
+            // Voltar à ordem da lista (desfaz as câmeras arrastadas neste modelo).
+            if let template = currentTemplate {
+                BarButton(icon: "arrow.uturn.backward", title: "Ordem da lista",
+                          help: "Voltar à ordem da lista: desfaz as câmeras arrastadas neste modelo") {
+                    layouts.reset(template: template, context: gridContext)
                 }
-                .pickerStyle(.inline)
-                Divider()
-                Button("Novo modelo / editar…") { ui.editingTemplate = true }
-                if let template = currentTemplate {
-                    Button("Voltar à ordem da lista") { layouts.reset(template: template, context: gridContext) }
-                        .disabled(!layouts.hasAssignments(template, context: gridContext))
-                }
-            } label: {
-                Label("Modelo: \(templateLabel)", systemImage: "rectangle.3.group")
+                .disabled(!layouts.hasAssignments(template, context: gridContext))
             }
-            .fixedSize()
-            .help("Modelo de tela. Nos modelos, arraste câmeras da lista para os quadros.")
-            .onChange(of: ui.templateID) { ui.page = 0 }
 
             if pageCount > 1 {
                 ControlGroup {
@@ -692,9 +682,9 @@ struct ContentView: View {
                 Label(rotation.running ? "Parar rodízio" : "Rodízio de telas",
                       systemImage: rotation.running ? "stop.circle" : "arrow.triangle.2.circlepath.circle")
             }
+            .buttonStyle(.hover)
             .help(rotation.running ? "Parar o rodízio de telas" : "Passa sozinho pelas telas escolhidas (Tour do VMS antigo)")
-            Button { ui.editingRotation = true } label: { Image(systemName: "slider.horizontal.3") }
-                .help("Escolher as telas e o tempo do rodízio")
+            BarButton(icon: "slider.horizontal.3", help: "Escolher as telas e o tempo do rodízio") { ui.editingRotation = true }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)

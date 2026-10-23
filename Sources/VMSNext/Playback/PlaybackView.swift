@@ -140,6 +140,7 @@ struct PlaybackView: View {
         HStack(spacing: 0) {
             searchPanel
                 .frame(width: 300)
+                .background(Theme.sidebar)
             Divider()
             player
         }
@@ -281,98 +282,88 @@ struct PlaybackView: View {
                         .onChange(of: proxy.size) { zoom.viewSize = proxy.size }
                 }
                 overlay
-                if session.recording != nil { ZoomControls(zoom: zoom) }
             }
             .background(Color.black)
 
-            VStack(spacing: 6) {
+            // Barra de baixo no mesmo estilo do ao vivo: controles no centro, ferramentas à direita.
+            VStack(spacing: 8) {
                 seekBar
-                HStack(spacing: 12) {
-                    Button {
-                        session.skip(by: -10)
-                    } label: {
-                        Image(systemName: "gobackward.10")
-                    }
-                    .help("Voltar 10 s")
-                    .disabled(session.recording == nil)
-
-                    Button {
-                        if session.status == .finished {
-                            session.seek(to: 0)
-                        } else {
-                            session.togglePause()
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(session.camera?.displayName ?? "Gravação").font(.headline).lineLimit(1)
+                        if let clock = session.clock {
+                            Text(clock.formatted(date: .abbreviated, time: .standard))
+                                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                         }
+                    }
+                    .frame(minWidth: 150, alignment: .leading)
+                    Spacer()
+                    let hasRecording = session.recording != nil
+                    BarButton(icon: "gobackward.10", help: "Voltar 10 s") { session.skip(by: -10) }
+                        .disabled(!hasRecording)
+                    Button {
+                        if session.status == .finished { session.seek(to: 0) } else { session.togglePause() }
                     } label: {
                         Image(systemName: session.status == .playing ? "pause.fill" : "play.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 42, height: 42)
+                            .background(Circle().fill(Theme.accentGradient))
+                            .shadow(color: Theme.accent.opacity(0.5), radius: 8)
                     }
+                    .buttonStyle(.hover)
                     .disabled(![.playing, .paused, .finished].contains(session.status))
-
-                    Button {
-                        session.skip(by: 10)
-                    } label: {
-                        Image(systemName: "goforward.10")
-                    }
-                    .help("Avançar 10 s")
-                    .disabled(session.recording == nil)
-
-                    Button {
-                        session.stop()
-                    } label: {
-                        Image(systemName: "stop.fill")
-                    }
-                    .disabled(session.status == .idle)
-
-                    Button {
-                        if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
-                    } label: {
-                        Label("Baixar", systemImage: "arrow.down.circle")
-                    }
-                    .help("Baixar esta gravação em MP4")
-                    .disabled(session.recording == nil)
-
-                    Button {
-                        takePhoto(zoomed: false)
-                    } label: {
-                        Label("Foto", systemImage: "camera")
-                    }
-                    .help("Salvar uma foto do quadro que está na tela")
-                    .disabled(session.recording == nil)
-
-                    if zoom.scale > 1 {
-                        Button {
-                            takePhoto(zoomed: true)
-                        } label: {
-                            Label("Foto do zoom", systemImage: "camera.viewfinder")
-                        }
-                        .help("Salvar só a parte ampliada pelo zoom digital")
-                    }
-
-                    if session.hasAudio {
-                        SpeakerButton(id: session.audioID, setAudio: session.setAudio)
-                            .disabled(session.speed != 1)
-                    }
-
+                    .help(session.status == .playing ? "Pausar" : "Reproduzir")
+                    BarButton(icon: "goforward.10", help: "Avançar 10 s") { session.skip(by: 10) }
+                        .disabled(!hasRecording)
+                    BarButton(icon: "stop.fill", help: "Parar") { session.stop() }
+                        .disabled(session.status == .idle)
                     Picker("Velocidade", selection: Binding(get: { session.speed }, set: { session.setSpeed($0) })) {
                         ForEach([0.5, 1, 2, 4, 8], id: \.self) { Text("\($0 == 0.5 ? "½" : String(Int($0)))×").tag($0) }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 220)
-
+                    .labelsHidden()
+                    .frame(width: 200)
                     Spacer()
-
-                    if let clock = session.clock {
-                        Text(clock.formatted(date: .abbreviated, time: .standard))
-                            .monospacedDigit()
+                    if session.hasAudio {
+                        SpeakerButton(id: session.audioID, setAudio: session.setAudio)
+                            .buttonStyle(.hover)
+                            .font(.system(size: 18))
+                            .disabled(session.speed != 1)
                     }
-                    if let message = browser.photoMessage {
-                        Text(message).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    HStack(spacing: 4) {
+                        BarButton(icon: "minus.magnifyingglass", help: "Diminuir o zoom digital") { zoom.step(-1) }
+                            .disabled(zoom.scale <= 1 || !hasRecording)
+                        Button { zoom.reset() } label: {
+                            Text(String(format: "%.1f×", zoom.scale)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
+                                .frame(width: 40)
+                        }
+                        .buttonStyle(.hover)
+                        .disabled(zoom.scale <= 1)
+                        .help("Voltar ao tamanho normal")
+                        BarButton(icon: "plus.magnifyingglass", help: "Zoom digital (também pinça no trackpad e arrastar para mover)") { zoom.step(1) }
+                            .disabled(zoom.scale >= DigitalZoom.maximum || !hasRecording)
                     }
-                    if !session.info.isEmpty {
-                        Text(session.info).font(.caption).foregroundStyle(.secondary)
+                    BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do quadro que está na tela") { takePhoto(zoomed: false) }
+                        .disabled(!hasRecording)
+                    if zoom.scale > 1 {
+                        BarButton(icon: "camera.viewfinder", title: "Foto do zoom", help: "Salvar só a parte ampliada pelo zoom digital") {
+                            takePhoto(zoomed: true)
+                        }
                     }
+                    BarButton(icon: "arrow.down.circle", title: "Baixar", help: "Baixar esta gravação em MP4") {
+                        if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
+                    }
+                    .disabled(!hasRecording)
+                }
+                if let message = browser.photoMessage ?? (session.info.isEmpty ? nil : session.info) {
+                    Text(message).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
-            .padding(10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Theme.surface)
         }
     }
 

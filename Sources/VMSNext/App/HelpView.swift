@@ -11,7 +11,7 @@ struct HelpView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 16) {
-                    Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 84, height: 84)
+                    AppLogo(size: 84)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("VMS Next").font(.largeTitle.weight(.bold))
                         Text("Versão \(version)").foregroundStyle(.secondary)

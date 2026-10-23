@@ -69,10 +69,7 @@ struct HomeView: View {
                 LinearGradient(colors: [Color.accentColor, Color.indigo.opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing)
             }
             HStack(spacing: 20) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 136, height: 136)
+                AppLogo(size: 136)
                     .shadow(radius: 8, y: 4)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("VMS Next")
@@ -371,7 +368,7 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hover)
     }
 
     // MARK: - Peças

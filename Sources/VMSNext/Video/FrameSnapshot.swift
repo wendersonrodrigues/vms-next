@@ -21,8 +21,8 @@ enum FrameSnapshot {
 
     /// Grava um JPEG na pasta de fotos das Preferências (ou pergunta onde, se estiver configurado assim).
     /// Com `zoom`, salva só a parte visível da imagem ampliada. Devolve nil se a pessoa cancelar.
-    static func save(from renderer: AVSampleBufferVideoRenderer, name: String, zoom: DigitalZoom?) throws -> URL? {
-        guard let data = jpeg(from: renderer, zoom: zoom) else { throw Failure.noFrame }
+    static func save(from renderer: AVSampleBufferVideoRenderer, name: String, zoom: DigitalZoom?, crop: SplitPart = .full) throws -> URL? {
+        guard let data = jpeg(from: renderer, zoom: zoom, crop: crop) else { throw Failure.noFrame }
         let prefs = AppPreferences.shared
         guard let url = prefs.destination(named: name, in: prefs.photoFolder, type: .jpeg) else { return nil }
         try data.write(to: url)
@@ -31,13 +31,23 @@ enum FrameSnapshot {
     }
 
     /// JPEG do quadro na tela (inteiro ou só a parte ampliada). nil se ainda não há imagem.
-    static func jpeg(from renderer: AVSampleBufferVideoRenderer, zoom: DigitalZoom?) -> Data? {
+    /// `crop`: metade de cima ou de baixo (split virtual); a foto sai só com essa metade.
+    static func jpeg(from renderer: AVSampleBufferVideoRenderer, zoom: DigitalZoom?, crop: SplitPart = .full) -> Data? {
         guard #available(macOS 14.4, *), let buffer = renderer.displayedPixelBuffer() else { return nil }
         let image = CIImage(cvPixelBuffer: buffer)
-        var region = image.extent
+        let full = image.extent
+        // A imagem do CoreImage tem origem embaixo: a metade de cima é a de y maior.
+        let base: CGRect
+        switch crop {
+        case .full: base = full
+        case .top: base = CGRect(x: full.minX, y: full.midY, width: full.width, height: full.height / 2)
+        case .bottom: base = CGRect(x: full.minX, y: full.minY, width: full.width, height: full.height / 2)
+        }
+        var region = base
         if let zoom, zoom.scale > 1, zoom.viewSize.width > 0 {
-            region = visibleRegion(view: zoom.viewSize, image: image.extent.size, zoom: zoom.scale,
-                                   pan: zoom.clampedPan(in: zoom.viewSize)).integral.intersection(image.extent)
+            region = visibleRegion(view: zoom.viewSize, image: base.size, zoom: zoom.scale,
+                                   pan: zoom.clampedPan(in: zoom.viewSize))
+                .offsetBy(dx: base.minX, dy: base.minY).integral.intersection(base)
         }
         guard !region.isEmpty, let cgImage = CIContext().createCGImage(image, from: region) else { return nil }
         return NSBitmapImageRep(cgImage: cgImage).representation(using: .jpeg, properties: [.compressionFactor: 0.92])

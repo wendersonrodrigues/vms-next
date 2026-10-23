@@ -74,7 +74,7 @@ struct CameraTile: View {
             Spacer()
             if stream.hasAudio, part != .bottom {
                 SpeakerButton(id: stream.audioID, setAudio: stream.setAudio)
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.hover)
                     .font(.system(size: 20))
             }
             // HD = vídeo principal (qualidade máxima); SD = vídeo extra, mais leve para rede lenta.
@@ -97,8 +97,14 @@ struct CameraTile: View {
                     .disabled(zoom.scale >= DigitalZoom.maximum)
                     .help("Zoom digital: amplia a imagem no Mac (qualquer câmera). Também: pinça no trackpad e arrastar para mover.")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.hover)
             .font(.system(size: 20))
+            BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do quadro que está na tela") { takePhoto(zoomed: false) }
+            if zoom.scale > 1 {
+                BarButton(icon: "camera.viewfinder", title: "Foto do zoom", help: "Salvar só a parte ampliada pelo zoom digital") {
+                    takePhoto(zoomed: true)
+                }
+            }
             Button {
                 recorder.toggle(camera)
             } label: {
@@ -112,7 +118,7 @@ struct CameraTile: View {
                     .padding(.vertical, 5)
                     .background(RoundedRectangle(cornerRadius: 7).fill(isRecording ? Color.red : Color.primary.opacity(0.08)))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hover)
             .help("Gravar esta câmera no disco do Mac (vídeo principal), na pasta das Preferências")
             Button {
                 single.showPTZ.wrappedValue.toggle()
@@ -124,7 +130,7 @@ struct CameraTile: View {
                     .background(RoundedRectangle(cornerRadius: 7)
                         .fill(single.showPTZ.wrappedValue ? Color.accentColor.opacity(0.25) : Color.primary.opacity(0.08)))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hover)
             .help("Mostrar os controles de movimento (PTZ), zoom óptico, foco e presets")
         }
         .padding(.horizontal, 16)
@@ -159,8 +165,21 @@ struct CameraTile: View {
             .saturation(selected ? 1 : 0)
             .shadow(color: selected ? Theme.accent.opacity(0.7) : .clear, radius: 6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hover)
         .help(help)
+    }
+
+    /// Foto do quadro ao vivo (inteiro ou só a parte ampliada), na pasta de fotos das Preferências.
+    private func takePhoto(zoomed: Bool) {
+        let renderer = (part == .bottom ? stream.mirrorLayer() : stream.displayLayer).sampleBufferRenderer
+        let name = "\(camera.title(for: part)) \(AppPreferences.stamp(Date()))\(zoomed ? " zoom" : "")"
+        do {
+            if try FrameSnapshot.save(from: renderer, name: name, zoom: zoomed ? zoom : nil, crop: part) != nil {
+                NSSound(named: "Grab")?.play()
+            }
+        } catch {
+            NSSound.beep()
+        }
     }
 
     @ViewBuilder
@@ -222,7 +241,7 @@ struct CameraTile: View {
                     Spacer()
                     if stream.hasAudio, part != .bottom {
                         SpeakerButton(id: stream.audioID, setAudio: stream.setAudio)
-                            .buttonStyle(.plain)
+                            .buttonStyle(.hover)
                             .font(.caption)
                             .padding(5)
                             .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))

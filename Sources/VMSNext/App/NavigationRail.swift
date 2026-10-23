@@ -46,10 +46,7 @@ struct NavigationRail: View {
     var body: some View {
         VStack(spacing: 6) {
             // Logo do app (maior que os ícones do menu).
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .interpolation(.high)
-                .frame(width: 66, height: 66)
+            AppLogo(size: 66)
                 .padding(.top, 2)
                 .padding(.bottom, 8)
                 .help("VMS Next")
@@ -137,7 +134,7 @@ struct NavigationRail: View {
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hover)
         .help(title)
     }
 }
@@ -156,9 +153,7 @@ struct PreferencesView: View {
         Form {
             Section {
                 HStack(spacing: 14) {
-                    Image(nsImage: NSApp.applicationIconImage)
-                        .resizable()
-                        .frame(width: 56, height: 56)
+                    AppLogo(size: 56)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Preferências do app").font(.title2.weight(.bold))
                         Text("Valem para o VMS Next neste Mac. As configurações de cada câmera ficam em Configurações.")

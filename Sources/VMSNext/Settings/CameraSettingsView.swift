@@ -431,7 +431,7 @@ struct SettingsMenu: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.stroke))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hover)
         .help(category.subtitle)
     }
 }
