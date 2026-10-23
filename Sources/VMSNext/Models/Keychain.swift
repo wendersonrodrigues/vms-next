@@ -2,6 +2,7 @@ import Foundation
 import Security
 
 /// Senhas das câmeras no Keychain do macOS (item genérico por usuário@host).
+/// Usado só para trazer as senhas das versões anteriores para o cofre (Vault) no primeiro login.
 enum Keychain {
     private static let service = "VMSNext.camera"
 

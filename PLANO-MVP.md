@@ -12,7 +12,7 @@ Substituto nativo (Swift + SwiftUI, arm64) do VMS V2.2.1.1 da Xiongmai, que é s
 
 1. **Cadastro de câmeras**
    - Nome, IP, porta RTSP (554), canal, stream (principal/extra), usuário.
-   - Senha digitada pelo usuário no app e guardada no **Keychain** do macOS.
+   - Senha digitada pelo usuário no app e guardada no cofre criptografado do app (antes: Keychain; trocado porque o app assinado ad-hoc fazia o macOS pedir a senha do Mac a cada nova versão).
    - Importação de nome/IP/canais do `devices.db` do VMS antigo (sem senhas).
 2. **Visualização ao vivo**
    - RTSP com autenticação Digest, transporte TCP interleaved.
@@ -63,7 +63,7 @@ VMS-Project/
   Package.swift
   Sources/VMSNext/
     App/          VMSNextApp, ContentView
-    Models/       Camera, CameraStore (JSON + Keychain)
+    Models/       Camera, CameraStore (JSON), Vault (cofre de senhas)
     Streaming/    RTSPClient, RTPDepacketizer (H264/H265), DigestAuth
     Video/        VideoLayerView (AVSampleBufferDisplayLayer)
     Import/       LegacyVMSImporter (devices.db)

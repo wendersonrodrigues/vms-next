@@ -2,7 +2,7 @@ import Foundation
 import SQLite3
 
 /// Lê nome, IP, usuário e canais do devices.db do VMS da Xiongmai.
-/// As senhas não são importadas: o usuário as digita no app e elas vão para o Keychain.
+/// As senhas não são importadas: o usuário as digita no app e elas vão para o cofre do app.
 enum LegacyVMSImporter {
     static let defaultPath = "/Applications/VMS.app/Contents/MacOS/data/users/admin/devices.db"
 

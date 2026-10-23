@@ -21,7 +21,7 @@ struct Camera: Codable, Identifiable, Hashable {
 
     static let xiongmaiPathTemplate = "/user={user}&password={password}&channel={channel}&stream={stream}.sdp?real_stream"
 
-    /// A senha fica no Keychain por usuário@host, então todos os canais de um NVR a compartilham.
+    /// A senha fica no cofre (Vault) por usuário@host, então todos os canais de um NVR a compartilham.
     var keychainAccount: String { "\(username)@\(host)" }
 
     init(name: String, host: String, channel: Int = 1, username: String = "admin", group: String? = nil) {

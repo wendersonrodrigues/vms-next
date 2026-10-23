@@ -17,7 +17,8 @@ Substitui o **VMS V2.2.1.1** da Xiongmai, um app Qt 5.7 compilado só para Intel
 
 ### Câmeras
 - Cadastro manual (nome, IP, portas, canal, usuário) ou **importação do VMS antigo** (lê nome, IP e canais do `devices.db`; as senhas não são importadas).
-- Senhas guardadas no **Keychain** do macOS, compartilhadas por todos os canais do mesmo equipamento.
+- **Login ao abrir o app**, com opção "Lembrar senha", como no VMS antigo.
+- Senhas das câmeras num **cofre criptografado** do app (AES-GCM, chave derivada da senha do VMS Next), compartilhadas por todos os canais do mesmo equipamento. Sem pedidos da senha do Mac.
 - Caminho RTSP configurável (padrão Xiongmai já preenchido).
 
 ### PTZ
@@ -88,7 +89,7 @@ O projeto é um Swift Package (`Package.swift`) e também abre direto no Xcode.
 | PTZ | `Sources/VMSNext/PTZ` | Comandos `OPPTZControl` e painel de controle |
 | Reprodução | `Sources/VMSNext/Playback` | Busca (`OPFileQuery`), conexão de mídia (Claim), parser dos quadros Xiongmai e player com ritmo próprio |
 | Configurações | `Sources/VMSNext/Settings` | Telas de Parâmetros da cam, Rede, Versão e diagnóstico |
-| Modelos | `Sources/VMSNext/Models` | Câmeras (`cameras.json` em Application Support) e Keychain |
+| Modelos | `Sources/VMSNext/Models` | Câmeras (`cameras.json` em Application Support) e cofre de senhas (`vault.json`) |
 | Importação | `Sources/VMSNext/Import` | Leitura do `devices.db` do VMS antigo |
 
 ## Aviso

@@ -65,11 +65,11 @@ final class CameraStore: ObservableObject {
     }
 
     func password(for camera: Camera) -> String? {
-        Keychain.password(for: camera.keychainAccount)
+        Vault.shared.password(for: camera.keychainAccount)
     }
 
     func setPassword(_ password: String, for camera: Camera) {
-        Keychain.setPassword(password, for: camera.keychainAccount)
+        Vault.shared.setPassword(password, for: camera.keychainAccount)
         passwordRevision += 1
         let account = camera.keychainAccount
         Task { @MainActor in DeviceSessions.shared.invalidate(account: account) }
@@ -83,18 +83,23 @@ final class CameraStore: ObservableObject {
         }
     }
 
-    /// Atualiza todas as câmeras de um IP (ex.: canais de um NVR) e leva a senha junto no Keychain.
+    /// Atualiza todas as câmeras de um IP (ex.: canais de um NVR) e leva a senha junto no cofre.
     func changeHost(from old: String, to new: String) {
         guard old != new else { return }
         for index in cameras.indices where cameras[index].host == old {
             let before = cameras[index]
             cameras[index].host = new
-            if let password = Keychain.password(for: before.keychainAccount),
-               Keychain.password(for: cameras[index].keychainAccount) == nil
+            if let password = Vault.shared.password(for: before.keychainAccount),
+               Vault.shared.password(for: cameras[index].keychainAccount) == nil
             {
-                Keychain.setPassword(password, for: cameras[index].keychainAccount)
+                Vault.shared.setPassword(password, for: cameras[index].keychainAccount)
             }
         }
+        passwordRevision += 1
+    }
+
+    /// Depois do login, os mosaicos tentam conectar de novo com as senhas do cofre.
+    func vaultDidUnlock() {
         passwordRevision += 1
     }
 

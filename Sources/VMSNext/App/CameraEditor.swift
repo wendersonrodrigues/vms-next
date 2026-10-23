@@ -30,7 +30,7 @@ struct CameraEditor: View {
                 } header: {
                     Text("Acesso")
                 } footer: {
-                    Text("A senha fica no Keychain do macOS e vale para todos os canais do mesmo IP e usuário.")
+                    Text("A senha fica no cofre criptografado do VMS Next e vale para todos os canais do mesmo IP e usuário.")
                         .foregroundStyle(.secondary)
                 }
                 Section {
