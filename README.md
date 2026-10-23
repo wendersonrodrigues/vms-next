@@ -1,10 +1,31 @@
 # VMS Next
 
+<p align="center">
+  <img src="docs/images/capa.jpg" alt="VMS Next: Início e mosaico ao vivo" width="100%">
+</p>
+
 App nativo para **Mac com Apple Silicon** dedicado a câmeras e NVRs **Xiongmai** (XMEye / iCSee), feito em Swift e SwiftUI.
 
 Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configurações dos equipamentos. Roda em arm64, decodifica vídeo pelo hardware do chip M e conversa direto com as câmeras pela rede local, sem nuvem e sem o SDK da fabricante. Cobre as funções do VMS V2.2.1.1 para Mac (app para Intel, que depende do Rosetta) e acrescenta outras.
 
 Versão atual: **1.0.0**. Código aberto, [licença MIT](LICENSE).
+
+## Telas
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/inicio.jpg" alt="Início"><br><sub><b>Início</b>: clima, alertas, discos e conexão dos equipamentos</sub></td>
+    <td width="50%"><img src="docs/images/ao-vivo-mosaico.jpg" alt="Mosaico ao vivo"><br><sub><b>Ao vivo</b>: modelos de tela, split virtual e rodízio</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/ao-vivo-camera.jpg" alt="Câmera em tela cheia"><br><sub><b>Câmera em tela cheia</b>: som, HD/SD, zoom, foto, gravar e PTZ</sub></td>
+    <td><img src="docs/images/gravacoes.jpg" alt="Gravações"><br><sub><b>Gravações</b>: busca por dia, player, zoom, foto e MP4</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/eventos.jpg" alt="Eventos"><br><sub><b>Eventos</b>: alertas com atalhos para o ao vivo e a gravação</sub></td>
+    <td><img src="docs/images/config-imagem.jpg" alt="Configurações da câmera"><br><sub><b>Config. câmeras</b>: ajustes com prévia ilustrada</sub></td>
+  </tr>
+</table>
 
 ## Instalação
 
