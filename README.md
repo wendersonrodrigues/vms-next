@@ -42,6 +42,9 @@ Janela de configurações por câmera (botão direito → **Configurações…**
   - *Alerta de luz dupla* (infravermelho; a luz branca acende ao detectar pessoas), com sensibilidade e duração da luz.
 - No **NVR**, as configurações do equipamento (Rede, Versão) ficam separadas das de cada canal (Parâmetros da cam).
 - **Rede**: IP, máscara, gateway, DHCP, DNS e porta HTTP, com validação, confirmação antes de trocar o endereço e atualização automática das câmeras daquele IP no app.
+- **Config. de gravação**: modo, tamanho do arquivo, pré-gravação e **agenda semanal pintável** (normal, detecção, alarme em blocos de meia hora), como no VMS antigo.
+- **Config. de foto**: agenda nas câmeras; no NVR, Intervalo (por e-mail, FTP e disco), Tempo de captura (lista de horários) ou Fechar.
+- **Gerenciamento de disco**: uso, estado, período gravado e o que fazer com o disco cheio.
 - **Versão**: modelo, firmware, número de série, tempo ligado e canais.
 - **Diagnóstico**: mostra em JSON as configurações lidas da câmera (sem senhas), para identificar campos de modelos diferentes.
 
@@ -56,8 +59,8 @@ Janela de configurações por câmera (botão direito → **Configurações…**
 |---|---|---|
 | MVP | Visualização ao vivo, mosaico, importação do VMS antigo | Concluída |
 | 2 · Essenciais | PTZ, Parâmetros da cam, Rede, Versão | Concluída |
-| 3 · Gravação e disco | Reprodução das gravações (concluída); config. de gravação, disco, foto | Em andamento |
-| 4 · Alarmes | Detecção de pessoas/veículos, áreas de aviso, perda de vídeo, notificações do macOS | Planejada |
+| 3 · Gravação e disco | Reprodução das gravações, config. de gravação, disco, foto | Concluída |
+| 4 · Alarmes | Detecção de pessoas/veículos, áreas de aviso, perda de vídeo, notificações do macOS | Próxima |
 | 5 · Avançados | Sistema, data/hora, sobreposição de texto, usuários, manutenção | Planejada |
 
 O plano detalhado está em [PLANO-MVP.md](PLANO-MVP.md).

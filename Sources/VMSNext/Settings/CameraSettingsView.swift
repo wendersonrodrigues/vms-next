@@ -100,8 +100,7 @@ struct CameraSettingsView: View {
                     case .recording:
                         RecordingConfigView(camera: camera)
                     case .snapshot:
-                        RecordingConfigView(camera: camera, kind: .snapshot)
-                            .id("snapshot")
+                        PhotoConfigView(camera: camera)
                     case .disk:
                         DiskView(camera: camera)
                     case .network:
