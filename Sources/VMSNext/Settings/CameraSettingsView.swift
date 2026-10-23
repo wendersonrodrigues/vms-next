@@ -4,18 +4,21 @@ import SwiftUI
 enum SettingsCategory: String, CaseIterable, Identifiable {
     case imageParams
     case network
+    case version
 
     var id: String { rawValue }
     var title: String {
         switch self {
         case .imageParams: return "Parâmetros da cam"
         case .network: return "Rede"
+        case .version: return "Versão"
         }
     }
     var icon: String {
         switch self {
         case .imageParams: return "camera.aperture"
         case .network: return "network"
+        case .version: return "info.circle"
         }
     }
 }
@@ -48,6 +51,8 @@ struct CameraSettingsView: View {
                         CameraParamsView(camera: camera)
                     case .network:
                         NetworkView(camera: camera)
+                    case .version:
+                        VersionView(camera: camera)
                     case nil:
                         Text("Escolha uma categoria").foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)

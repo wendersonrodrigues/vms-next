@@ -75,7 +75,15 @@ VMS-Project/
 ## Status
 
 - **MVP concluído (22/10/2026):** câmeras e canais do NVR ao vivo no mosaico, testado pelo usuário em Apple Silicon.
-- Próximo: Fase 2 (Essenciais).
+- **Fase 2 concluída (22/10/2026):** PTZ, Parâmetros da cam (incluindo visão noturna de luz dupla via `Camera.WhiteLight`), Rede e Versão, todos testados nas câmeras.
+- Próximo: Fase 3 (Gravação e disco).
+
+### Aprendizados sobre as câmeras
+- Todas as câmeras são de luz dupla: a visão noturna fica em `Camera.WhiteLight.WorkMode` (`Auto` = colorida, `Close` = infravermelha, `Intelligent` = alerta de luz dupla), não em `DayNightColor`.
+- `Camera.WhiteLight` não leva índice de canal; `Camera.Param`, `AVEnc.VideoColor` e `Camera.ParamEx` levam (`.[0]`).
+- IPs na rede vêm em hex little-endian (`0x1300A8C0` = 192.168.0.19).
+- O VMS antigo recusa salvar "Parâmetros da cam" se o tempo mínimo de exposição estiver abaixo de 0,1 ms.
+- O "Alerta inteligente" do iCSee (pessoas, linha/área de aviso) entra na Fase 4.
 
 ## Critério de pronto do MVP
 
