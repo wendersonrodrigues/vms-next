@@ -10,6 +10,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case blind
     case vehicle
     case abnormality
+    case alarmOutput
     case disk
     case network
     case version
@@ -25,6 +26,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .blind: return "Câmera bloqueada"
         case .vehicle: return "Detecção de veículos"
         case .abnormality: return "Problemas no equipamento"
+        case .alarmOutput: return "Saída de alarme"
         case .disk: return "Disco / cartão"
         case .network: return "Rede"
         case .version: return "Informações"
@@ -42,6 +44,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .blind: return "Video Blind"
         case .vehicle: return "CarShape Detect"
         case .abnormality: return "Anormalidade"
+        case .alarmOutput: return "Saída de alarme"
         case .disk: return "Gerenciamento de disco"
         case .network: return "Rede"
         case .version: return "Versão"
@@ -58,6 +61,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .blind: return "Aviso quando a lente é coberta"
         case .vehicle: return "Aviso quando aparece um carro ou moto"
         case .abnormality: return "Disco, rede e conflito de IP"
+        case .alarmOutput: return "Sirene, luz ou relé ligados ao equipamento"
         case .disk: return "Espaço livre, estado e disco cheio"
         case .network: return "Endereço IP, DNS e portas"
         case .version: return "Modelo, firmware e número de série"
@@ -68,7 +72,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .imageParams: return .image
         case .recording, .snapshot, .disk: return .storage
-        case .smartAlert, .videoLoss, .blind, .vehicle, .abnormality: return .alarms
+        case .smartAlert, .videoLoss, .blind, .vehicle, .abnormality, .alarmOutput: return .alarms
         case .network, .version: return .device
         }
     }
@@ -82,6 +86,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .blind: return "eye.slash"
         case .vehicle: return "car"
         case .abnormality: return "exclamationmark.triangle"
+        case .alarmOutput: return "light.beacon.max"
         case .disk: return "internaldrive"
         case .network: return "network"
         case .version: return "info.circle"
@@ -97,8 +102,8 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .recording, .snapshot, .smartAlert, .blind, .abnormality, .disk, .network, .version]
-        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .disk, .network, .version]
+        case .camera: return [.imageParams, .recording, .snapshot, .smartAlert, .blind, .abnormality, .alarmOutput, .disk, .network, .version]
+        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .network, .version]
         case .channel: return [.imageParams, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
         }
     }
@@ -196,6 +201,8 @@ struct CameraSettingsView: View {
                     case .abnormality:
                         EventConfigView(camera: camera, screen: .abnormality)
                             .id("abnormality")
+                    case .alarmOutput:
+                        AlarmOutputView(camera: camera)
                     case .disk:
                         DiskView(camera: camera)
                     case .network:

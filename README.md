@@ -60,8 +60,8 @@ Janela de configurações por câmera (botão direito → **Configurações…**
 | MVP | Visualização ao vivo, mosaico, importação do VMS antigo | Concluída |
 | 2 · Essenciais | PTZ, Parâmetros da cam, Rede, Versão | Concluída |
 | 3 · Gravação e disco | Reprodução das gravações, config. de gravação, disco, foto | Concluída |
-| 4 · Alarmes | Alertas e notificações, detecção inteligente, área/linha de aviso (feitos); perda de vídeo, bloqueio, anormalidades, saída de alarme | Em andamento |
-| 5 · Avançados | Sistema, data/hora, sobreposição de texto, usuários, manutenção | Planejada |
+| 4 · Alarmes | Alertas e notificações, detecção inteligente, área/linha de aviso, perda de vídeo, câmera bloqueada, veículos, anormalidades, saída de alarme | Concluída |
+| 5 · Avançados | Sistema, data/hora, sobreposição de texto, usuários, manutenção | Próxima |
 
 O plano detalhado está em [PLANO-MVP.md](PLANO-MVP.md).
 
