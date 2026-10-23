@@ -1,7 +1,7 @@
 import Foundation
 
 /// "Rede": NetWork.NetCommon (IP, máscara, gateway, portas), NetWork.NetDHCP e NetWork.NetDNS.
-/// Os endereços IPv4 vêm como hex little-endian: "0x1300A8C0" = 192.168.0.19.
+/// Os endereços IPv4 vêm como hex little-endian: "0x0A00A8C0" = 192.168.0.10.
 @MainActor
 final class NetworkModel: ObservableObject {
     @Published private(set) var loading = false
@@ -211,7 +211,7 @@ final class NetworkModel: ObservableObject {
         return String(format: "0x%08X", b[0] | b[1] << 8 | b[2] << 16 | b[3] << 24)
     }
 
-    /// Valor numérico em ordem de rede (192.168.0.19 → 0xC0A80013).
+    /// Valor numérico em ordem de rede (192.168.0.10 → 0xC0A8000A).
     private static func ipValue(_ ip: String) -> UInt32? {
         let parts = ip.split(separator: ".", omittingEmptySubsequences: false)
         guard parts.count == 4 else { return nil }

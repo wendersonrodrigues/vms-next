@@ -4,7 +4,33 @@ App nativo para **Mac com Apple Silicon** dedicado a câmeras e NVRs **Xiongmai*
 
 Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configurações dos equipamentos. Roda em arm64, decodifica vídeo pelo hardware do chip M e conversa direto com as câmeras pela rede local, sem nuvem e sem o SDK da fabricante. Cobre as funções do VMS V2.2.1.1 para Mac (app para Intel, que depende do Rosetta) e acrescenta outras.
 
-Versão atual: **0.10.0**. Código aberto, [licença MIT](LICENSE).
+Versão atual: **1.0.0**. Código aberto, [licença MIT](LICENSE).
+
+## Instalação
+
+1. Baixe o arquivo **`VMS-Next-<versão>.zip`** na página de [Releases](https://github.com/wendersonrodrigues/vms-next/releases) e abra o zip.
+2. Arraste o **VMS Next** para a pasta **Aplicativos**.
+3. **Primeira abertura:** o app ainda não tem assinatura da Apple, então o macOS avisa que o desenvolvedor não foi identificado. Clique com o **botão direito** no app → **Abrir** → **Abrir**. Se o macOS não oferecer a opção, vá em **Ajustes do Sistema → Privacidade e Segurança** e clique em **Abrir Mesmo Assim**. Isso só é preciso uma vez.
+4. Permita o acesso à **Rede local** quando o macOS pedir: é assim que o app fala com as câmeras.
+5. Crie o **login do VMS Next** (usuário e senha só deste app). Ele protege o cofre onde ficam as senhas das câmeras.
+
+## Primeiros passos
+
+1. **Adicionar câmeras:** vá em **Dispositivos → Procurar na rede**. Aparecem as câmeras e NVRs Xiongmai da sua rede; clique em **Adicionar…**, confira o nome e digite o **usuário e a senha do equipamento** (os mesmos do iCSee/XMEye). Também dá para adicionar pelo IP com **+ → Nova câmera**.
+2. **Ver ao vivo:** clique em **Ao vivo**. Escolha o modelo de tela na barra de baixo e arraste câmeras da lista para os quadros. **Duplo clique** abre uma câmera em tela cheia, com som, HD/SD, zoom, foto, gravar e PTZ.
+3. **Câmera dupla** (duas imagens uma em cima da outra): botão direito → **Dividir em duas (split virtual)**.
+4. **Gravações:** clique em **Gravações**, escolha a câmera na lista e o dia. Clique numa gravação para assistir; **Baixar** salva em MP4.
+5. **Alertas:** em **Eventos → Ajustes dos alertas** escolha quais tipos notificam e tocam som. Cada alerta tem atalhos para o **ao vivo** e para a **gravação** daquele momento.
+6. **Configurar uma câmera:** clique em **Config. câmeras** e escolha a câmera ou o NVR na lista. Só aparecem as opções que o equipamento tem.
+7. **Preferências do app:** pastas de fotos e downloads, gravação no Mac, tema e segundo plano.
+
+### Dúvidas comuns
+
+- **"Senha não definida" ou a câmera não conecta:** botão direito na câmera → **Editar…** e confira o usuário e a senha. Depois de uma senha errada, o app espera você corrigir antes de tentar de novo, para a câmera não bloquear o usuário.
+- **NVR recusa o login:** no menu de rede do NVR, deixe **Criptografia de rede** em **"Login remoto precisa de criptografia"**.
+- **A busca na rede não acha nada:** o Mac precisa estar na mesma rede das câmeras e o VMS Next precisa da permissão de **Rede local** (Ajustes do Sistema → Privacidade e Segurança → Rede Local).
+- **Ver de fora de casa:** o VMS Next conecta pelo IP. Use uma VPN para a sua rede (por exemplo Tailscale ou WireGuard no roteador).
+- **Levar para outro Mac:** **+ → Exportar câmeras** e, no outro Mac, **Importar câmeras**. As senhas não vão no arquivo.
 
 ## Funcionalidades
 
@@ -79,10 +105,10 @@ Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido 
 
 - Mac com **Apple Silicon**.
 - **macOS 14** ou mais novo (foto do quadro: macOS 14.4).
-- Swift 6 (Command Line Tools ou Xcode) para compilar.
+- Para compilar: Swift 6 (Command Line Tools ou Xcode).
 - NVRs com **Criptografia de rede** em "Login de rede precisa de criptografia" recusam o app; use "Login remoto precisa de criptografia".
 
-## Compilar e executar
+## Compilar a partir do código
 
 ```bash
 ./scripts/bundle.sh
@@ -108,7 +134,23 @@ O projeto é um Swift Package (`Package.swift`) e também abre direto no Xcode.
 | Configurações | `Sources/VMSNext/Settings` | Telas de configuração, formulários a partir das capacidades do equipamento e diagnóstico |
 | Modelos | `Sources/VMSNext/Models` | Câmeras (`cameras.json` em Application Support), cofre de senhas (`vault.json`) e modelos de tela |
 
-O roteiro e os formatos aprendidos de cada configuração estão em [PLANO-MVP.md](PLANO-MVP.md).
+As notas técnicas do protocolo estão em [docs/PROTOCOLO.md](docs/PROTOCOLO.md).
+
+## Publicar uma versão
+
+```bash
+./scripts/release.sh
+```
+
+Compila, monta o app e gera `build/VMS-Next-<versão>.zip` com o resumo (SHA-256) para anexar a um Release no GitHub. As novidades de cada versão ficam no [CHANGELOG.md](CHANGELOG.md).
+
+## Contribuir
+
+Ideias, problemas e melhorias são bem-vindos pelas *Issues* e *Pull Requests* do GitHub. Para investigar um modelo de câmera novo, use o botão **Diagnóstico…** das telas de configuração e **Capacidades…** em Informações (nenhum deles mostra senhas).
+
+## Licença
+
+[MIT](LICENSE): pode usar, copiar, modificar e distribuir, inclusive em projetos comerciais, mantendo o aviso de copyright.
 
 ## Créditos
 

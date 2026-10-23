@@ -73,7 +73,7 @@ enum LegacyVMSImporter {
         return String(cString: pointer)
     }
 
-    /// "Frente - 192.168.0.19" → "Frente"
+    /// "Portão - 192.168.0.10" → "Portão"
     private static func cleanName(_ name: String, host: String) -> String {
         let cleaned = name.replacingOccurrences(of: host, with: "")
             .trimmingCharacters(in: CharacterSet(charactersIn: " -–").union(.whitespaces))
