@@ -93,7 +93,7 @@ struct HomeView: View {
                 Link(destination: NavigationRail.githubURL) {
                     Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right").font(.caption)
                 }
-                Text("versão \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")")
+                Text("versão \(AppInfo.version)")
                     .font(.caption2)
                     .opacity(0.8)
             }

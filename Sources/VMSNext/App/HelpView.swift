@@ -2,10 +2,7 @@ import SwiftUI
 
 /// Ajuda do VMS Next (menu Ajuda): versão, criador, licença e um guia rápido.
 struct HelpView: View {
-    private var version: String {
-        let info = Bundle.main.infoDictionary
-        return "\(info?["CFBundleShortVersionString"] as? String ?? "—") (\(info?["CFBundleVersion"] as? String ?? "—"))"
-    }
+    private var version: String { AppInfo.fullVersion }
 
     var body: some View {
         ScrollView {

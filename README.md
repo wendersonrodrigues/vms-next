@@ -8,7 +8,10 @@ App nativo para **Mac com Apple Silicon** dedicado a câmeras e NVRs **Xiongmai*
 
 Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configurações dos equipamentos. Roda em arm64, decodifica vídeo pelo hardware do chip M e conversa direto com as câmeras pela rede local, sem nuvem e sem o SDK da fabricante. Cobre as funções do VMS V2.2.1.1 para Mac (app para Intel, que depende do Rosetta) e acrescenta outras.
 
-Versão atual: **1.0.0**. Código aberto, [licença MIT](LICENSE).
+[![Versão](https://img.shields.io/github/v/release/wendersonrodrigues/vms-next?label=vers%C3%A3o)](https://github.com/wendersonrodrigues/vms-next/releases/latest)
+[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
+![Apple Silicon](https://img.shields.io/badge/Apple-Silicon-8A2BE2)
 
 ## Telas
 
@@ -159,11 +162,17 @@ As notas técnicas do protocolo estão em [docs/PROTOCOLO.md](docs/PROTOCOLO.md)
 
 ## Publicar uma versão
 
+A versão fica num lugar só, o `Resources/Info.plist`: o app inteiro (coluna lateral, Início, Ajuda e Sobre) lê dali. Para trocar:
+
+```bash
+./scripts/set-version.sh 1.1.0
+```
+
+O `release.sh` compila, monta o app e gera `build/VMS-Next-<versão>.zip` com o resumo (SHA-256) para anexar a um Release no GitHub. As novidades de cada versão ficam no [CHANGELOG.md](CHANGELOG.md).
+
 ```bash
 ./scripts/release.sh
 ```
-
-Compila, monta o app e gera `build/VMS-Next-<versão>.zip` com o resumo (SHA-256) para anexar a um Release no GitHub. As novidades de cada versão ficam no [CHANGELOG.md](CHANGELOG.md).
 
 ## Contribuir
 

@@ -73,9 +73,7 @@ struct NavigationRail: View {
 
     static let githubURL = URL(string: "https://github.com/wendersonrodrigues/vms-next")!
 
-    private var version: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-    }
+    private var version: String { AppInfo.version }
 
     /// Créditos: nome do app, versão, autor e link para o GitHub.
     private var credits: some View {
