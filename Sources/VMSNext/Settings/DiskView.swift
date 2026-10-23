@@ -139,9 +139,12 @@ struct DiskView: View {
                     }
                     if model.hasOverwrite {
                         Section {
-                            Picker("Quando o disco encher", selection: $model.overwrite) {
+                            Picker(selection: $model.overwrite) {
                                 Text("Sobrescrever as mais antigas").tag(true)
                                 Text("Parar de gravar").tag(false)
+                            } label: {
+                                FieldLabel("Quando o disco encher", original: "Disco cheio",
+                                           detail: "Sobrescrever mantém sempre os dias mais recentes; parar guarda o que já foi gravado, mas deixa de gravar.")
                             }
                         } footer: {
                             Text("Formatar o disco ainda não está disponível aqui; use o menu do equipamento.")

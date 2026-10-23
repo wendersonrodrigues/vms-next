@@ -205,8 +205,10 @@ private struct SnapConfigForm: View {
             } else {
                 Form {
                     Section("Foto") {
-                        Picker("Modo", selection: $model.snapType) {
+                        Picker(selection: $model.snapType) {
                             ForEach(SnapConfigModel.types, id: \.value) { Text($0.label).tag($0.value) }
+                        } label: {
+                            FieldLabel("Modo", detail: "Intervalo tira fotos repetidamente; Tempo de captura tira nos horários da lista; Fechar desliga.")
                         }
                         .pickerStyle(.segmented)
                     }

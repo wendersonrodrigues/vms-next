@@ -51,6 +51,9 @@ final class DVRIPClient: @unchecked Sendable {
     private var keepAlive: DispatchSourceTimer?
     private var closed = false
 
+    /// Mensagens enviadas pelo equipamento sem pedido (ex.: alarmes, código 1504). Chamado na fila interna.
+    var onPush: ((_ code: UInt16, _ json: [String: Any]) -> Void)?
+
     init(host: String, port: Int) {
         self.host = host
         self.port = UInt16(clamping: port)
@@ -124,6 +127,12 @@ final class DVRIPClient: @unchecked Sendable {
             throw DVRIPError.device(ret)
         }
         return response
+    }
+
+    /// Pede ao equipamento para enviar os alarmes nesta sessão (GUARD, código 1500).
+    /// Depois disso, cada alarme chega como mensagem 1504 com "AlarmInfo".
+    func subscribeAlarms() async throws {
+        try await command(code: 1500, name: "", payload: nil)
     }
 
     /// Lê uma configuração (CONFIG_GET, código 1042), ex.: "Camera.Param.[0]".
@@ -217,7 +226,12 @@ final class DVRIPClient: @unchecked Sendable {
             buffer.removeFirst(20 + length)
 
             while let last = body.last, last == 0x00 || last == 0x0A { body.removeLast() }
-            guard let index = waiters.firstIndex(where: { $0.code == code }) else { continue }
+            guard let index = waiters.firstIndex(where: { $0.code == code }) else {
+                if let json = try? JSONSerialization.jsonObject(with: Data(body)) as? [String: Any] {
+                    onPush?(code, json)
+                }
+                continue
+            }
             let waiter = waiters.remove(at: index)
             if let json = try? JSONSerialization.jsonObject(with: Data(body)) as? [String: Any] {
                 waiter.continuation.resume(returning: json)

@@ -12,6 +12,7 @@ enum GridLayout: Int, CaseIterable, Identifiable {
 struct ContentView: View {
     @EnvironmentObject private var store: CameraStore
     @StateObject private var ui = ContentUIState()
+    @ObservedObject private var alarms = AlarmCenter.shared
 
     var body: some View {
         NavigationSplitView {
@@ -24,6 +25,12 @@ struct ContentView: View {
         }
         .sheet(item: $ui.configuring) { target in
             CameraSettingsView(target: target)
+        }
+        .task { AlarmCenter.shared.start(store: store) }
+        .onChange(of: alarms.openEventsRequested) {
+            guard alarms.openEventsRequested else { return }
+            alarms.openEventsRequested = false
+            ui.mode = .events
         }
         .alert("VMS Next", isPresented: Binding(get: { ui.alertMessage != nil }, set: { if !$0 { ui.alertMessage = nil } })) {
             Button("OK") {}
@@ -132,6 +139,12 @@ struct ContentView: View {
         } else if ui.mode == .recordings {
             PlaybackView()
                 .toolbar { modeToolbar }
+        } else if ui.mode == .events {
+            EventsView(center: AlarmCenter.shared) { id in
+                ui.selection = .camera(id)
+                ui.mode = .live
+            }
+            .toolbar { modeToolbar }
         } else if let camera = focusedCamera {
             HStack(spacing: 0) {
                 CameraTile(camera: camera, quality: .main, onEdit: { ui.editing = camera },
@@ -205,8 +218,29 @@ struct ContentView: View {
             Picker("Modo", selection: $ui.mode) {
                 Text("Ao vivo").tag(ViewMode.live)
                 Text("Gravações").tag(ViewMode.recordings)
+                Text("Eventos").tag(ViewMode.events)
             }
             .pickerStyle(.segmented)
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                ui.mode = .events
+                alarms.markAllRead()
+            } label: {
+                Image(systemName: alarms.unread > 0 ? "bell.fill" : "bell")
+                    .overlay(alignment: .topTrailing) {
+                        if alarms.unread > 0 {
+                            Text(alarms.unread > 99 ? "99+" : "\(alarms.unread)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(Capsule().fill(Color.red))
+                                .offset(x: 9, y: -7)
+                        }
+                    }
+            }
+            .help(alarms.unread > 0 ? "\(alarms.unread) alerta(s) novo(s)" : "Eventos")
         }
     }
 
@@ -283,6 +317,7 @@ final class ContentUIState: ObservableObject {
 enum ViewMode {
     case live
     case recordings
+    case events
 }
 
 /// Item da barra lateral: todas as câmeras avulsas, um NVR (mosaico dos canais) ou uma câmera/canal.

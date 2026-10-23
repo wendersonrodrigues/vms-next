@@ -5,6 +5,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case imageParams
     case recording
     case snapshot
+    case smartAlert
     case disk
     case network
     case version
@@ -12,12 +13,47 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .imageParams: return "Imagem e visão noturna"
+        case .recording: return "Gravação"
+        case .snapshot: return "Fotos automáticas"
+        case .smartAlert: return "Detecção inteligente"
+        case .disk: return "Disco / cartão"
+        case .network: return "Rede"
+        case .version: return "Informações"
+        }
+    }
+
+    /// Nome da mesma tela no VMS antigo, para quem está acostumado com ele.
+    var original: String {
+        switch self {
         case .imageParams: return "Parâmetros da cam"
         case .recording: return "Config. de gravação"
         case .snapshot: return "Config. de foto"
+        case .smartAlert: return "Smart alert"
         case .disk: return "Gerenciamento de disco"
         case .network: return "Rede"
         case .version: return "Versão"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .imageParams: return "Brilho, cores, espelhar e modo noturno"
+        case .recording: return "Quando gravar e tamanho dos arquivos"
+        case .snapshot: return "Captura de fotos por horário ou intervalo"
+        case .smartAlert: return "Movimento, pessoas e o que fazer ao detectar"
+        case .disk: return "Espaço livre, estado e disco cheio"
+        case .network: return "Endereço IP, DNS e portas"
+        case .version: return "Modelo, firmware e número de série"
+        }
+    }
+
+    var group: SettingsGroup {
+        switch self {
+        case .imageParams: return .image
+        case .recording, .snapshot, .disk: return .storage
+        case .smartAlert: return .alarms
+        case .network, .version: return .device
         }
     }
     var icon: String {
@@ -25,6 +61,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams: return "camera.aperture"
         case .recording: return "record.circle"
         case .snapshot: return "camera"
+        case .smartAlert: return "figure.walk.motion"
         case .disk: return "internaldrive"
         case .network: return "network"
         case .version: return "info.circle"
@@ -40,9 +77,9 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .recording, .snapshot, .disk, .network, .version]
+        case .camera: return [.imageParams, .recording, .snapshot, .smartAlert, .disk, .network, .version]
         case .recorder: return [.disk, .network, .version]
-        case .channel: return [.imageParams, .recording, .snapshot]
+        case .channel: return [.imageParams, .recording, .snapshot, .smartAlert]
         }
     }
 }
@@ -85,11 +122,22 @@ struct CameraSettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                List(target.scope.categories, selection: $navigation.category) { category in
-                    Label(category.title, systemImage: category.icon).tag(category)
+                List(selection: $navigation.category) {
+                    ForEach(SettingsGroup.allCases, id: \.self) { group in
+                        let items = target.scope.categories.filter { $0.group == group }
+                        if !items.isEmpty {
+                            Section(group.rawValue) {
+                                ForEach(items) { category in
+                                    Label(category.title, systemImage: category.icon)
+                                        .help("\(category.subtitle). No VMS antigo: \(category.original)")
+                                    .tag(category)
+                                }
+                            }
+                        }
+                    }
                 }
                 .listStyle(.sidebar)
-                .frame(width: 200)
+                .frame(width: 220)
 
                 Divider()
 
@@ -101,6 +149,8 @@ struct CameraSettingsView: View {
                         RecordingConfigView(camera: camera)
                     case .snapshot:
                         PhotoConfigView(camera: camera)
+                    case .smartAlert:
+                        SmartAlertView(camera: camera)
                     case .disk:
                         DiskView(camera: camera)
                     case .network:
@@ -125,6 +175,6 @@ struct CameraSettingsView: View {
             }
             .padding(12)
         }
-        .frame(minWidth: 860, idealWidth: 900, minHeight: 600, idealHeight: 640)
+        .frame(minWidth: 920, idealWidth: 960, minHeight: 640, idealHeight: 700)
     }
 }

@@ -19,7 +19,10 @@ struct NetworkView: View {
                 Form {
                     Section {
                         if model.hasDHCP {
-                            Toggle("Obter IP automaticamente (DHCP)", isOn: $model.dhcp)
+                            Toggle(isOn: $model.dhcp) {
+                                FieldLabel("Obter IP automaticamente", original: "DHCP",
+                                           detail: "O roteador escolhe o endereço. Pode mudar sozinho, o que faz o app perder a câmera.")
+                            }
                         }
                         field("Endereço IP", text: $model.ip)
                         field("Máscara de sub-rede", text: $model.mask)

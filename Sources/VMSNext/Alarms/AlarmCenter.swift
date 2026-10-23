@@ -1,0 +1,241 @@
+import AppKit
+import Foundation
+import UserNotifications
+
+/// Um alarme recebido de uma câmera ou NVR.
+struct AlarmEvent: Identifiable {
+    let id = UUID()
+    let date: Date
+    let deviceTime: String?
+    let cameraName: String
+    let cameraID: Camera.ID?
+    let channel: Int
+    /// Nome do evento como o equipamento envia (ex.: "VideoMotion", "HumanDetect").
+    let event: String
+    let isStart: Bool
+
+    var kind: AlarmKind { AlarmKind(event: event) }
+}
+
+/// Tipos de alarme agrupados para as preferências de notificação.
+enum AlarmKind: String, CaseIterable, Identifiable {
+    case person, motion, videoLoss, blind, storage, other
+
+    var id: String { rawValue }
+
+    init(event: String) {
+        let name = event.lowercased()
+        if name.contains("human") || name.contains("humanoid") || name.contains("person") || name.contains("people") || name.contains("pedestrian") || name.contains("face") {
+            self = .person
+        } else if name.contains("motion") || name.contains("pir") {
+            self = .motion
+        } else if name.contains("loss") {
+            self = .videoLoss
+        } else if name.contains("blind") || name.contains("cover") {
+            self = .blind
+        } else if name.contains("storage") || name.contains("disk") || name.contains("hdd") {
+            self = .storage
+        } else {
+            self = .other
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .person: return "Pessoa detectada"
+        case .motion: return "Movimento"
+        case .videoLoss: return "Perda de vídeo"
+        case .blind: return "Câmera bloqueada"
+        case .storage: return "Problema no disco"
+        case .other: return "Outros alarmes"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .person: return "figure.walk"
+        case .motion: return "wave.3.right"
+        case .videoLoss: return "video.slash"
+        case .blind: return "eye.slash"
+        case .storage: return "internaldrive"
+        case .other: return "bell"
+        }
+    }
+}
+
+/// Recebe os alarmes de todos os equipamentos, guarda o histórico e envia notificações do macOS.
+@MainActor
+final class AlarmCenter: ObservableObject {
+    static let shared = AlarmCenter()
+
+    @Published private(set) var events: [AlarmEvent] = []
+    /// Estado da inscrição por equipamento (usuário@host:porta) para exibir na tela.
+    @Published private(set) var deviceStatus: [String: String] = [:]
+    @Published var enabled: Bool {
+        didSet {
+            defaults.set(enabled, forKey: "alarms.enabled")
+            if enabled { refresh() } else { stopAll() }
+        }
+    }
+    @Published var notifyKinds: Set<AlarmKind> {
+        didSet { defaults.set(notifyKinds.map(\.rawValue), forKey: "alarms.notify") }
+    }
+    /// Alertas ainda não vistos: aparecem no sino da barra e no ícone do Dock.
+    @Published private(set) var unread = 0 {
+        didSet { NSApp.dockTile.badgeLabel = unread > 0 ? "\(unread)" : nil }
+    }
+    /// Situação da permissão de notificações do macOS, para mostrar na tela de Eventos.
+    @Published private(set) var notificationsAllowed: Bool?
+    /// Pedido para abrir a tela de Eventos (ao clicar numa notificação).
+    @Published var openEventsRequested = false
+
+    private let defaults = UserDefaults.standard
+    private weak var store: CameraStore?
+    private var subscribed: [String: DVRIPClient] = [:]
+    private var timer: Timer?
+    private var lastNotified: [String: Date] = [:]
+    private let maxEvents = 500
+    private let notificationDelegate = NotificationDelegate()
+
+    private init() {
+        enabled = defaults.object(forKey: "alarms.enabled") as? Bool ?? true
+        let saved = defaults.stringArray(forKey: "alarms.notify")
+        notifyKinds = Set((saved ?? [AlarmKind.person.rawValue, AlarmKind.videoLoss.rawValue, AlarmKind.storage.rawValue])
+            .compactMap(AlarmKind.init(rawValue:)))
+    }
+
+    func start(store: CameraStore) {
+        self.store = store
+        let center = UNUserNotificationCenter.current()
+        center.delegate = notificationDelegate
+        notificationDelegate.onOpen = { [weak self] in
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                self?.openEventsRequested = true
+            }
+        }
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, _ in
+            DispatchQueue.main.async { self?.notificationsAllowed = granted }
+        }
+        refresh()
+        timer?.invalidate()
+        let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refresh() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    func clear() {
+        events.removeAll()
+        unread = 0
+    }
+
+    func markAllRead() {
+        unread = 0
+    }
+
+    /// Abre os ajustes de notificações do macOS (para liberar o VMS Next se estiver bloqueado).
+    func openNotificationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Inscreve-se nos alarmes de cada equipamento (um por IP) e refaz a inscrição se a sessão caiu.
+    func refresh() {
+        guard enabled, let store else { return }
+        var devices: [String: Camera] = [:]
+        for camera in store.cameras where devices[deviceKey(camera)] == nil {
+            devices[deviceKey(camera)] = camera
+        }
+        for (key, camera) in devices {
+            if let client = subscribed[key], !client.isClosed { continue }
+            subscribed[key] = nil
+            Task { await subscribe(key: key, camera: camera) }
+        }
+    }
+
+    private func stopAll() {
+        subscribed.values.forEach { $0.onPush = nil }
+        subscribed.removeAll()
+        deviceStatus.removeAll()
+    }
+
+    private func deviceKey(_ camera: Camera) -> String {
+        "\(camera.keychainAccount):\(camera.dvripPort)"
+    }
+
+    private func subscribe(key: String, camera: Camera) async {
+        do {
+            let client = try await DeviceSessions.shared.client(for: camera)
+            let host = camera.host
+            client.onPush = { [weak self] code, json in
+                guard code == 1504 else { return }
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { self?.handle(json, host: host) }
+                }
+            }
+            try await client.subscribeAlarms()
+            subscribed[key] = client
+            deviceStatus[camera.group ?? camera.host] = "Recebendo alertas"
+        } catch {
+            deviceStatus[camera.group ?? camera.host] = error.localizedDescription
+        }
+    }
+
+    private func handle(_ json: [String: Any], host: String) {
+        guard let info = json["AlarmInfo"] as? [String: Any] else { return }
+        let channel = (ConfigValue.int(info["Channel"]) ?? 0) + 1
+        let event = info["Event"] as? String ?? "Desconhecido"
+        let isStart = (info["Status"] as? String ?? "Start").lowercased() != "stop"
+        let camera = store?.cameras.first { $0.host == host && $0.channel == channel }
+            ?? store?.cameras.first { $0.host == host && $0.group == nil }
+        let alarm = AlarmEvent(
+            date: Date(),
+            deviceTime: info["StartTime"] as? String,
+            cameraName: camera?.displayName ?? "\(host) · canal \(channel)",
+            cameraID: camera?.id,
+            channel: channel,
+            event: event,
+            isStart: isStart
+        )
+        events.insert(alarm, at: 0)
+        if events.count > maxEvents { events.removeLast(events.count - maxEvents) }
+        if isStart {
+            unread += 1
+            notify(alarm)
+        }
+    }
+
+    /// No máximo uma notificação por câmera e tipo a cada 60 s.
+    private func notify(_ alarm: AlarmEvent) {
+        guard notifyKinds.contains(alarm.kind) else { return }
+        let throttleKey = "\(alarm.cameraName)|\(alarm.kind.rawValue)"
+        if let last = lastNotified[throttleKey], Date().timeIntervalSince(last) < 60 { return }
+        lastNotified[throttleKey] = Date()
+
+        let content = UNMutableNotificationContent()
+        content.title = alarm.kind == .other ? alarm.event : alarm.kind.label
+        content.body = "\(alarm.cameraName) · \(alarm.date.formatted(date: .omitted, time: .standard))"
+        content.sound = .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: alarm.id.uuidString, content: content, trigger: nil))
+    }
+}
+
+/// Mostra as notificações mesmo com o app em primeiro plano (o macOS esconde por padrão)
+/// e abre a tela de Eventos ao clicar.
+private final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+    var onOpen: (() -> Void)?
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list, .sound])
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        onOpen?()
+        completionHandler()
+    }
+}

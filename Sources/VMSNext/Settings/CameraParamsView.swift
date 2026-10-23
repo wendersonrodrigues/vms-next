@@ -15,11 +15,11 @@ struct CameraParamsView: View {
             } else {
                 Form {
                     if model.hasColor {
-                        Section("Imagem") {
-                            slider("Brilho", value: $model.brightness)
-                            slider("Contraste", value: $model.contrast)
-                            slider("Saturação", value: $model.saturation)
-                            slider("Matiz", value: $model.hue)
+                        Section("Cores da imagem") {
+                            slider("Brilho", detail: "Deixa a imagem toda mais clara ou mais escura.", value: $model.brightness)
+                            slider("Contraste", detail: "Diferença entre as partes claras e escuras.", value: $model.contrast)
+                            slider("Saturação", detail: "Intensidade das cores; 0 deixa em preto e branco.", value: $model.saturation)
+                            slider("Matiz", original: "Hue", detail: "Puxa as cores para outro tom. Normalmente fica em 50.", value: $model.hue)
                         }
                     }
                     if model.hasWhiteLight {
@@ -38,36 +38,52 @@ struct CameraParamsView: View {
                             .pickerStyle(.radioGroup)
 
                             if model.nightMode != "Close" {
-                                slider("Brilho da luz branca", value: $model.lightBrightness)
+                                slider("Brilho da luz branca", detail: "Força do LED branco quando ele acende à noite.", value: $model.lightBrightness)
                             }
                             if model.nightMode == "Intelligent" {
-                                Picker("Sensibilidade", selection: $model.triggerLevel) {
+                                Picker(selection: $model.triggerLevel) {
                                     ForEach(model.triggerLevelOptions, id: \.value) { Text($0.label).tag($0.value) }
+                                } label: {
+                                    FieldLabel("Sensibilidade da luz", detail: "Quão fácil uma pessoa detectada acende a luz branca.")
                                 }
-                                Picker("Duração da luz ligada", selection: $model.triggerDuration) {
+                                Picker(selection: $model.triggerDuration) {
                                     ForEach(model.triggerDurationOptions, id: \.self) { Text("\($0) s").tag($0) }
+                                } label: {
+                                    FieldLabel("Duração da luz ligada", detail: "Por quanto tempo a luz fica acesa depois de detectar alguém.")
                                 }
                             }
                         }
                     }
                     if model.hasImageParams && !model.hasWhiteLight {
                         Section("Dia / Noite") {
-                            Picker("Modo", selection: $model.dayNight) {
+                            Picker(selection: $model.dayNight) {
                                 ForEach(model.dayNightOptions, id: \.value) { Text($0.label).tag($0.value) }
+                            } label: {
+                                FieldLabel("Modo", original: "Modo dia/noite", detail: "Colorido, preto e branco, ou troca automática conforme a luz.")
                             }
                             if model.hasDayNightThreshold && model.dayNight == CameraParamsModel.autoDayNightMode {
-                                slider("Sensibilidade da troca", value: $model.dayNightThreshold)
+                                slider("Sensibilidade da troca", detail: "Com que escuridão a câmera passa para o modo noturno.", value: $model.dayNightThreshold)
                             }
                         }
                     }
                     if model.hasImageParams {
                         Section("Orientação") {
-                            Toggle("Espelhar (horizontal)", isOn: $model.mirror)
-                            Toggle("Inverter (vertical)", isOn: $model.flip)
+                            Toggle(isOn: $model.mirror) {
+                                FieldLabel("Espelhar", original: "Mirror", detail: "Inverte a imagem da esquerda para a direita.")
+                            }
+                            Toggle(isOn: $model.flip) {
+                                FieldLabel("Virar de cabeça para baixo", original: "Flip", detail: "Use quando a câmera estiver instalada no teto ou invertida.")
+                            }
                         }
                         Section("Exposição") {
-                            Toggle("Compensação de contraluz (BLC)", isOn: $model.backlight)
-                            Toggle("Anti-cintilação", isOn: $model.antiFlicker)
+                            Toggle(isOn: $model.backlight) {
+                                FieldLabel("Compensação de contraluz", original: "BLC / Luz de fundo",
+                                           detail: "Clareia quem está na frente de uma janela ou portão iluminado.")
+                            }
+                            Toggle(isOn: $model.antiFlicker) {
+                                FieldLabel("Anti-cintilação", original: "Anti brilho",
+                                           detail: "Evita a imagem piscando sob lâmpadas fluorescentes ou LED.")
+                            }
                         }
                     }
                     if let error = model.error {
@@ -102,9 +118,9 @@ struct CameraParamsView: View {
         }
     }
 
-    private func slider(_ title: String, value: Binding<Double>) -> some View {
-        HStack {
-            Text(title).frame(width: 160, alignment: .leading)
+    private func slider(_ title: String, original: String? = nil, detail: String? = nil, value: Binding<Double>) -> some View {
+        HStack(alignment: .top) {
+            FieldLabel(title, original: original, detail: detail).frame(width: 260, alignment: .leading)
             Slider(value: value, in: 0 ... 100, step: 1)
             Text("\(Int(value.wrappedValue))").monospacedDigit().frame(width: 32, alignment: .trailing)
         }
