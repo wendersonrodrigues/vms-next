@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Estado da tela de gravações: equipamento/canal, dia e resultado da busca.
 @MainActor
@@ -10,6 +11,29 @@ final class RecordingBrowser: ObservableObject {
     @Published private(set) var message: String?
     @Published var selected: Recording.ID?
     @Published var diagnosticText: String?
+    @Published private(set) var downloads: [RecordingDownload] = []
+
+    /// Pergunta onde salvar e baixa a gravação em MP4.
+    func download(_ recording: Recording, camera: Camera) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.mpeg4Movie]
+        panel.canCreateDirectories = true
+        panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+        let stamp = recording.begin.formatted(.verbatim(
+            "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits) \(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased))h\(minute: .twoDigits)m\(second: .twoDigits)s",
+            timeZone: .current, calendar: .current))
+        panel.nameFieldStringValue = "\(camera.displayName) \(stamp).mp4"
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let job = RecordingDownload(recording: recording, camera: camera, url: url)
+        downloads.insert(job, at: 0)
+        Task { await job.start() }
+    }
+
+    func removeFinishedDownloads() {
+        downloads.removeAll { $0.state != .running }
+    }
 
     /// Testa variações da busca no dia escolhido e lê os discos do equipamento,
     /// mostrando o código de resposta de cada tentativa. Só leitura.
@@ -152,11 +176,30 @@ struct PlaybackView: View {
                 RecordingRow(recording: recording)
                     .tag(recording.id)
                     .onTapGesture(count: 2) { play(recording) }
+                    .contextMenu {
+                        Button("Reproduzir") { play(recording) }
+                        Button("Baixar em MP4…") {
+                            if let camera { browser.download(recording, camera: camera) }
+                        }
+                    }
             }
             .listStyle(.inset)
             .onChange(of: browser.selected) {
                 if let id = browser.selected, let recording = browser.recordings.first(where: { $0.id == id }) {
                     play(recording)
+                }
+            }
+
+            if !browser.downloads.isEmpty {
+                HStack {
+                    Text("Downloads").font(.headline)
+                    Spacer()
+                    Button("Limpar") { browser.removeFinishedDownloads() }
+                        .controlSize(.small)
+                        .disabled(!browser.downloads.contains { $0.state != .running })
+                }
+                ForEach(browser.downloads.prefix(4)) { job in
+                    DownloadRow(job: job)
                 }
             }
         }
@@ -214,6 +257,14 @@ struct PlaybackView: View {
                         Image(systemName: "stop.fill")
                     }
                     .disabled(session.status == .idle)
+
+                    Button {
+                        if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
+                    } label: {
+                        Label("Baixar", systemImage: "arrow.down.circle")
+                    }
+                    .help("Baixar esta gravação em MP4")
+                    .disabled(session.recording == nil)
 
                     Picker("Velocidade", selection: Binding(get: { session.speed }, set: { session.setSpeed($0) })) {
                         ForEach([0.5, 1, 2, 4, 8], id: \.self) { Text("\($0 == 0.5 ? "½" : String(Int($0)))×").tag($0) }
@@ -323,6 +374,41 @@ private struct RecordingRow: View {
         case .alarm: return .red
         case .manual: return .purple
         case .other: return .gray
+        }
+    }
+}
+
+private struct DownloadRow: View {
+    @ObservedObject var job: RecordingDownload
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(job.title).font(.caption).lineLimit(1).truncationMode(.middle)
+                Spacer()
+                switch job.state {
+                case .running:
+                    Button { job.cancel() } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.borderless)
+                        .help("Cancelar")
+                case .finished:
+                    Button { NSWorkspace.shared.activateFileViewerSelecting([job.url]) } label: { Image(systemName: "magnifyingglass.circle.fill") }
+                        .buttonStyle(.borderless)
+                        .help("Mostrar no Finder")
+                default:
+                    EmptyView()
+                }
+            }
+            switch job.state {
+            case .running:
+                ProgressView(value: job.progress).controlSize(.small)
+            case .finished:
+                Text("Concluído").font(.caption2).foregroundStyle(.green)
+            case .cancelled:
+                Text("Cancelado").font(.caption2).foregroundStyle(.secondary)
+            case let .failed(message):
+                Text(message).font(.caption2).foregroundStyle(.orange).lineLimit(2)
+            }
         }
     }
 }

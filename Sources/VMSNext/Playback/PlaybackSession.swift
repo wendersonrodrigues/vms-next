@@ -29,7 +29,7 @@ final class PlaybackSession: ObservableObject {
 
     let displayLayer = AVSampleBufferDisplayLayer()
 
-    private var camera: Camera?
+    private(set) var camera: Camera?
     private var client: DVRIPClient?
     private var media: DVRIPMediaConnection?
     private var parser = XMMediaParser()

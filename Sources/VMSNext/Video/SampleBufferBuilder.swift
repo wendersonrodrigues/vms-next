@@ -16,7 +16,9 @@ final class SampleBufferBuilder {
         for nal in track.parameterSets { _ = absorbParameterSet(nal) }
     }
 
-    func makeSampleBuffer(nalus: [Data], corrupted: Bool) -> CMSampleBuffer? {
+    /// Sem `timing`, o quadro é marcado para exibir imediatamente (ao vivo/reprodução);
+    /// com `timing`, leva o tempo de apresentação (gravação em arquivo).
+    func makeSampleBuffer(nalus: [Data], corrupted: Bool, timing: CMSampleTimingInfo? = nil) -> CMSampleBuffer? {
         if corrupted {
             waitingForKeyframe = true
             return nil
@@ -72,17 +74,22 @@ final class SampleBufferBuilder {
 
         var sample: CMSampleBuffer?
         var size = bytes.count
-        guard CMSampleBufferCreateReady(
-            allocator: kCFAllocatorDefault, dataBuffer: block, formatDescription: format,
-            sampleCount: 1, sampleTimingEntryCount: 0, sampleTimingArray: nil,
-            sampleSizeEntryCount: 1, sampleSizeArray: &size, sampleBufferOut: &sample
-        ) == noErr, let sample else { return nil }
+        var timingEntry = timing ?? CMSampleTimingInfo()
+        let created = withUnsafePointer(to: &timingEntry) { timingPointer in
+            CMSampleBufferCreateReady(
+                allocator: kCFAllocatorDefault, dataBuffer: block, formatDescription: format,
+                sampleCount: 1, sampleTimingEntryCount: timing == nil ? 0 : 1,
+                sampleTimingArray: timing == nil ? nil : timingPointer,
+                sampleSizeEntryCount: 1, sampleSizeArray: &size, sampleBufferOut: &sample
+            )
+        }
+        guard created == noErr, let sample else { return nil }
 
         if let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: true),
            CFArrayGetCount(attachments) > 0
         {
             let dict = unsafeBitCast(CFArrayGetValueAtIndex(attachments, 0), to: CFMutableDictionary.self)
-            set(dict, kCMSampleAttachmentKey_DisplayImmediately, true)
+            if timing == nil { set(dict, kCMSampleAttachmentKey_DisplayImmediately, true) }
             set(dict, kCMSampleAttachmentKey_NotSync, !isKeyframe)
         }
         return sample
