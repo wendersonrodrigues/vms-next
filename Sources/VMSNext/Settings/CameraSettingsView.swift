@@ -14,6 +14,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case alarmOutput
     case disk
     case dateTime
+    case maintenance
     case network
     case version
 
@@ -32,6 +33,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .alarmOutput: return "Saída de alarme"
         case .disk: return "Disco / cartão"
         case .dateTime: return "Sistema e horário"
+        case .maintenance: return "Manutenção"
         case .network: return "Rede"
         case .version: return "Informações"
         }
@@ -52,6 +54,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .alarmOutput: return "Saída de alarme"
         case .disk: return "Gerenciamento de disco"
         case .dateTime: return "Config. do sistema"
+        case .maintenance: return "Manutenção"
         case .network: return "Rede"
         case .version: return "Versão"
         }
@@ -71,6 +74,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .alarmOutput: return "Sirene, luz ou relé ligados ao equipamento"
         case .disk: return "Espaço livre, estado e disco cheio"
         case .dateTime: return "Relógio, fuso, nome e idioma do equipamento"
+        case .maintenance: return "Reiniciar e reinício automático"
         case .network: return "Endereço IP, DNS e portas"
         case .version: return "Modelo, firmware e número de série"
         }
@@ -81,7 +85,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams, .overlay: return .image
         case .recording, .snapshot, .disk: return .storage
         case .smartAlert, .videoLoss, .blind, .vehicle, .abnormality, .alarmOutput: return .alarms
-        case .dateTime, .network, .version: return .device
+        case .dateTime, .maintenance, .network, .version: return .device
         }
     }
     var icon: String {
@@ -98,6 +102,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .alarmOutput: return "light.beacon.max"
         case .disk: return "internaldrive"
         case .dateTime: return "clock"
+        case .maintenance: return "wrench.and.screwdriver"
         case .network: return "network"
         case .version: return "info.circle"
         }
@@ -112,8 +117,8 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .overlay, .recording, .snapshot, .smartAlert, .blind, .abnormality, .alarmOutput, .disk, .dateTime, .network, .version]
-        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .dateTime, .network, .version]
+        case .camera: return [.imageParams, .overlay, .recording, .snapshot, .smartAlert, .blind, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .network, .version]
+        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .network, .version]
         case .channel: return [.imageParams, .overlay, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
         }
     }
@@ -219,6 +224,8 @@ struct CameraSettingsView: View {
                         DiskView(camera: camera)
                     case .dateTime:
                         DateTimeView(camera: camera)
+                    case .maintenance:
+                        MaintenanceView(camera: camera, isRecorder: target.scope == .recorder)
                     case .network:
                         NetworkView(camera: camera)
                     case .version:
