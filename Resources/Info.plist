@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>pt-BR</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>pt-BR</string>
+    </array>
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2026 Wenderson Rodrigues · Código aberto (licença MIT)</string>
     <key>CFBundleExecutable</key>
     <string>VMSNext</string>
     <key>CFBundleIdentifier</key>
@@ -15,9 +23,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>0.10.0</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>26</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>NSHighResolutionCapable</key>

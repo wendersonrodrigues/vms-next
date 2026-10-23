@@ -1,0 +1,4 @@
+/* Nome do app em português */
+"CFBundleName" = "VMS Next";
+"CFBundleDisplayName" = "VMS Next";
+"NSHumanReadableCopyright" = "© 2026 Wenderson Rodrigues · Código aberto (licença MIT)";

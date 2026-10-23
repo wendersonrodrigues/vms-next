@@ -18,6 +18,11 @@ struct CameraEditor: View {
                     TextField("Endereço IP", text: $form.camera.host)
                     TextField("Porta RTSP", value: $form.camera.rtspPort, format: .number.grouping(.never))
                     TextField("Porta de controle", value: $form.camera.dvripPort, format: .number.grouping(.never))
+                    TextField("CloudID (número de série)", text: Binding(
+                        get: { form.camera.cloudID ?? "" },
+                        set: { form.camera.cloudID = $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+                    ))
+                    .help("Só para consulta. O VMS Next conecta pelo IP; o acesso pela nuvem (CloudID) não é suportado.")
                     Stepper("Canal: \(form.camera.channel)", value: $form.camera.channel, in: 1 ... 64)
                     TextField("NVR (vazio = câmera avulsa)", text: Binding(
                         get: { form.camera.group ?? "" },
@@ -35,7 +40,21 @@ struct CameraEditor: View {
                 }
                 Section {
                     TextField("Usuário", text: $form.camera.username)
-                    SecureField("Senha", text: $form.password)
+                    HStack {
+                        if form.showPassword {
+                            TextField("Senha", text: $form.password)
+                                .textSelection(.enabled)
+                        } else {
+                            SecureField("Senha", text: $form.password)
+                        }
+                        Button {
+                            form.showPassword.toggle()
+                        } label: {
+                            Image(systemName: form.showPassword ? "eye.slash" : "eye")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(form.showPassword ? "Esconder a senha" : "Mostrar a senha salva")
+                    }
                 } header: {
                     Text("Acesso")
                 } footer: {
@@ -86,6 +105,7 @@ struct CameraEditor: View {
 final class EditorForm: ObservableObject {
     @Published var camera: Camera
     @Published var password = ""
+    @Published var showPassword = false
 
     init(camera: Camera) {
         self.camera = camera
