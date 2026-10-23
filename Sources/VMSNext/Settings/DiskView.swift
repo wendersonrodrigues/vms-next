@@ -76,7 +76,7 @@ final class DiskModel: ObservableObject {
     }
 
     /// StorageInfo: lista de discos físicos, cada um com "Partition" (TotalSpace/RemainSpace em MB, hex).
-    private static func parse(_ raw: Any?) -> [Partition] {
+    static func parse(_ raw: Any?) -> [Partition] {
         let disks = raw as? [[String: Any]] ?? []
         var result: [Partition] = []
         for (diskIndex, disk) in disks.enumerated() {

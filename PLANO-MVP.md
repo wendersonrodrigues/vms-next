@@ -106,3 +106,4 @@ VMS-Project/
 ## Critério de pronto do MVP
 
 As 4 câmeras e os canais do NVR aparecem ao vivo no mosaico, em um Mac Apple Silicon, sem Rosetta.
+- Capacidades (ABILITY_GET 1360): `SystemFunction` diz quais funções existem (ex.: `AlarmFunction.LossDetect`, `NetServerFunction.NetNat`, `EncodeFunction.SmartH264V2`, `CommFunction.CommRS485`) e esconde telas/seções; `EncodeCapability` dá compressões (bit 7 = H.264, mostrado como H.265X; bit 8 = H.265) e resoluções (um bit por tamanho: 0 D1, 1 HD1, 14 1080P, 20 4M, 21 6M…; a do extra vem de `ExImageSizePerChannelEx[canal][bit da principal]`); `Camera.Speeds` são os tempos do obturador (µs) dos níveis manuais de `ExposureParam.Level`; `PTZProtocol`/`UartProtocol` listam os protocolos. O Smart Encode (H265AI) é `AVEnc.SmartH264V2.[c].Smart264PlusV2[stream].SmartH264Plus`. Gravar codificação responde 603 (vale após reiniciar).

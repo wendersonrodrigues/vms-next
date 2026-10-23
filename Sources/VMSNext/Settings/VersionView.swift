@@ -8,6 +8,7 @@ final class VersionModel: ObservableObject {
     @Published private(set) var rows: [(label: String, value: String)] = []
 
     let camera: Camera
+    @Published var capabilitiesText: String?
 
     /// Campos conhecidos, na ordem em que aparecem; os demais vêm depois com o nome original.
     private static let labels: [(key: String, label: String)] = [
@@ -107,6 +108,10 @@ struct VersionView: View {
             Divider()
             HStack {
                 Spacer()
+                Button("Capacidades…") {
+                    Task { capabilitiesText = await DeviceCapabilities.diagnostic(camera: model.camera) }
+                }
+                .help("O que este equipamento informa que suporta. Envie o resultado para ajustar as telas.")
                 Button("Copiar") {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(model.asText, forType: .string)
@@ -118,5 +123,13 @@ struct VersionView: View {
             .padding(12)
         }
         .task { await model.load() }
+        .sheet(isPresented: Binding(get: { capabilitiesText != nil }, set: { if !$0 { capabilitiesText = nil } })) {
+            DiagnosticSheet(text: capabilitiesText ?? "")
+        }
+    }
+
+    private var capabilitiesText: String? {
+        get { model.capabilitiesText }
+        nonmutating set { model.capabilitiesText = newValue }
     }
 }

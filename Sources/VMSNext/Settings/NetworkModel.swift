@@ -199,7 +199,7 @@ final class NetworkModel: ObservableObject {
 
     // MARK: - Endereços IPv4
 
-    static func hexToIP(_ value: Any?) -> String? {
+    nonisolated static func hexToIP(_ value: Any?) -> String? {
         guard let text = value as? String, text.lowercased().hasPrefix("0x"),
               let v = UInt32(text.dropFirst(2), radix: 16) else { return nil }
         return [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, v >> 24].map(String.init).joined(separator: ".")

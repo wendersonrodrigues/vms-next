@@ -16,6 +16,9 @@ struct CameraParamsView: View {
                 Form {
                     if model.hasColor {
                         Section("Cores da imagem") {
+                            previewRow(SettingPreview(brightness: model.brightness, contrast: model.contrast,
+                                                      saturation: model.saturation, hue: model.hue,
+                                                      caption: "Exemplo ilustrativo: muda conforme os controles abaixo"))
                             slider("Brilho", detail: "Deixa a imagem toda mais clara ou mais escura.", value: $model.brightness)
                             slider("Contraste", detail: "Diferença entre as partes claras e escuras.", value: $model.contrast)
                             slider("Saturação", detail: "Intensidade das cores; 0 deixa em preto e branco.", value: $model.saturation)
@@ -24,6 +27,7 @@ struct CameraParamsView: View {
                     }
                     if model.hasWhiteLight {
                         Section("Visão noturna") {
+                            previewRow(SettingPreview(night: nightPreview, caption: nightCaption))
                             Picker("Modo", selection: $model.nightMode) {
                                 ForEach(model.nightModeOptions, id: \.value) { option in
                                     VStack(alignment: .leading, spacing: 2) {
@@ -56,6 +60,10 @@ struct CameraParamsView: View {
                     }
                     if model.hasImageParams && !model.hasWhiteLight {
                         Section("Dia / Noite") {
+                            previewRow(SettingPreview(night: model.dayNight == 2 ? .infrared : model.dayNight == 0 ? .color : .none,
+                                                      caption: model.dayNight == 2 ? "À noite: preto e branco (infravermelho)"
+                                                          : model.dayNight == 0 ? "À noite: colorido (precisa de luz no local)"
+                                                          : "De dia colorido; à noite troca para preto e branco"))
                             Picker(selection: $model.dayNight) {
                                 ForEach(model.dayNightOptions, id: \.value) { Text($0.label).tag($0.value) }
                             } label: {
@@ -68,6 +76,8 @@ struct CameraParamsView: View {
                     }
                     if model.hasImageParams {
                         Section("Orientação") {
+                            previewRow(SettingPreview(mirror: model.mirror, flip: model.flip,
+                                                      caption: model.mirror || model.flip ? "Como fica com a orientação escolhida" : "Imagem normal"))
                             Toggle(isOn: $model.mirror) {
                                 FieldLabel("Espelhar", original: "Mirror", detail: "Inverte a imagem da esquerda para a direita.")
                             }
@@ -76,6 +86,9 @@ struct CameraParamsView: View {
                             }
                         }
                         Section("Exposição") {
+                            previewRow(SettingPreview(backlight: model.backlight,
+                                                      caption: model.backlight ? "Contraluz ligada: a pessoa no portão claro aparece"
+                                                          : "Sem compensação: quem está no portão claro vira sombra"))
                             Toggle(isOn: $model.backlight) {
                                 FieldLabel("Compensação de contraluz", original: "BLC / Luz de fundo",
                                            detail: "Clareia quem está na frente de uma janela ou portão iluminado.")
@@ -115,6 +128,31 @@ struct CameraParamsView: View {
         .task { await model.load() }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")
+        }
+    }
+
+    /// Pré-visualização ilustrativa centralizada no topo da seção.
+    private func previewRow(_ preview: SettingPreview) -> some View {
+        HStack {
+            Spacer()
+            preview
+            Spacer()
+        }
+    }
+
+    private var nightPreview: SettingPreview.Night {
+        switch model.nightMode {
+        case "Auto": return .color
+        case "Intelligent": return .dualLight
+        default: return .infrared
+        }
+    }
+
+    private var nightCaption: String {
+        switch model.nightMode {
+        case "Auto": return "Visão noturna colorida: luz branca acesa, imagem em cores"
+        case "Intelligent": return "Luz dupla: infravermelho e, ao detectar alguém, acende a luz e fica colorido"
+        default: return "Infravermelho: imagem em preto e branco, sem luz visível"
         }
     }
 
