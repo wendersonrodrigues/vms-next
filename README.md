@@ -1,12 +1,12 @@
-# VMS Next
+# VMS Next - iCSee/XMEye for MacOs
 
 <p align="center">
-  <img src="docs/images/capa.jpg" alt="VMS Next: Início e mosaico ao vivo" width="100%">
+  <img src="docs/images/capa.jpg" alt="VMS Next: Início e Câmeras ao vivo" width="100%">
 </p>
 
-App nativo para **Mac com Apple Silicon** dedicado a câmeras e NVRs **Xiongmai** (XMEye / iCSee), feito em Swift e SwiftUI.
+App nativo para **Mac com Apple Silicon** dedicado a câmeras e NVRs (XMEye / iCSee), feito em Swift e SwiftUI.
 
-Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configurações dos equipamentos. Roda em arm64, decodifica vídeo pelo hardware do chip M e conversa direto com as câmeras pela rede local, sem nuvem e sem o SDK da fabricante. Cobre as funções do VMS V2.2.1.1 para Mac (app para Intel, que depende do Rosetta) e acrescenta outras.
+Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configurações dos equipamentos. Roda em arm64, decodifica vídeo pelo hardware do chip M e conversa direto com as câmeras pela rede local, sem nuvem e sem o SDK da fabricante. Cobre as funções do VMS para Mac (app para Intel, que depende do Rosetta) e acrescenta outras.
 
 [![Versão](https://img.shields.io/github/v/release/wendersonrodrigues/vms-next?label=vers%C3%A3o)](https://github.com/wendersonrodrigues/vms-next/releases/latest)
 [![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
@@ -18,7 +18,7 @@ Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configura�
 <table>
   <tr>
     <td width="50%"><img src="docs/images/inicio.jpg" alt="Início"><br><sub><b>Início</b>: clima, alertas, discos e conexão dos equipamentos</sub></td>
-    <td width="50%"><img src="docs/images/ao-vivo-mosaico.jpg" alt="Mosaico ao vivo"><br><sub><b>Ao vivo</b>: modelos de tela, split virtual e rodízio</sub></td>
+    <td width="50%"><img src="docs/images/ao-vivo-mosaico.jpg" alt="Câmeras ao vivo"><br><sub><b>Ao vivo</b>: modelos de tela, split virtual e rodízio</sub></td>
   </tr>
   <tr>
     <td><img src="docs/images/ao-vivo-camera.jpg" alt="Câmera em tela cheia"><br><sub><b>Câmera em tela cheia</b>: som, HD/SD, zoom, foto, gravar e PTZ</sub></td>
@@ -40,12 +40,12 @@ Os dois apps abertos ao mesmo tempo no mesmo Mac, no Monitor de Atividade:
 
 | | VMS Next | VMS antigo (V2.2.1.1) |
 |---|---|---|
-| Memória | **94,2 MB** | 1,27 GB |
+| Memória RAM | **94,2 MB** | 1,27 GB |
 | Threads | **33** | 90 |
 | Portas | **586** | 1.183 |
 | Arquitetura | **Apple Silicon (nativo)** | Intel (via Rosetta) |
 
-O VMS Next usou **cerca de 13 vezes menos memória**, menos da metade das threads e das portas. Ele roda direto no chip da Apple e decodifica o vídeo pelo hardware, sem a camada de tradução do Rosetta. É uma medição de um momento; os números mudam conforme quantas câmeras estão na tela.
+O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das threads e das portas. Ele roda direto no chip da Apple e decodifica o vídeo pelo hardware, sem a camada de tradução do Rosetta. É uma medição de um momento; os números mudam conforme quantas câmeras estão na tela.
 
 ## Instalação
 
