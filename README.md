@@ -45,6 +45,11 @@ Janela de configurações por câmera (botão direito → **Configurações…**
 - **Config. de gravação**: modo, tamanho do arquivo, pré-gravação e **agenda semanal pintável** (normal, detecção, alarme em blocos de meia hora), como no VMS antigo.
 - **Config. de foto**: agenda nas câmeras; no NVR, Intervalo (por e-mail, FTP e disco), Tempo de captura (lista de horários) ou Fechar.
 - **Gerenciamento de disco**: uso, estado, período gravado e o que fazer com o disco cheio.
+- **Sistema e horário**: relógio do equipamento ao lado do Mac com botão para acertar, sincronização automática, formato da data, idioma, padrão de vídeo e nome do equipamento.
+- **Texto na imagem**: nome do canal, data/hora e texto extra arrastáveis sobre a imagem ao vivo, e máscaras de privacidade.
+- **Manutenção**: reiniciar, reinício automático, apagar gravações antigas, atualização on-line e cópia das configurações (exportar/importar em JSON).
+- **Usuários**: contas, grupos com permissões em português, trocar senha, adicionar e apagar.
+- **Restaurar padrão** por categoria, com avisos e cópia antes.
 - **Versão**: modelo, firmware, número de série, tempo ligado e canais.
 - **Diagnóstico**: mostra em JSON as configurações lidas da câmera (sem senhas), para identificar campos de modelos diferentes.
 
@@ -61,7 +66,7 @@ Janela de configurações por câmera (botão direito → **Configurações…**
 | 2 · Essenciais | PTZ, Parâmetros da cam, Rede, Versão | Concluída |
 | 3 · Gravação e disco | Reprodução das gravações, config. de gravação, disco, foto | Concluída |
 | 4 · Alarmes | Alertas e notificações, detecção inteligente, área/linha de aviso, perda de vídeo, câmera bloqueada, veículos, anormalidades, saída de alarme | Concluída |
-| 5 · Avançados | Sistema, data/hora, sobreposição de texto, usuários, manutenção | Próxima |
+| 5 · Avançados | Sistema e horário, texto na imagem e máscaras, manutenção e cópia das configurações, usuários, restaurar padrão | Concluída |
 
 O plano detalhado está em [PLANO-MVP.md](PLANO-MVP.md).
 

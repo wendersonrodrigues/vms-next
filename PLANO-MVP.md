@@ -79,7 +79,8 @@ VMS-Project/
 - **Fase 3 concluída (23/10/2026):** reprodução de gravações (câmeras e NVR), Config. de gravação com agenda semanal pintável, Gerenciamento de disco e Config. de foto, todos testados.
 - **Login no app** com "Lembrar senha" e cofre próprio de senhas (o Keychain pedia a senha do Mac a cada nova versão).
 - **Fase 4 concluída (23/10/2026):** alertas (GUARD 1500 / avisos 1504) com tela Eventos, notificações e sino; Detecção inteligente (movimento, pessoas, ações, período) e desenho da área/linha de aviso; perda de vídeo, câmera bloqueada, detecção de veículos e problemas no equipamento (por canal e no NVR); saída de alarme. Tudo testado nos equipamentos.
-- Próximo: Fase 5 (Avançados).
+- **Fase 5 concluída (23/10/2026):** Sistema e horário (relógio, NTP, formato, idioma, nome do equipamento), Texto na imagem (posições, máscaras de privacidade, texto extra), Manutenção (reiniciar, reinício automático, atualização on-line, cópia das configurações em JSON), Usuários (contas, grupos, senhas, adicionar e apagar) e Restaurar padrão. Tudo testado nos equipamentos.
+- **Todas as fases do plano estão concluídas.** Ideias para depois: rodar em segundo plano com ícone na barra de menus (alertas com o app fechado), áudio ao vivo e nas gravações, criar e editar grupos, editar o fuso horário (tabela de códigos ainda não confirmada).
 - NVR agora é um grupo na barra lateral, como no VMS antigo: o mosaico principal mostra só as câmeras avulsas e o NVR mostra os próprios canais.
 
 ### Aprendizados sobre as câmeras
@@ -96,6 +97,10 @@ VMS-Project/
 - Detecção de pessoas (`Detect.HumanDetection.[canal]`): `PedRule[]` com `RuleType` 1 = área (`RuleRegion.Pts` em 0–8192) e, presumido, 0 = linha (`RuleLine.Pts` Start/Stop); ações e período ficam no `EventHandler` de `Detect.MotionDetect.[canal]`.
 - Telas de alarme do NVR: canais acionados via máscaras `RecordMask`/`SnapShotMask`/`TourMask` (bit 0 = canal 1, primeiro grupo de 32 bits); detecção de veículos em `Detect.CarShapeDetection.[canal]` (`Enable` null = câmera sem a função); itens de disco em `Storage.StorageNotExist/StorageFailure/StorageLowSpace`, rede em `Alarm.NetAbort/NetIPConflict`; `CheckDiskInterval` = "Timed Alarm". Conexão dos canais via `NetWork.ChnStatus` (com alternativa: canais cadastrados no app).
 - Saída de alarme (`Alarm.AlarmOut.[n]`): `AlarmOutType` = modo (AUTO = Schedule, MANUAL, CLOSE = Fechado); `AlarmOutStatus` = "Estado" (OPEN ligada / CLOSE desligada).
+- Sistema: nome do equipamento ("Device Name") é `NetWork.NetCommon.HostName` (o `MachineName` fica "LocalHost"); fuso = `NetWork.NetNTP.TimeZone` (14 = UTC−03:00).
+- Texto na imagem: `AVEnc.VideoWidget.[canal]` (RelativePos x,y em 0–8192 para títulos; máscaras com esquerda/topo/direita/base e `CoversNum`), `ChannelTitle`, `fVideo.OSDInfo`.
+- Manutenção: `General.AutoMaintain` (AutoRebootHour é a hora; AutoDeleteFilesDays em dias, 0 = nunca); `NetWork.OnlineUpgrade` usa 0/1.
+- Usuários: 1472 Users, 1474 Groups, 1482 adicionar, 1486 apagar, 1488 trocar senha (hash de 8 caracteres); diagnósticos ocultam campos de senha.
 - Pendência pequena: a resolução mostrada na reprodução fica truncada em vídeos com mais de 2040 px de largura (o cabeçalho guarda largura/8 em 1 byte); a imagem não é afetada.
 
 ## Critério de pronto do MVP
