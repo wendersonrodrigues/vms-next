@@ -30,6 +30,23 @@ Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configura�
   </tr>
 </table>
 
+## Desempenho
+
+Os dois apps abertos ao mesmo tempo no mesmo Mac, no Monitor de Atividade:
+
+<p align="center">
+  <img src="docs/images/desempenho.png" alt="Monitor de Atividade: VMS Next e VMS antigo" width="80%">
+</p>
+
+| | VMS Next | VMS antigo (V2.2.1.1) |
+|---|---|---|
+| Memória | **94,2 MB** | 1,27 GB |
+| Threads | **33** | 90 |
+| Portas | **586** | 1.183 |
+| Arquitetura | **Apple Silicon (nativo)** | Intel (via Rosetta) |
+
+O VMS Next usou **cerca de 13 vezes menos memória**, menos da metade das threads e das portas. Ele roda direto no chip da Apple e decodifica o vídeo pelo hardware, sem a camada de tradução do Rosetta. É uma medição de um momento; os números mudam conforme quantas câmeras estão na tela.
+
 ## Instalação
 
 1. Baixe o **`VMS-Next-<versão>.dmg`** na página de [Releases](https://github.com/wendersonrodrigues/vms-next/releases/latest) e abra o arquivo.
