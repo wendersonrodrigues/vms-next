@@ -27,6 +27,8 @@ final class LiveStream: ObservableObject {
     }
 
     @Published private(set) var status: Status = .idle
+    /// Dimensões do vídeo decodificado (para desenhar sobre a imagem na proporção certa).
+    @Published private(set) var videoSize: CGSize?
 
     let displayLayer = AVSampleBufferDisplayLayer()
 
@@ -35,6 +37,9 @@ final class LiveStream: ObservableObject {
     private var monitorStop: (() -> Void)?
     private var watchdog: Timer?
     private let frameClock = FrameClock()
+    private lazy var sizeReporter = SizeReporter { [weak self] size in
+        DispatchQueue.main.async { self?.videoSize = size }
+    }
     private var retryWork: DispatchWorkItem?
     private var retryDelay: TimeInterval = 2
     private var generation = 0
@@ -65,6 +70,7 @@ final class LiveStream: ObservableObject {
             username: camera.username, password: password
         )
         let renderer = displayLayer.sampleBufferRenderer
+        let reporter = sizeReporter
         var depacketizer: RTPDepacketizer?
 
         client.onTrack = { track in
@@ -74,6 +80,7 @@ final class LiveStream: ObservableObject {
                 if renderer.status == .failed { renderer.flush() }
                 if let sample = builder.makeSampleBuffer(nalus: nalus, corrupted: corrupted) {
                     renderer.enqueue(sample)
+                    reporter.report(sample)
                 }
             }
             depacketizer = d
@@ -143,6 +150,7 @@ final class LiveStream: ObservableObject {
             "TransMode": "TCP",
         ]
         let renderer = displayLayer.sampleBufferRenderer
+        let reporter = sizeReporter
         let parser = XMMediaParser()
         var builder: SampleBufferBuilder?
         let clock = frameClock
@@ -156,6 +164,7 @@ final class LiveStream: ObservableObject {
             if renderer.status == .failed { renderer.flush() }
             if let sample = builder.makeSampleBuffer(nalus: frame.nalus, corrupted: false) {
                 renderer.enqueue(sample)
+                reporter.report(sample)
                 clock.touch()
             }
         }
@@ -229,5 +238,27 @@ final class FrameClock: @unchecked Sendable {
     var secondsSinceLast: TimeInterval {
         lock.lock(); defer { lock.unlock() }
         return Date().timeIntervalSince(last)
+    }
+}
+
+/// Avisa as dimensões do vídeo uma vez por mudança, a partir da fila de decodificação.
+final class SizeReporter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var last: CGSize?
+    private let onChange: (CGSize) -> Void
+
+    init(onChange: @escaping (CGSize) -> Void) {
+        self.onChange = onChange
+    }
+
+    func report(_ sample: CMSampleBuffer) {
+        guard let format = CMSampleBufferGetFormatDescription(sample) else { return }
+        let dimensions = CMVideoFormatDescriptionGetDimensions(format)
+        let size = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
+        lock.lock()
+        let changed = size != last
+        last = size
+        lock.unlock()
+        if changed { onChange(size) }
     }
 }

@@ -105,6 +105,8 @@ final class SmartAlertModel: ObservableObject {
     @Published private(set) var hasShowRule = false
     @Published var showRule = false
     @Published private(set) var ruleSummary: String?
+    /// Área/linha em edição (abre a tela de desenho).
+    @Published var editingRule: RuleDraft?
 
     @Published var actions: [Action] = []
     @Published var delays: [Delay] = []
@@ -270,6 +272,72 @@ final class SmartAlertModel: ObservableObject {
         }
     }
 
+    // MARK: - Área / linha de aviso
+
+    /// Começa a editar a primeira regra ativa (ou a primeira da lista).
+    func beginRuleEditing() {
+        guard let rules = ConfigValue.object(in: humanRaw)?["PedRule"] as? [[String: Any]], !rules.isEmpty else { return }
+        let index = rules.firstIndex { Self.bool($0["Enable"]) } ?? 0
+        let rule = rules[index]
+        let region = rule["RuleRegion"] as? [String: Any] ?? [:]
+        let count = ConfigValue.int(region["PtsNum"]) ?? 0
+        let area = (region["Pts"] as? [[String: Any]] ?? []).prefix(count > 0 ? count : 8).map {
+            RuleDraft.point(x: $0["X"], y: $0["Y"])
+        }
+        let linePts = (rule["RuleLine"] as? [String: Any])?["Pts"] as? [String: Any] ?? [:]
+        let line = [RuleDraft.point(x: linePts["StartX"], y: linePts["StartY"]),
+                    RuleDraft.point(x: linePts["StopX"], y: linePts["StopY"])]
+        let kind = RuleDraft.Kind(rawValue: ConfigValue.int(rule["RuleType"]) ?? 1) ?? .area
+        let directionSource = kind == .area ? region : (rule["RuleLine"] as? [String: Any] ?? [:])
+        let draft = RuleDraft(index: index, kind: kind,
+                              area: area.count >= 3 ? Array(area) : [],
+                              line: line, direction: ConfigValue.int(directionSource["AlarmDirect"]) ?? 2)
+        if draft.area.count < 3 { draft.coverWholeImage() }
+        editingRule = draft
+    }
+
+    /// Grava a área/linha na câmera; devolve uma mensagem de erro ou nil.
+    func saveRule(_ draft: RuleDraft) async -> String? {
+        guard let raw = humanRaw, var human = ConfigValue.object(in: raw),
+              var rules = human["PedRule"] as? [[String: Any]], rules.indices.contains(draft.index) else {
+            return "Regra não encontrada no equipamento."
+        }
+        var rule = rules[draft.index]
+        rule["Enable"] = true
+        rule["RuleType"] = draft.kind.rawValue
+        if draft.kind == .area {
+            var region = rule["RuleRegion"] as? [String: Any] ?? [:]
+            region["Pts"] = draft.area.map { ["X": RuleDraft.device($0.x), "Y": RuleDraft.device($0.y)] }
+            region["PtsNum"] = draft.area.count
+            rule["RuleRegion"] = region
+        } else {
+            var line = rule["RuleLine"] as? [String: Any] ?? [:]
+            line["Pts"] = [
+                "StartX": RuleDraft.device(draft.line[0].x), "StartY": RuleDraft.device(draft.line[0].y),
+                "StopX": RuleDraft.device(draft.line[1].x), "StopY": RuleDraft.device(draft.line[1].y),
+            ]
+            line["AlarmDirect"] = draft.direction
+            rule["RuleLine"] = line
+        }
+        rules[draft.index] = rule
+        human["PedRule"] = rules
+        do {
+            let client = try await DeviceSessions.shared.client(for: camera)
+            let updated = ConfigValue.replacingObject(in: raw, with: human)
+            try await client.setConfig(humanName, updated)
+            humanRaw = try await client.getConfig(humanName)
+            let saved = (ConfigValue.object(in: humanRaw)?["PedRule"] as? [[String: Any]])?[draft.index]
+            if ConfigValue.int(saved?["RuleType"]) != draft.kind.rawValue {
+                return "O equipamento aceitou o comando mas manteve o tipo anterior."
+            }
+            readHuman()
+            notice = "Área de aviso salva na câmera."
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     private static func bool(_ value: Any?) -> Bool {
         (value as? Bool) ?? (ConfigValue.int(value) == 1)
     }
@@ -333,6 +401,9 @@ struct SmartAlertView: View {
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")
         }
+        .sheet(item: $model.editingRule) { draft in
+            RuleEditorView(draft: draft, camera: model.camera) { await model.saveRule($0) }
+        }
     }
 
     private var humanSection: some View {
@@ -364,10 +435,13 @@ struct SmartAlertView: View {
             }
             if let summary = model.ruleSummary {
                 LabeledContent {
-                    Text(summary)
+                    HStack {
+                        Text(summary).foregroundStyle(.secondary)
+                        Button("Desenhar…") { model.beginRuleEditing() }
+                    }
                 } label: {
                     FieldLabel("Área ou linha de aviso", original: "Rule",
-                               detail: "Limita o alerta a uma região da imagem ou a quem cruzar uma linha. O desenho ainda é feito no VMS antigo ou no iCSee.")
+                               detail: "Limita o alerta a uma região da imagem ou a quem cruzar uma linha.")
                 }
             }
         }

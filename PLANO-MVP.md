@@ -78,7 +78,7 @@ VMS-Project/
 - **Fase 2 concluída (22/10/2026):** PTZ, Parâmetros da cam (incluindo visão noturna de luz dupla via `Camera.WhiteLight`), Rede e Versão, todos testados nas câmeras.
 - **Fase 3 concluída (23/10/2026):** reprodução de gravações (câmeras e NVR), Config. de gravação com agenda semanal pintável, Gerenciamento de disco e Config. de foto, todos testados.
 - **Login no app** com "Lembrar senha" e cofre próprio de senhas (o Keychain pedia a senha do Mac a cada nova versão).
-- Próximo: Fase 4 (Alarmes).
+- **Fase 4 em andamento (23/10/2026):** alertas (GUARD 1500 / avisos 1504) com tela Eventos, notificações e sino; Detecção inteligente (movimento, pessoas, ações, período); desenho da área/linha de aviso. Faltam perda de vídeo, câmera bloqueada, anormalidades e saída de alarme.
 - NVR agora é um grupo na barra lateral, como no VMS antigo: o mosaico principal mostra só as câmeras avulsas e o NVR mostra os próprios canais.
 
 ### Aprendizados sobre as câmeras
@@ -91,6 +91,8 @@ VMS-Project/
 - A Fundo é uma câmera de duas lentes (2 canais): o RTSP dela ignora o canal, então o vídeo ao vivo dela usa o protocolo Xiongmai (OPMonitor). No NVR ela aparece nos canais 2 e 3.
 - Config. de foto tem dois formatos: câmeras usam agenda (`Storage.Snapshot.[canal]`, igual à gravação); o NVR usa `Snap.SnapConfig.[canal]` com `SnapType` 0 = Intervalo (segundos por destino, 0 = desligado), 1 = Tempo de captura (`TriggerSnap`: `triggerTime` "0000-00-00 HH:MM:SS" + Email/FTP/Storage), 2 = Fechar.
 - Agenda de gravação/foto: 7 dias × 6 períodos, máscara por período com bit 0 normal, bit 1 detecção, bit 2 alarme.
+- Alarmes: alerta de pessoa chega como `appEventHumanDetectAlarm`; `EventHandler.MsgtoNetEnable` provavelmente é o que libera o envio ao VMS Next.
+- Detecção de pessoas (`Detect.HumanDetection.[canal]`): `PedRule[]` com `RuleType` 1 = área (`RuleRegion.Pts` em 0–8192) e, presumido, 0 = linha (`RuleLine.Pts` Start/Stop); ações e período ficam no `EventHandler` de `Detect.MotionDetect.[canal]`.
 - Pendência pequena: a resolução mostrada na reprodução fica truncada em vídeos com mais de 2040 px de largura (o cabeçalho guarda largura/8 em 1 byte); a imagem não é afetada.
 
 ## Critério de pronto do MVP
