@@ -22,7 +22,7 @@ enum LegacyVMSImporter {
         defer { sqlite3_close(db) }
 
         var statement: OpaquePointer?
-        let sql = "SELECT Name, Address, UserName, AnalogChan, DigitalChan FROM Devices ORDER BY ID"
+        let sql = "SELECT Name, Address, UserName, AnalogChan, DigitalChan, DeviceType FROM Devices ORDER BY ID"
         guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
             throw ImportError(errorDescription: "Formato do banco do VMS não reconhecido")
         }
@@ -35,16 +35,37 @@ enum LegacyVMSImporter {
             let user = text(statement, 2)
             let name = cleanName(text(statement, 0), host: host)
             let channels = max(1, Int(sqlite3_column_int(statement, 3)) + Int(sqlite3_column_int(statement, 4)))
+            // DeviceType 3 = NVR no VMS antigo: vira um grupo com um item por canal.
+            // Câmeras de duas lentes também têm 2 canais, mas continuam avulsas.
+            let isRecorder = sqlite3_column_int(statement, 5) == 3
             for channel in 1 ... channels {
                 cameras.append(Camera(
-                    name: channels > 1 ? "\(name) · Canal \(channel)" : name,
+                    name: isRecorder ? "Canal \(channel)" : name,
                     host: host,
                     channel: channel,
-                    username: user.isEmpty ? "admin" : user
+                    username: user.isEmpty ? "admin" : user,
+                    group: isRecorder ? name : nil
                 ))
             }
         }
         return cameras
+    }
+
+    /// Endereços dos NVRs (DeviceType 3) no banco do VMS antigo; vazio se o banco não existir.
+    static func recorderHosts(path: String = defaultPath) -> Set<String> {
+        var db: OpaquePointer?
+        guard FileManager.default.fileExists(atPath: path),
+              sqlite3_open_v2(path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+            sqlite3_close(db)
+            return []
+        }
+        defer { sqlite3_close(db) }
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(db, "SELECT Address FROM Devices WHERE DeviceType = 3", -1, &statement, nil) == SQLITE_OK else { return [] }
+        defer { sqlite3_finalize(statement) }
+        var hosts = Set<String>()
+        while sqlite3_step(statement) == SQLITE_ROW { hosts.insert(text(statement, 0)) }
+        return hosts
     }
 
     private static func text(_ statement: OpaquePointer?, _ column: Int32) -> String {

@@ -23,21 +23,60 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     }
 }
 
-final class SettingsNavigation: ObservableObject {
-    @Published var category: SettingsCategory? = .imageParams
+/// O que está sendo configurado: uma câmera avulsa, o NVR em si ou um canal do NVR.
+enum SettingsScope {
+    case camera
+    case recorder
+    case channel
+
+    var categories: [SettingsCategory] {
+        switch self {
+        case .camera: return [.imageParams, .network, .version]
+        case .recorder: return [.network, .version]
+        case .channel: return [.imageParams]
+        }
+    }
 }
 
-/// Janela de configurações de uma câmera (equivalente às telas de configuração do VMS antigo).
-struct CameraSettingsView: View {
+/// Alvo da janela de configurações; `camera` é o canal (ou, para o NVR, qualquer canal dele).
+struct SettingsTarget: Identifiable {
+    let id = UUID()
     let camera: Camera
+    let scope: SettingsScope
+
+    var title: String {
+        switch scope {
+        case .recorder: return camera.group ?? camera.host
+        case .camera, .channel: return camera.displayName
+        }
+    }
+}
+
+final class SettingsNavigation: ObservableObject {
+    @Published var category: SettingsCategory?
+
+    init(category: SettingsCategory?) {
+        self.category = category
+    }
+}
+
+/// Janela de configurações (equivalente às telas de configuração do VMS antigo).
+struct CameraSettingsView: View {
+    let target: SettingsTarget
+    private var camera: Camera { target.camera }
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var navigation = SettingsNavigation()
+    @StateObject private var navigation: SettingsNavigation
+
+    init(target: SettingsTarget) {
+        self.target = target
+        _navigation = StateObject(wrappedValue: SettingsNavigation(category: target.scope.categories.first))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                List(SettingsCategory.allCases, selection: $navigation.category) { category in
+                List(target.scope.categories, selection: $navigation.category) { category in
                     Label(category.title, systemImage: category.icon).tag(category)
                 }
                 .listStyle(.sidebar)
@@ -63,7 +102,8 @@ struct CameraSettingsView: View {
 
             Divider()
             HStack {
-                Text(camera.name).foregroundStyle(.secondary)
+                Label(target.title, systemImage: target.scope == .recorder ? "server.rack" : "video")
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Button("Fechar") { dismiss() }
                     .keyboardShortcut(.cancelAction)

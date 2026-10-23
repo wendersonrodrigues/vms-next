@@ -76,7 +76,8 @@ VMS-Project/
 
 - **MVP concluído (22/10/2026):** câmeras e canais do NVR ao vivo no mosaico, testado pelo usuário em Apple Silicon.
 - **Fase 2 concluída (22/10/2026):** PTZ, Parâmetros da cam (incluindo visão noturna de luz dupla via `Camera.WhiteLight`), Rede e Versão, todos testados nas câmeras.
-- Próximo: Fase 3 (Gravação e disco).
+- **Fase 3 em andamento (23/10/2026):** reprodução de gravações concluída e testada (câmeras pelo cartão e NVR). Faltam Config. de gravação, Gerenciamento de disco e Config. de foto.
+- NVR agora é um grupo na barra lateral, como no VMS antigo: o mosaico principal mostra só as câmeras avulsas e o NVR mostra os próprios canais.
 
 ### Aprendizados sobre as câmeras
 - Todas as câmeras são de luz dupla: a visão noturna fica em `Camera.WhiteLight.WorkMode` (`Auto` = colorida, `Close` = infravermelha, `Intelligent` = alerta de luz dupla), não em `DayNightColor`.
@@ -84,6 +85,9 @@ VMS-Project/
 - IPs na rede vêm em hex little-endian (`0x1300A8C0` = 192.168.0.19).
 - O VMS antigo recusa salvar "Parâmetros da cam" se o tempo mínimo de exposição estiver abaixo de 0,1 ms.
 - O "Alerta inteligente" do iCSee (pessoas, linha/área de aviso) entra na Fase 4.
+- O NVR (firmware V4.03.R11, 10 canais) só aceita o login do app com **Criptografia de rede = "Login remoto precisa de criptografia"** (menu de rede do NVR). Com "Login de rede precisa de criptografia" ele recusa com o código 124.
+- A Fundo é uma câmera de duas lentes (2 canais): o RTSP dela ignora o canal, então o vídeo ao vivo dela usa o protocolo Xiongmai (OPMonitor). No NVR ela aparece nos canais 2 e 3.
+- Pendência pequena: a resolução mostrada na reprodução fica truncada em vídeos com mais de 2040 px de largura (o cabeçalho guarda largura/8 em 1 byte); a imagem não é afetada.
 
 ## Critério de pronto do MVP
 

@@ -19,6 +19,10 @@ struct CameraEditor: View {
                     TextField("Porta RTSP", value: $form.camera.rtspPort, format: .number.grouping(.never))
                     TextField("Porta de controle", value: $form.camera.dvripPort, format: .number.grouping(.never))
                     Stepper("Canal: \(form.camera.channel)", value: $form.camera.channel, in: 1 ... 64)
+                    TextField("NVR (vazio = câmera avulsa)", text: Binding(
+                        get: { form.camera.group ?? "" },
+                        set: { form.camera.group = $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+                    ))
                 }
                 Section {
                     TextField("Usuário", text: $form.camera.username)
@@ -30,13 +34,18 @@ struct CameraEditor: View {
                         .foregroundStyle(.secondary)
                 }
                 Section {
+                    Picker("Vídeo ao vivo", selection: $form.camera.liveSource) {
+                        Text("Automático").tag(LiveSource.auto)
+                        Text("RTSP").tag(LiveSource.rtsp)
+                        Text("Protocolo Xiongmai").tag(LiveSource.dvrip)
+                    }
                     TextField("Caminho RTSP", text: $form.camera.pathTemplate)
                         .font(.system(.body, design: .monospaced))
                     Button("Restaurar padrão Xiongmai") { form.camera.pathTemplate = Camera.xiongmaiPathTemplate }
                 } header: {
                     Text("Avançado")
                 } footer: {
-                    Text("Marcadores: {user}, {password}, {channel}, {stream} (0 = principal, 1 = extra).")
+                    Text("Automático usa RTSP, exceto em câmeras de várias lentes, que usam o protocolo Xiongmai. Marcadores do caminho: {user}, {password}, {channel}, {stream} (0 = principal, 1 = extra).")
                         .foregroundStyle(.secondary)
                 }
             }

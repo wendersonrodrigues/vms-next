@@ -144,9 +144,10 @@ final class DVRIPClient: @unchecked Sendable {
 
     // MARK: - Envio e recepção
 
-    private var sessionString: String {
-        queue.sync { String(format: "0x%08X", sessionID) }
-    }
+    /// SessionID do login, usado também pela conexão de mídia da reprodução (Claim).
+    var sessionValue: UInt32 { queue.sync { sessionID } }
+
+    var sessionString: String { String(format: "0x%08X", sessionValue) }
 
     private func send(code: UInt16, json: [String: Any]) async throws -> [String: Any] {
         let body = try JSONSerialization.data(withJSONObject: json)
@@ -169,19 +170,24 @@ final class DVRIPClient: @unchecked Sendable {
     }
 
     private func frame(code: UInt16, body: Data) -> Data {
+        let data = Self.makeFrame(session: sessionID, sequence: sequence, code: code, body: body)
+        sequence &+= 1
+        return data
+    }
+
+    static func makeFrame(session: UInt32, sequence: UInt32, code: UInt16, body: Data) -> Data {
         var data = Data([0xFF, 0x00, 0x00, 0x00])
-        appendLE(&data, sessionID)
+        appendLE(&data, session)
         appendLE(&data, sequence)
         data.append(contentsOf: [0x00, 0x00])
         appendLE(&data, code)
         appendLE(&data, UInt32(body.count + 2))
         data.append(body)
         data.append(contentsOf: [0x0A, 0x00])
-        sequence &+= 1
         return data
     }
 
-    private func appendLE<T: FixedWidthInteger>(_ data: inout Data, _ value: T) {
+    private static func appendLE<T: FixedWidthInteger>(_ data: inout Data, _ value: T) {
         withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) }
     }
 

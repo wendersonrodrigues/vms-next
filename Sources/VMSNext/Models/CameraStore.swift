@@ -20,7 +20,47 @@ final class CameraStore: ObservableObject {
         if let data = try? Data(contentsOf: fileURL),
            let saved = try? JSONDecoder().decode([Camera].self, from: data)
         {
-            cameras = saved
+            cameras = Self.migrateGroups(saved)
+            if cameras != saved { save() }
+        }
+    }
+
+    /// Câmeras avulsas (fora de NVR), na ordem da lista.
+    var standaloneCameras: [Camera] { cameras.filter { $0.group == nil } }
+
+    /// NVRs na ordem em que aparecem na lista.
+    var groups: [String] {
+        var seen = Set<String>()
+        return cameras.compactMap(\.group).filter { seen.insert($0).inserted }
+    }
+
+    /// No automático, câmeras avulsas com mais de um canal (várias lentes) usam DVRIP,
+    /// porque o RTSP delas devolve a mesma lente para todos os canais.
+    func resolvedLiveSource(for camera: Camera) -> LiveSource {
+        guard camera.liveSource == .auto else { return camera.liveSource }
+        let siblings = cameras.filter { $0.group == nil && $0.host == camera.host && $0.dvripPort == camera.dvripPort }
+        return camera.group == nil && siblings.count > 1 ? .dvrip : .rtsp
+    }
+
+    func channels(in group: String) -> [Camera] {
+        cameras.filter { $0.group == group }.sorted { $0.channel < $1.channel }
+    }
+
+    func removeGroup(_ group: String) {
+        cameras.removeAll { $0.group == group }
+    }
+
+    /// Versões anteriores salvavam os canais do NVR como câmeras soltas ("NVR · Canal 2").
+    /// Agrupa os itens cujo IP é um NVR no banco do VMS antigo.
+    private static func migrateGroups(_ list: [Camera]) -> [Camera] {
+        let recorders = LegacyVMSImporter.recorderHosts()
+        return list.map { camera in
+            guard camera.group == nil, recorders.contains(camera.host) else { return camera }
+            var updated = camera
+            let parts = camera.name.components(separatedBy: " · ")
+            updated.group = parts.count > 1 ? parts[0] : camera.host
+            updated.name = "Canal \(camera.channel)"
+            return updated
         }
     }
 

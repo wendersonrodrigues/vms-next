@@ -16,7 +16,7 @@ struct CameraTile: View {
             VStack {
                 Spacer()
                 HStack {
-                    Text(camera.name)
+                    Text(camera.displayName)
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
@@ -78,6 +78,7 @@ struct CameraTile: View {
     }
 
     private func start() {
-        stream.start(camera: camera, quality: quality, password: store.password(for: camera))
+        stream.start(camera: camera, quality: quality, password: store.password(for: camera),
+                     source: store.resolvedLiveSource(for: camera))
     }
 }

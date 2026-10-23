@@ -22,8 +22,8 @@ struct ContentView: View {
         .sheet(item: $ui.editing) { camera in
             CameraEditor(camera: camera)
         }
-        .sheet(item: $ui.configuring) { camera in
-            CameraSettingsView(camera: camera)
+        .sheet(item: $ui.configuring) { target in
+            CameraSettingsView(target: target)
         }
         .alert("VMS Next", isPresented: Binding(get: { ui.alertMessage != nil }, set: { if !$0 { ui.alertMessage = nil } })) {
             Button("OK") {}
@@ -34,24 +34,25 @@ struct ContentView: View {
 
     // MARK: - Barra lateral
 
-    private var sidebar: some View {
-        List(selection: $ui.focused) {
-            Section("Câmeras") {
-                ForEach(store.cameras) { camera in
-                    Label(camera.name, systemImage: "video")
-                        .tag(camera.id)
-                        .contextMenu {
-                            Button("Editar…") { ui.editing = camera }
-                            Button("Configurações…") { ui.configuring = camera }
-                            Button("Remover", role: .destructive) {
-                                if ui.focused == camera.id { ui.focused = nil }
-                                store.remove(camera)
-                            }
-                        }
-                }
+    private var sidebarNodes: [SidebarNode] {
+        var nodes = [SidebarNode(id: .all, title: "Câmeras", icon: "square.grid.2x2")]
+        nodes += store.standaloneCameras.map { SidebarNode(id: .camera($0.id), title: $0.name, icon: "video") }
+        for group in store.groups {
+            let channels = store.channels(in: group).map {
+                SidebarNode(id: .camera($0.id), title: $0.name, icon: "video")
             }
+            nodes.append(SidebarNode(id: .group(group), title: group, icon: "server.rack", children: channels))
+        }
+        return nodes
+    }
+
+    private var sidebar: some View {
+        List(sidebarNodes, children: \.children, selection: $ui.selection) { node in
+            Label(node.title, systemImage: node.icon)
+                .contextMenu { contextMenu(for: node.id) }
         }
         .navigationSplitViewColumnWidth(min: 200, ideal: 240)
+        .onChange(of: ui.selection) { ui.page = 0 }
         .toolbar {
             ToolbarItem {
                 Menu {
@@ -62,6 +63,56 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func contextMenu(for item: SidebarItem) -> some View {
+        switch item {
+        case .all:
+            EmptyView()
+        case let .camera(id):
+            if let camera = store.cameras.first(where: { $0.id == id }) {
+                Button("Editar…") { ui.editing = camera }
+                Button("Configurações…") { ui.configuring = settingsTarget(for: camera) }
+                Button("Remover", role: .destructive) {
+                    if ui.selection == item { ui.selection = .all }
+                    store.remove(camera)
+                }
+            }
+        case let .group(name):
+            if let first = store.channels(in: name).first {
+                Button("Configurações do NVR…") { ui.configuring = SettingsTarget(camera: first, scope: .recorder) }
+                Button("Remover NVR", role: .destructive) {
+                    if ui.selection == item { ui.selection = .all }
+                    store.removeGroup(name)
+                }
+            }
+        }
+    }
+
+    private func settingsTarget(for camera: Camera) -> SettingsTarget {
+        SettingsTarget(camera: camera, scope: camera.group == nil ? .camera : .channel)
+    }
+
+    /// Câmera em tela única, quando a seleção é uma câmera.
+    private var focusedCamera: Camera? {
+        guard case let .camera(id) = ui.selection else { return nil }
+        return store.cameras.first { $0.id == id }
+    }
+
+    /// Mosaico: canais do NVR selecionado ou, fora dele, só as câmeras avulsas.
+    private var gridCameras: [Camera] {
+        if case let .group(name) = ui.selection { return store.channels(in: name) }
+        return store.standaloneCameras
+    }
+
+    private var gridTitle: String {
+        if case let .group(name) = ui.selection { return name }
+        return "Câmeras"
+    }
+
+    private func backToGrid(from camera: Camera) {
+        ui.selection = camera.group.map { .group($0) } ?? .all
     }
 
     // MARK: - Mosaico
@@ -78,31 +129,43 @@ struct ContentView: View {
                     .buttonStyle(.borderedProminent)
                 Button("Nova câmera…") { ui.editing = Camera(name: "Nova câmera", host: "192.168.0.") }
             }
-        } else if let id = ui.focused, let camera = store.cameras.first(where: { $0.id == id }) {
+        } else if ui.mode == .recordings {
+            PlaybackView()
+                .toolbar { modeToolbar }
+        } else if let camera = focusedCamera {
             HStack(spacing: 0) {
-                CameraTile(camera: camera, quality: .main, onEdit: { ui.editing = camera }, onSettings: { ui.configuring = camera })
+                CameraTile(camera: camera, quality: .main, onEdit: { ui.editing = camera },
+                           onSettings: { ui.configuring = settingsTarget(for: camera) })
                     .id(camera)
-                    .onTapGesture(count: 2) { ui.focused = nil }
+                    .onTapGesture(count: 2) { backToGrid(from: camera) }
                 if ui.showPTZ {
                     PTZPanel(camera: camera)
                         .id(camera)
                 }
             }
-            .toolbar { gridToolbar(single: true) }
+            .navigationTitle(camera.displayName)
+            .toolbar {
+                modeToolbar
+                gridToolbar(single: true)
+            }
         } else {
             grid
-                .toolbar { gridToolbar(single: false) }
+                .navigationTitle(gridTitle)
+                .toolbar {
+                    modeToolbar
+                    gridToolbar(single: false)
+                }
         }
     }
 
     private var pageCount: Int {
-        max(1, Int((Double(store.cameras.count) / Double(ui.layout.tilesPerPage)).rounded(.up)))
+        max(1, Int((Double(gridCameras.count) / Double(ui.layout.tilesPerPage)).rounded(.up)))
     }
 
     private var grid: some View {
         let perPage = ui.layout.tilesPerPage
         let current = min(ui.page, pageCount - 1)
-        let slice = Array(store.cameras.dropFirst(current * perPage).prefix(perPage))
+        let slice = Array(gridCameras.dropFirst(current * perPage).prefix(perPage))
 
         return GeometryReader { proxy in
             let spacing: CGFloat = 2
@@ -119,9 +182,10 @@ struct ContentView: View {
                                 if index < slice.count {
                                     let camera = slice[index]
                                     CameraTile(camera: camera, quality: ui.layout == .one ? .main : .sub,
-                                               onEdit: { ui.editing = camera }, onSettings: { ui.configuring = camera })
+                                               onEdit: { ui.editing = camera },
+                                               onSettings: { ui.configuring = settingsTarget(for: camera) })
                                         .id("\(camera.id)-\(ui.layout.rawValue)-\(camera.hashValue)")
-                                        .onTapGesture(count: 2) { ui.focused = camera.id }
+                                        .onTapGesture(count: 2) { ui.selection = .camera(camera.id) }
                                 } else {
                                     Color.black
                                 }
@@ -136,11 +200,22 @@ struct ContentView: View {
     }
 
     @ToolbarContentBuilder
+    private var modeToolbar: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            Picker("Modo", selection: $ui.mode) {
+                Text("Ao vivo").tag(ViewMode.live)
+                Text("Gravações").tag(ViewMode.recordings)
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    @ToolbarContentBuilder
     private func gridToolbar(single: Bool) -> some ToolbarContent {
         if single {
             ToolbarItem {
                 Button {
-                    ui.focused = nil
+                    if let camera = focusedCamera { backToGrid(from: camera) }
                 } label: {
                     Label("Voltar ao mosaico", systemImage: "square.grid.2x2")
                 }
@@ -153,7 +228,7 @@ struct ContentView: View {
             }
             ToolbarItem {
                 Button {
-                    ui.configuring = store.cameras.first { $0.id == ui.focused }
+                    ui.configuring = focusedCamera.map(settingsTarget(for:))
                 } label: {
                     Label("Configurações", systemImage: "gearshape")
                 }
@@ -197,9 +272,29 @@ struct ContentView: View {
 final class ContentUIState: ObservableObject {
     @Published var layout: GridLayout = .four
     @Published var page = 0
-    @Published var focused: Camera.ID?
+    @Published var selection: SidebarItem? = .all
     @Published var editing: Camera?
-    @Published var configuring: Camera?
+    @Published var configuring: SettingsTarget?
     @Published var alertMessage: String?
     @Published var showPTZ = true
+    @Published var mode: ViewMode = .live
+}
+
+enum ViewMode {
+    case live
+    case recordings
+}
+
+/// Item da barra lateral: todas as câmeras avulsas, um NVR (mosaico dos canais) ou uma câmera/canal.
+enum SidebarItem: Hashable {
+    case all
+    case group(String)
+    case camera(Camera.ID)
+}
+
+struct SidebarNode: Identifiable, Hashable {
+    let id: SidebarItem
+    let title: String
+    let icon: String
+    var children: [SidebarNode]?
 }

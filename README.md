@@ -12,7 +12,8 @@ Substitui o **VMS V2.2.1.1** da Xiongmai, um app Qt 5.7 compilado só para Intel
 - Stream **extra** (mais leve) no mosaico e **principal** na tela única.
 - Vídeo **H.264 e H.265** decodificado por hardware (VideoToolbox).
 - **Reconexão automática** quando a câmera cai.
-- Canais de **NVR** aparecem como câmeras individuais.
+- **NVR como grupo**, como no VMS antigo: o mosaico principal mostra as câmeras avulsas, e clicando no NVR aparecem só os canais dele.
+- Vídeo por **RTSP** ou pelo **protocolo Xiongmai** (automático para câmeras de várias lentes, cujo RTSP ignora o canal).
 
 ### Câmeras
 - Cadastro manual (nome, IP, portas, canal, usuário) ou **importação do VMS antigo** (lê nome, IP e canais do `devices.db`; as senhas não são importadas).
@@ -24,6 +25,12 @@ Substitui o **VMS V2.2.1.1** da Xiongmai, um app Qt 5.7 compilado só para Intel
 - Velocidade de 1 a 8.
 - **Presets**: salvar, ir e apagar.
 
+### Gravações
+- Busca por câmera ou canal do NVR e por dia, com tipo de cada arquivo (contínua, movimento, alarme, manual).
+- Reprodução com pausa, velocidade de ½× a 8× e relógio com a hora da gravação.
+- Diagnóstico da busca, que mostra os discos do equipamento e o código de cada tentativa.
+- NVRs com **Criptografia de rede** em "Login de rede precisa de criptografia" recusam o app; use "Login remoto precisa de criptografia".
+
 ### Configurações da câmera
 Janela de configurações por câmera (botão direito → **Configurações…** ou engrenagem na tela única):
 
@@ -32,6 +39,7 @@ Janela de configurações por câmera (botão direito → **Configurações…**
   - *Visão noturna colorida* (luz branca acende com pouca luz);
   - *Visão noturna infravermelha* (preto e branco);
   - *Alerta de luz dupla* (infravermelho; a luz branca acende ao detectar pessoas), com sensibilidade e duração da luz.
+- No **NVR**, as configurações do equipamento (Rede, Versão) ficam separadas das de cada canal (Parâmetros da cam).
 - **Rede**: IP, máscara, gateway, DHCP, DNS e porta HTTP, com validação, confirmação antes de trocar o endereço e atualização automática das câmeras daquele IP no app.
 - **Versão**: modelo, firmware, número de série, tempo ligado e canais.
 - **Diagnóstico**: mostra em JSON as configurações lidas da câmera (sem senhas), para identificar campos de modelos diferentes.
@@ -47,7 +55,7 @@ Janela de configurações por câmera (botão direito → **Configurações…**
 |---|---|---|
 | MVP | Visualização ao vivo, mosaico, importação do VMS antigo | Concluída |
 | 2 · Essenciais | PTZ, Parâmetros da cam, Rede, Versão | Concluída |
-| 3 · Gravação e disco | Reprodução das gravações do NVR, config. de gravação, disco, foto | Próxima |
+| 3 · Gravação e disco | Reprodução das gravações (concluída); config. de gravação, disco, foto | Em andamento |
 | 4 · Alarmes | Detecção de pessoas/veículos, áreas de aviso, perda de vídeo, notificações do macOS | Planejada |
 | 5 · Avançados | Sistema, data/hora, sobreposição de texto, usuários, manutenção | Planejada |
 
@@ -78,6 +86,7 @@ O projeto é um Swift Package (`Package.swift`) e também abre direto no Xcode.
 | Vídeo | `Sources/VMSNext/Video` | Montagem de `CMSampleBuffer` e exibição em `AVSampleBufferDisplayLayer` |
 | DVRIP | `Sources/VMSNext/DVRIP` | Protocolo de controle da Xiongmai (porta 34567): login, keep-alive, comandos e configurações em JSON |
 | PTZ | `Sources/VMSNext/PTZ` | Comandos `OPPTZControl` e painel de controle |
+| Reprodução | `Sources/VMSNext/Playback` | Busca (`OPFileQuery`), conexão de mídia (Claim), parser dos quadros Xiongmai e player com ritmo próprio |
 | Configurações | `Sources/VMSNext/Settings` | Telas de Parâmetros da cam, Rede, Versão e diagnóstico |
 | Modelos | `Sources/VMSNext/Models` | Câmeras (`cameras.json` em Application Support) e Keychain |
 | Importação | `Sources/VMSNext/Import` | Leitura do `devices.db` do VMS antigo |

@@ -30,7 +30,7 @@ final class VersionModel: ObservableObject {
     }
 
     var asText: String {
-        "\(camera.name)\n" + rows.map { "\($0.label): \($0.value)" }.joined(separator: "\n")
+        "\(camera.displayName)\n" + rows.map { "\($0.label): \($0.value)" }.joined(separator: "\n")
     }
 
     func load() async {
