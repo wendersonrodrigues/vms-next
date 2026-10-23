@@ -6,6 +6,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case recording
     case snapshot
     case smartAlert
+    case videoLoss
+    case blind
+    case vehicle
+    case abnormality
     case disk
     case network
     case version
@@ -17,6 +21,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .recording: return "Gravação"
         case .snapshot: return "Fotos automáticas"
         case .smartAlert: return "Detecção inteligente"
+        case .videoLoss: return "Perda de vídeo"
+        case .blind: return "Câmera bloqueada"
+        case .vehicle: return "Detecção de veículos"
+        case .abnormality: return "Problemas no equipamento"
         case .disk: return "Disco / cartão"
         case .network: return "Rede"
         case .version: return "Informações"
@@ -30,6 +38,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .recording: return "Config. de gravação"
         case .snapshot: return "Config. de foto"
         case .smartAlert: return "Smart alert"
+        case .videoLoss: return "Video Loss"
+        case .blind: return "Video Blind"
+        case .vehicle: return "CarShape Detect"
+        case .abnormality: return "Anormalidade"
         case .disk: return "Gerenciamento de disco"
         case .network: return "Rede"
         case .version: return "Versão"
@@ -42,6 +54,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .recording: return "Quando gravar e tamanho dos arquivos"
         case .snapshot: return "Captura de fotos por horário ou intervalo"
         case .smartAlert: return "Movimento, pessoas e o que fazer ao detectar"
+        case .videoLoss: return "Aviso quando a imagem do canal some"
+        case .blind: return "Aviso quando a lente é coberta"
+        case .vehicle: return "Aviso quando aparece um carro ou moto"
+        case .abnormality: return "Disco, rede e conflito de IP"
         case .disk: return "Espaço livre, estado e disco cheio"
         case .network: return "Endereço IP, DNS e portas"
         case .version: return "Modelo, firmware e número de série"
@@ -52,7 +68,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .imageParams: return .image
         case .recording, .snapshot, .disk: return .storage
-        case .smartAlert: return .alarms
+        case .smartAlert, .videoLoss, .blind, .vehicle, .abnormality: return .alarms
         case .network, .version: return .device
         }
     }
@@ -62,6 +78,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .recording: return "record.circle"
         case .snapshot: return "camera"
         case .smartAlert: return "figure.walk.motion"
+        case .videoLoss: return "video.slash"
+        case .blind: return "eye.slash"
+        case .vehicle: return "car"
+        case .abnormality: return "exclamationmark.triangle"
         case .disk: return "internaldrive"
         case .network: return "network"
         case .version: return "info.circle"
@@ -77,9 +97,9 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .recording, .snapshot, .smartAlert, .disk, .network, .version]
-        case .recorder: return [.disk, .network, .version]
-        case .channel: return [.imageParams, .recording, .snapshot, .smartAlert]
+        case .camera: return [.imageParams, .recording, .snapshot, .smartAlert, .blind, .abnormality, .disk, .network, .version]
+        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .disk, .network, .version]
+        case .channel: return [.imageParams, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
         }
     }
 }
@@ -119,6 +139,13 @@ struct CameraSettingsView: View {
         _navigation = StateObject(wrappedValue: SettingsNavigation(category: target.scope.categories.first))
     }
 
+    @EnvironmentObject private var store: CameraStore
+
+    /// Canais do NVR: o maior canal cadastrado (mínimo 1); o NVR informa o total exato nas telas que o leem.
+    private var recorderChannels: Int {
+        max(store.channels(in: camera.group ?? "").map(\.channel).max() ?? 1, 1)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -150,7 +177,25 @@ struct CameraSettingsView: View {
                     case .snapshot:
                         PhotoConfigView(camera: camera)
                     case .smartAlert:
-                        SmartAlertView(camera: camera)
+                        if target.scope == .recorder {
+                            RecorderChannelView(recorder: camera, channelCount: recorderChannels) { channel in
+                                SmartAlertView(camera: channel)
+                            }
+                        } else {
+                            SmartAlertView(camera: camera)
+                        }
+                    case .vehicle:
+                        EventConfigView(camera: camera, screen: .vehicle, allChannels: target.scope == .recorder)
+                            .id("vehicle")
+                    case .videoLoss:
+                        EventConfigView(camera: camera, screen: .videoLoss, allChannels: target.scope == .recorder)
+                            .id("videoLoss")
+                    case .blind:
+                        EventConfigView(camera: camera, screen: .blind, allChannels: target.scope == .recorder)
+                            .id("blind")
+                    case .abnormality:
+                        EventConfigView(camera: camera, screen: .abnormality)
+                            .id("abnormality")
                     case .disk:
                         DiskView(camera: camera)
                     case .network:

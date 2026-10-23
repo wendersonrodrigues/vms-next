@@ -34,7 +34,7 @@ final class SmartAlertModel: ObservableObject {
     }
 
     /// Ações do EventHandler, com nomes claros e o que cada uma faz.
-    static let actionSpecs: [Spec] = [
+    nonisolated static let actionSpecs: [Spec] = [
         Spec(key: "RecordEnable", title: "Gravar vídeo", original: "Gravação",
              detail: "Grava este canal enquanto o alarme estiver ativo.", group: .record),
         Spec(key: "SnapEnable", title: "Tirar foto", original: "Tirar foto",
@@ -49,6 +49,8 @@ final class SmartAlertModel: ObservableObject {
              detail: "Envia fotos/vídeos do alarme para um servidor FTP configurado no equipamento.", group: .notify),
         Spec(key: "LogEnable", title: "Registrar no histórico", original: "Escrever log",
              detail: "Anota o alarme no registro de eventos do próprio equipamento.", group: .notify),
+        Spec(key: "SaveSerEnable", title: "Opção interna do NVR", original: "SaveSer",
+             detail: "Função do equipamento sem documentação. Mantenha como está.", group: .legacy),
         Spec(key: "TipEnable", title: "Aviso na tela do gravador", original: "Tip",
              detail: "Mostra um aviso no monitor ligado ao NVR/câmera.", group: .notify),
         Spec(key: "BeepEnable", title: "Bipe no gravador", original: "Buzzer",
@@ -73,7 +75,7 @@ final class SmartAlertModel: ObservableObject {
              detail: "Escreve o tipo de alarme sobre o vídeo.", group: .legacy),
     ]
 
-    static let delaySpecs: [Spec] = [
+    nonisolated static let delaySpecs: [Spec] = [
         Spec(key: "EventLatch", title: "Intervalo entre alarmes", original: "Intervalo",
              detail: "Tempo mínimo entre dois alarmes seguidos. Evita uma enxurrada de avisos.", group: .notify),
         Spec(key: "RecordLatch", title: "Continuar gravando por", original: "Record Delay",
@@ -82,9 +84,11 @@ final class SmartAlertModel: ObservableObject {
              detail: "Segundos que a sirene/relé fica ligada depois do alarme.", group: .external),
         Spec(key: "Dejitter", title: "Filtro de oscilação", original: "Dejitter",
              detail: "Ignora disparos muito curtos. 0 = desligado.", group: .legacy),
+        Spec(key: "CheckDiskInterval", title: "Repetir o aviso a cada", original: "Timed Alarm",
+             detail: "Enquanto o problema continuar, o equipamento volta a avisar nesse intervalo.", group: .legacy),
     ]
 
-    static let levelNames = [1: "Mínima", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito alta", 6: "Máxima"]
+    nonisolated static let levelNames = [1: "Mínima", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito alta", 6: "Máxima"]
 
     @Published private(set) var loading = false
     @Published private(set) var saving = false

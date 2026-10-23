@@ -93,6 +93,7 @@ VMS-Project/
 - Agenda de gravação/foto: 7 dias × 6 períodos, máscara por período com bit 0 normal, bit 1 detecção, bit 2 alarme.
 - Alarmes: alerta de pessoa chega como `appEventHumanDetectAlarm`; `EventHandler.MsgtoNetEnable` provavelmente é o que libera o envio ao VMS Next.
 - Detecção de pessoas (`Detect.HumanDetection.[canal]`): `PedRule[]` com `RuleType` 1 = área (`RuleRegion.Pts` em 0–8192) e, presumido, 0 = linha (`RuleLine.Pts` Start/Stop); ações e período ficam no `EventHandler` de `Detect.MotionDetect.[canal]`.
+- Telas de alarme do NVR: canais acionados via máscaras `RecordMask`/`SnapShotMask`/`TourMask` (bit 0 = canal 1, primeiro grupo de 32 bits); detecção de veículos em `Detect.CarShapeDetection.[canal]` (`Enable` null = câmera sem a função); itens de disco em `Storage.StorageNotExist/StorageFailure/StorageLowSpace`, rede em `Alarm.NetAbort/NetIPConflict`; `CheckDiskInterval` = "Timed Alarm". Conexão dos canais via `NetWork.ChnStatus` (com alternativa: canais cadastrados no app).
 - Pendência pequena: a resolução mostrada na reprodução fica truncada em vídeos com mais de 2040 px de largura (o cabeçalho guarda largura/8 em 1 byte); a imagem não é afetada.
 
 ## Critério de pronto do MVP
