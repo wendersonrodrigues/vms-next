@@ -3,7 +3,8 @@ import Foundation
 /// Separa o fluxo de mídia da Xiongmai em quadros de vídeo. Cada bloco começa com 00 00 01 Fx:
 /// - FC: quadro I. Cabeçalho de 16 bytes: tipo, fps, largura/8, altura/8, data/hora (u32), tamanho (u32).
 /// - FD: quadro P. Cabeçalho de 8 bytes: tamanho (u32).
-/// - FA (áudio) e F9 (informações): cabeçalho de 8 bytes com tamanho (u16) nos bytes 6-7; ignorados.
+/// - FA (áudio): cabeçalho de 8 bytes com tipo (byte 4), taxa (byte 5) e tamanho (u16, bytes 6-7); G.711.
+/// - F9 (informações): mesmo cabeçalho; ignorado.
 /// O conteúdo dos quadros de vídeo é H.264/H.265 em formato Annex-B.
 final class XMMediaParser {
     struct Frame {
@@ -17,6 +18,8 @@ final class XMMediaParser {
     private(set) var fps: Int = 25
     private(set) var resolution: (width: Int, height: Int)?
     var onFrame: ((Frame) -> Void)?
+    /// Áudio G.711 do bloco FA. Tipo 0x0A = lei µ; os demais (0x0E e outros) são tratados como lei A.
+    var onAudio: ((_ samples: Data, _ codec: AudioCodec) -> Void)?
 
     private var buffer: [UInt8] = []
 
@@ -51,6 +54,9 @@ final class XMMediaParser {
             case 0xFA, 0xF9:
                 let length = Int(buffer[i + 6]) | Int(buffer[i + 7]) << 8
                 guard n - i >= 8 + length else { break }
+                if buffer[i + 3] == 0xFA, length > 0, let onAudio {
+                    onAudio(Data(buffer[(i + 8) ..< (i + 8 + length)]), buffer[i + 4] == 0x0A ? .ulaw : .alaw)
+                }
                 i += 8 + length
                 continue
             default:

@@ -34,7 +34,19 @@ final class PlaybackSession: ObservableObject {
     private var media: DVRIPMediaConnection?
     private var parser = XMMediaParser()
     private var builder: SampleBufferBuilder?
-    private var queue: [XMMediaParser.Frame] = []
+    /// Quadro de vídeo com o áudio que veio logo antes dele no arquivo (toca junto, mantendo a sincronia).
+    private struct Queued {
+        let frame: XMMediaParser.Frame
+        var audio: [(Data, AudioCodec)] = []
+    }
+
+    private var queue: [Queued] = []
+    private var pendingAudio: [(Data, AudioCodec)] = []
+    private let audio = AudioOutput()
+    private var audioOn = false
+    /// Identifica o player no AudioFocus (só um som por vez no app).
+    let audioID = UUID()
+    @Published private(set) var hasAudio = false
     private var pacer: Timer?
     private var framesShown = 0
     private var lastKeyTime: Date?
@@ -73,7 +85,10 @@ final class PlaybackSession: ObservableObject {
         self.recording = recording
         self.camera = camera
         status = .connecting
-        if start == nil { info = "" }
+        if start == nil {
+            info = ""
+            hasAudio = false
+        }
         seekTarget = start
         clock = start
 
@@ -82,6 +97,13 @@ final class PlaybackSession: ObservableObject {
         // O parser roda na main queue (FIFO), então a ordem dos quadros e do fim do arquivo é preservada.
         parser.onFrame = { [weak self] frame in
             MainActor.assumeIsolated { self?.enqueue(frame, token: token) }
+        }
+        parser.onAudio = { [weak self] data, codec in
+            MainActor.assumeIsolated {
+                guard let self, self.generation == token, self.seekTarget == nil else { return }
+                self.pendingAudio.append((data, codec))
+                if !self.hasAudio { self.hasAudio = true }
+            }
         }
 
         do {
@@ -119,11 +141,18 @@ final class PlaybackSession: ObservableObject {
         }
     }
 
+    /// Liga ou desliga o som da reprodução.
+    func setAudio(_ on: Bool) {
+        audioOn = on
+        if !on { audio.stop() }
+    }
+
     func togglePause() {
         switch status {
         case .playing:
             status = .paused
             pacer?.invalidate()
+            audio.stop()
         case .paused:
             status = .playing
             startPacer()
@@ -157,6 +186,8 @@ final class PlaybackSession: ObservableObject {
         }
         client = nil
         queue.removeAll()
+        pendingAudio.removeAll()
+        audio.stop()
         builder = nil
         framesShown = 0
         lastKeyTime = nil
@@ -197,7 +228,7 @@ final class PlaybackSession: ObservableObject {
             // Procurando o ponto do salto: guarda o GOP atual e começa quando o próximo I passar do alvo.
             if frame.isKeyframe, let time = frame.timestamp {
                 if time >= target {
-                    queue += (time == target || gop.isEmpty) ? [frame] : gop + [frame]
+                    queue += ((time == target || gop.isEmpty) ? [frame] : gop + [frame]).map { Queued(frame: $0) }
                     gop.removeAll()
                     seekTarget = nil
                 } else {
@@ -208,7 +239,8 @@ final class PlaybackSession: ObservableObject {
             }
             return
         }
-        queue.append(frame)
+        queue.append(Queued(frame: frame, audio: pendingAudio))
+        pendingAudio.removeAll()
         if queue.count > maxQueued { media?.pause() }
     }
 
@@ -228,8 +260,13 @@ final class PlaybackSession: ObservableObject {
             if streamEnded { finish() }
             return
         }
-        let frame = queue.removeFirst()
+        let item = queue.removeFirst()
+        let frame = item.frame
         if queue.count < resumeBelow { media?.resume() }
+        // Som só na velocidade normal (acelerado ou lento sai distorcido).
+        if audioOn, speed == 1 {
+            for (data, codec) in item.audio { audio.play(G711.decode(data, codec: codec), sampleRate: 8000) }
+        }
 
         if builder == nil, let codec = parser.codec {
             builder = SampleBufferBuilder(track: SDPVideoTrack(codec: codec, payloadType: 0, control: "", parameterSets: []))
@@ -264,7 +301,7 @@ final class PlaybackSession: ObservableObject {
         streamEnded = true
         if seekTarget != nil {
             // O ponto ficou no último GOP do arquivo.
-            queue += gop
+            queue += gop.map { Queued(frame: $0) }
             gop.removeAll()
             seekTarget = nil
         }

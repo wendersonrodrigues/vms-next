@@ -38,6 +38,11 @@ final class RTSPClient {
     var onRTP: ((Data) -> Void)?
     var onPlaying: (() -> Void)?
     var onFailure: ((RTSPError) -> Void)?
+    var onAudioTrack: ((SDPAudioTrack) -> Void)?
+    /// Pacotes RTP de áudio (canal intercalado 2), quando a câmera tem áudio G.711.
+    var onAudioRTP: ((Data) -> Void)?
+    /// Pede também a faixa de áudio (sem ela o vídeo funciona igual).
+    var wantsAudio = true
 
     let queue = DispatchQueue(label: "vmsnext.rtsp", qos: .userInitiated)
 
@@ -58,6 +63,7 @@ final class RTSPClient {
     private var lastPacket = Date()
     private var lastKeepAlive = Date()
     private var finished = false
+    private var audioURI: String?
 
     init(url: String, host: String, port: Int, username: String, password: String) {
         self.url = url
@@ -110,6 +116,10 @@ final class RTSPClient {
                 let track = try SDPParser.videoTrack(from: sdp)
                 let base = response.header("Content-Base") ?? response.header("Content-Location") ?? url
                 onTrack?(track)
+                if wantsAudio, let audio = SDPParser.audioTrack(from: sdp) {
+                    onAudioTrack?(audio)
+                    audioURI = Self.resolve(control: audio.control, base: base)
+                }
                 sendSetup(uri: Self.resolve(control: track.control, base: base))
             } catch let error as RTSPError {
                 fail(error)
@@ -129,7 +139,19 @@ final class RTSPClient {
                     sessionTimeout = TimeInterval(part.dropFirst("timeout=".count)) ?? sessionTimeout
                 }
             }
-            sendPlay()
+            if let audioURI, audioURI != uri {
+                sendAudioSetup(uri: audioURI)
+            } else {
+                sendPlay()
+            }
+        }
+    }
+
+    /// SETUP do áudio é opcional: se a câmera recusar, segue só com o vídeo.
+    private func sendAudioSetup(uri: String) {
+        request("SETUP", uri: uri, headers: ["Transport": "RTP/AVP/TCP;unicast;interleaved=2-3"],
+                optional: true) { [weak self] _ in
+            self?.sendPlay()
         }
     }
 
@@ -165,7 +187,7 @@ final class RTSPClient {
 
     /// Envia a requisição e, se receber 401 com desafio, repete uma vez autenticado.
     private func request(_ method: String, uri: String, headers: [String: String] = [:], retried: Bool = false,
-                         completion: @escaping (RTSPResponse) -> Void)
+                         optional: Bool = false, completion: @escaping (RTSPResponse) -> Void)
     {
         let seq = send(method: method, uri: uri, headers: headers)
         pending[seq] = { [weak self] response in
@@ -178,11 +200,12 @@ final class RTSPClient {
                       let newAuth = RTSPAuth(challenge: challenge, username: username, password: password)
                 else { return fail(.unauthorized) }
                 auth = newAuth
-                request(method, uri: uri, headers: headers, retried: true, completion: completion)
+                request(method, uri: uri, headers: headers, retried: true, optional: optional, completion: completion)
             case 401:
                 fail(.unauthorized)
             default:
-                fail(.badStatus(response.status, method))
+                // Pedido opcional recusado: segue em frente (ex.: SETUP do áudio).
+                if optional { completion(response) } else { fail(.badStatus(response.status, method)) }
             }
         }
     }
@@ -229,6 +252,8 @@ final class RTSPClient {
                 if channel == 0 {
                     lastPacket = Date()
                     onRTP?(Data(buffer[(i + 4) ..< (i + 4 + length)]))
+                } else if channel == 2 {
+                    onAudioRTP?(Data(buffer[(i + 4) ..< (i + 4 + length)]))
                 }
                 i += 4 + length
             } else if Self.isLetter(buffer[i]) {
