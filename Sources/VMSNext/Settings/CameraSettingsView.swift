@@ -3,6 +3,7 @@ import SwiftUI
 /// Categorias de configuração da câmera; as próximas fases entram aqui.
 enum SettingsCategory: String, CaseIterable, Identifiable {
     case imageParams
+    case overlay
     case recording
     case snapshot
     case smartAlert
@@ -20,6 +21,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .imageParams: return "Imagem e visão noturna"
+        case .overlay: return "Texto na imagem"
         case .recording: return "Gravação"
         case .snapshot: return "Fotos automáticas"
         case .smartAlert: return "Detecção inteligente"
@@ -39,6 +41,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var original: String {
         switch self {
         case .imageParams: return "Parâmetros da cam"
+        case .overlay: return "Sobrepor"
         case .recording: return "Config. de gravação"
         case .snapshot: return "Config. de foto"
         case .smartAlert: return "Smart alert"
@@ -57,6 +60,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .imageParams: return "Brilho, cores, espelhar e modo noturno"
+        case .overlay: return "Nome do canal e data/hora sobre o vídeo"
         case .recording: return "Quando gravar e tamanho dos arquivos"
         case .snapshot: return "Captura de fotos por horário ou intervalo"
         case .smartAlert: return "Movimento, pessoas e o que fazer ao detectar"
@@ -74,7 +78,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 
     var group: SettingsGroup {
         switch self {
-        case .imageParams: return .image
+        case .imageParams, .overlay: return .image
         case .recording, .snapshot, .disk: return .storage
         case .smartAlert, .videoLoss, .blind, .vehicle, .abnormality, .alarmOutput: return .alarms
         case .dateTime, .network, .version: return .device
@@ -83,6 +87,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .imageParams: return "camera.aperture"
+        case .overlay: return "textformat"
         case .recording: return "record.circle"
         case .snapshot: return "camera"
         case .smartAlert: return "figure.walk.motion"
@@ -107,9 +112,9 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .recording, .snapshot, .smartAlert, .blind, .abnormality, .alarmOutput, .disk, .dateTime, .network, .version]
+        case .camera: return [.imageParams, .overlay, .recording, .snapshot, .smartAlert, .blind, .abnormality, .alarmOutput, .disk, .dateTime, .network, .version]
         case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .dateTime, .network, .version]
-        case .channel: return [.imageParams, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
+        case .channel: return [.imageParams, .overlay, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
         }
     }
 }
@@ -182,6 +187,8 @@ struct CameraSettingsView: View {
                     switch navigation.category {
                     case .imageParams:
                         CameraParamsView(camera: camera)
+                    case .overlay:
+                        OverlayView(camera: camera)
                     case .recording:
                         RecordingConfigView(camera: camera)
                     case .snapshot:
