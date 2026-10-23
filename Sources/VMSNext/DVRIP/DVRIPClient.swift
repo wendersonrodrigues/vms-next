@@ -135,6 +135,17 @@ final class DVRIPClient: @unchecked Sendable {
         try await command(code: 1500, name: "", payload: nil)
     }
 
+    /// Comando com campos soltos no topo da mensagem (ex.: ModifyPassword), em vez de {Name: payload}.
+    @discardableResult
+    func request(code: UInt16, fields: [String: Any], accepted: Set<Int> = [100]) async throws -> [String: Any] {
+        var json = fields
+        json["SessionID"] = sessionString
+        let response = try await send(code: code, json: json)
+        let ret = response["Ret"] as? Int ?? 0
+        guard accepted.contains(ret) else { throw DVRIPError.device(ret) }
+        return response
+    }
+
     /// Lê uma configuração (CONFIG_GET, código 1042), ex.: "Camera.Param.[0]".
     func getConfig(_ name: String) async throws -> Any {
         let response = try await command(code: 1042, name: name, payload: nil)
