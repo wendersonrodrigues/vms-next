@@ -27,11 +27,8 @@ struct ContentView: View {
             CameraSettingsView(target: target)
         }
         .task { AlarmCenter.shared.start(store: store) }
-        .onChange(of: alarms.openEventsRequested) {
-            guard alarms.openEventsRequested else { return }
-            alarms.openEventsRequested = false
-            ui.mode = .events
-        }
+        .onChange(of: alarms.openEventsRequested) { openEventsIfRequested() }
+        .onAppear { openEventsIfRequested() }
         .alert("VMS Next", isPresented: Binding(get: { ui.alertMessage != nil }, set: { if !$0 { ui.alertMessage = nil } })) {
             Button("OK") {}
         } message: {
@@ -288,6 +285,13 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    /// Clique numa notificação ou em "Ver eventos" na barra de menus.
+    private func openEventsIfRequested() {
+        guard alarms.openEventsRequested else { return }
+        alarms.openEventsRequested = false
+        ui.mode = .events
     }
 
     private func importLegacy() {

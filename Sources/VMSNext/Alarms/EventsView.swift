@@ -3,6 +3,7 @@ import SwiftUI
 /// Histórico de alarmes e preferências de notificação.
 struct EventsView: View {
     @ObservedObject var center: AlarmCenter
+    @EnvironmentObject private var store: CameraStore
     let onOpenCamera: (Camera.ID) -> Void
 
     var body: some View {
@@ -24,6 +25,40 @@ struct EventsView: View {
                                detail: "O VMS Next precisa estar aberto (pode ficar minimizado) para receber os alertas.")
                 }
                 notificationPermission
+            }
+            Section {
+                Toggle(isOn: $center.mergeDuplicates) {
+                    FieldLabel("Juntar alertas repetidos",
+                               detail: "Quando a mesma câmera avisa por ela e pelo NVR, mostra um alerta só, com o nome da câmera.")
+                }
+            }
+            .disabled(!center.enabled)
+            if center.mergeDuplicates, !store.groups.isEmpty {
+                Section {
+                    ForEach(store.standaloneCameras) { camera in
+                        Picker(selection: Binding(
+                            get: { store.linkedChannel(for: camera)?.id },
+                            set: { store.link(camera, to: $0) }
+                        )) {
+                            Text("Não está no NVR").tag(Camera.ID?.none)
+                            ForEach(store.groups, id: \.self) { group in
+                                Section(group) {
+                                    ForEach(store.channels(in: group)) { channel in
+                                        Text(channel.displayName).tag(Optional(channel.id))
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label(camera.name, systemImage: "video")
+                        }
+                    }
+                } header: {
+                    Text("Mesma câmera no NVR")
+                } footer: {
+                    Text("Escolha o canal do NVR que mostra a mesma câmera. Assim o alerta que chega pelos dois aparece uma vez só, com o nome da câmera.")
+                        .foregroundStyle(.secondary)
+                }
+                .disabled(!center.enabled)
             }
             Section("Notificar no macOS") {
                 ForEach(AlarmKind.allCases) { kind in

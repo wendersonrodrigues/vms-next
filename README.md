@@ -26,6 +26,12 @@ Substitui o **VMS V2.2.1.1** da Xiongmai, um app Qt 5.7 compilado só para Intel
 - Velocidade de 1 a 8.
 - **Presets**: salvar, ir e apagar.
 
+### Segundo plano
+- Ícone na **barra de menus** com o número de alertas novos e os últimos alertas.
+- Continua recebendo alertas e notificações **com a janela fechada**; clicar na notificação abre os Eventos.
+- Opções de **abrir junto com o Mac** e **esconder do Dock** quando não há janela.
+- **Alertas repetidos juntados**: em Eventos, cada câmera avulsa pode ser ligada ao canal do NVR que mostra a mesma câmera; o alerta que chega pelos dois aparece uma vez só.
+
 ### Gravações
 - Busca por câmera ou canal do NVR e por dia, com tipo de cada arquivo (contínua, movimento, alarme, manual).
 - Reprodução com pausa, velocidade de ½× a 8× e relógio com a hora da gravação.

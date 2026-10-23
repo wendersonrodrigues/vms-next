@@ -23,6 +23,15 @@ struct CameraEditor: View {
                         get: { form.camera.group ?? "" },
                         set: { form.camera.group = $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
                     ))
+                    if form.camera.group != nil {
+                        Picker(selection: $form.camera.sameAs) {
+                            Text("Nenhuma").tag(Camera.ID?.none)
+                            ForEach(store.standaloneCameras) { Text($0.name).tag(Optional($0.id)) }
+                        } label: {
+                            FieldLabel("Mesma câmera que",
+                                       detail: "Câmera avulsa que este canal mostra; junta os alertas repetidos. Também dá para ligar em Eventos.")
+                        }
+                    }
                 }
                 Section {
                     TextField("Usuário", text: $form.camera.username)

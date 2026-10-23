@@ -80,7 +80,7 @@ VMS-Project/
 - **Login no app** com "Lembrar senha" e cofre próprio de senhas (o Keychain pedia a senha do Mac a cada nova versão).
 - **Fase 4 concluída (23/10/2026):** alertas (GUARD 1500 / avisos 1504) com tela Eventos, notificações e sino; Detecção inteligente (movimento, pessoas, ações, período) e desenho da área/linha de aviso; perda de vídeo, câmera bloqueada, detecção de veículos e problemas no equipamento (por canal e no NVR); saída de alarme. Tudo testado nos equipamentos.
 - **Fase 5 concluída (23/10/2026):** Sistema e horário (relógio, NTP, formato, idioma, nome do equipamento), Texto na imagem (posições, máscaras de privacidade, texto extra), Manutenção (reiniciar, reinício automático, atualização on-line, cópia das configurações em JSON), Usuários (contas, grupos, senhas, adicionar e apagar) e Restaurar padrão. Tudo testado nos equipamentos.
-- **Todas as fases do plano estão concluídas.** Ideias para depois: rodar em segundo plano com ícone na barra de menus (alertas com o app fechado), áudio ao vivo e nas gravações, criar e editar grupos, editar o fuso horário (tabela de códigos ainda não confirmada).
+- **Todas as fases do plano estão concluídas.** Depois do plano: **segundo plano** feito (ícone na barra de menus, alertas com a janela fechada, abrir com o Mac, esconder do Dock) e **alertas repetidos juntados** (câmera ligada ao canal do NVR em Eventos; o NVR registra o próprio IP nos canais, então a ligação é manual). Ideias para depois: áudio ao vivo e nas gravações, criar e editar grupos, editar o fuso horário (tabela de códigos ainda não confirmada).
 - NVR agora é um grupo na barra lateral, como no VMS antigo: o mosaico principal mostra só as câmeras avulsas e o NVR mostra os próprios canais.
 
 ### Aprendizados sobre as câmeras

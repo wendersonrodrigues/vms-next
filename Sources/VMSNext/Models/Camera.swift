@@ -15,6 +15,8 @@ struct Camera: Codable, Identifiable, Hashable {
     /// Nome do NVR quando a câmera é um canal dele; nil para câmera avulsa.
     var group: String?
     var liveSource: LiveSource = .auto
+    /// Canal de NVR que é a mesma câmera física de uma câmera avulsa (ligado manualmente em Eventos ou em Editar câmera).
+    var sameAs: Camera.ID?
 
     /// Nome completo para mosaico e listas: "NVR · Canal 2" ou "Frente".
     var displayName: String { group.map { "\($0) · \(name)" } ?? name }
@@ -45,6 +47,7 @@ struct Camera: Codable, Identifiable, Hashable {
         dvripPort = try c.decodeIfPresent(Int.self, forKey: .dvripPort) ?? 34567
         group = try c.decodeIfPresent(String.self, forKey: .group)
         liveSource = try c.decodeIfPresent(LiveSource.self, forKey: .liveSource) ?? .auto
+        sameAs = try c.decodeIfPresent(UUID.self, forKey: .sameAs)
     }
 
     func rtspURL(password: String, quality: StreamQuality) -> String {

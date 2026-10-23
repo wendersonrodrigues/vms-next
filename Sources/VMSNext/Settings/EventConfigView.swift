@@ -424,7 +424,7 @@ final class EventConfigModel: ObservableObject {
         if allChannels || camera.group != nil {
             // Estado de conexão dos canais do NVR (para as cores) e telas do NVR sem formato conhecido.
             requests += [(1042, "NetWork.ChnStatus"), (1020, "NetWork.ChnStatus"), (1042, "NetWork.RemoteDeviceV3"),
-                         (1042, "Detect.HumanDetectionDVR.[0]")]
+                         (1042, "NetWork.RemoteDeviceV3.[7]"), (1042, "NetWork.RemoteDevice"), (1042, "NetWork.RemoteDevice.[7]")]
         }
         return await ConfigDiagnostics.dump(camera: camera, requests: requests)
     }

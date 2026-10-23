@@ -42,6 +42,21 @@ final class CameraStore: ObservableObject {
         return camera.group == nil && siblings.count > 1 ? .dvrip : .rtsp
     }
 
+    /// Canal de NVR ligado manualmente a uma câmera avulsa (mesma câmera física).
+    func linkedChannel(for camera: Camera) -> Camera? {
+        cameras.first { $0.group != nil && $0.sameAs == camera.id }
+    }
+
+    /// Liga (ou desliga, com nil) um canal de NVR a uma câmera avulsa; cada câmera fica com um canal só.
+    func link(_ camera: Camera, to channelID: Camera.ID?) {
+        for index in cameras.indices where cameras[index].sameAs == camera.id {
+            cameras[index].sameAs = nil
+        }
+        if let channelID, let index = cameras.firstIndex(where: { $0.id == channelID }) {
+            cameras[index].sameAs = camera.id
+        }
+    }
+
     func channels(in group: String) -> [Camera] {
         cameras.filter { $0.group == group }.sorted { $0.channel < $1.channel }
     }
@@ -101,6 +116,8 @@ final class CameraStore: ObservableObject {
     /// Depois do login, os mosaicos tentam conectar de novo com as senhas do cofre.
     func vaultDidUnlock() {
         passwordRevision += 1
+        // Depois do login, os alertas começam mesmo que a janela seja fechada.
+        MainActor.assumeIsolated { AlarmCenter.shared.start(store: self) }
     }
 
     func remove(_ camera: Camera) {

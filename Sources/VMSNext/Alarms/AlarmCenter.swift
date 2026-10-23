@@ -88,6 +88,10 @@ final class AlarmCenter: ObservableObject {
     @Published private(set) var notificationsAllowed: Bool?
     /// Pedido para abrir a tela de Eventos (ao clicar numa notificação).
     @Published var openEventsRequested = false
+    /// Junta o alerta que chega pela câmera e pelo NVR (mesma câmera física) em um só.
+    @Published var mergeDuplicates: Bool {
+        didSet { defaults.set(mergeDuplicates, forKey: "alarms.merge") }
+    }
 
     private let defaults = UserDefaults.standard
     private weak var store: CameraStore?
@@ -96,12 +100,15 @@ final class AlarmCenter: ObservableObject {
     private var lastNotified: [String: Date] = [:]
     private let maxEvents = 500
     private let notificationDelegate = NotificationDelegate()
+    /// Último alerta por câmera física + tipo + início/fim, para juntar os repetidos.
+    private var recent: [String: (date: Date, host: String)] = [:]
 
     private init() {
         enabled = defaults.object(forKey: "alarms.enabled") as? Bool ?? true
         let saved = defaults.stringArray(forKey: "alarms.notify")
         notifyKinds = Set((saved ?? [AlarmKind.person.rawValue, AlarmKind.videoLoss.rawValue, AlarmKind.storage.rawValue])
             .compactMap(AlarmKind.init(rawValue:)))
+        mergeDuplicates = defaults.object(forKey: "alarms.merge") as? Bool ?? true
     }
 
     func start(store: CameraStore) {
@@ -156,6 +163,15 @@ final class AlarmCenter: ObservableObject {
         }
     }
 
+    // MARK: - Mesma câmera pela câmera e pelo NVR
+
+    /// Câmera avulsa que é a mesma câmera física de um canal de NVR, ligada em Eventos ou em Editar câmera.
+    /// (O NVR registra o próprio IP nos canais, então não dá para descobrir sozinho.)
+    func physicalCamera(for camera: Camera) -> Camera? {
+        guard camera.group != nil, let manual = camera.sameAs else { return nil }
+        return store?.cameras.first { $0.id == manual }
+    }
+
     private func stopAll() {
         subscribed.values.forEach { $0.onPush = nil }
         subscribed.removeAll()
@@ -189,8 +205,16 @@ final class AlarmCenter: ObservableObject {
         let channel = (ConfigValue.int(info["Channel"]) ?? 0) + 1
         let event = info["Event"] as? String ?? "Desconhecido"
         let isStart = (info["Status"] as? String ?? "Start").lowercased() != "stop"
-        let camera = store?.cameras.first { $0.host == host && $0.channel == channel }
+        let source = store?.cameras.first { $0.host == host && $0.channel == channel }
             ?? store?.cameras.first { $0.host == host && $0.group == nil }
+        // Com "juntar repetidos", o canal do NVR aparece como a câmera avulsa (ex.: "Sala") e o segundo aviso some.
+        let physical = mergeDuplicates ? source.flatMap(physicalCamera(for:)) : nil
+        let camera = physical ?? source
+        if mergeDuplicates, let camera {
+            let key = "\(camera.id)|\(AlarmKind(event: event).rawValue)|\(isStart)"
+            if let last = recent[key], last.host != host, Date().timeIntervalSince(last.date) < 20 { return }
+            recent[key] = (Date(), host)
+        }
         let alarm = AlarmEvent(
             date: Date(),
             deviceTime: info["StartTime"] as? String,
