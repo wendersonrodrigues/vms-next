@@ -4,30 +4,38 @@ import UniformTypeIdentifiers
 /// Estado da tela de gravações: equipamento/canal, dia e resultado da busca.
 @MainActor
 final class RecordingBrowser: ObservableObject {
-    @Published var cameraID: Camera.ID?
     @Published var day = Date()
     @Published private(set) var recordings: [Recording] = []
     @Published private(set) var searching = false
-    @Published private(set) var message: String?
+    @Published var message: String?
     @Published var selected: Recording.ID?
     @Published var diagnosticText: String?
     @Published private(set) var downloads: [RecordingDownload] = []
+    /// Resultado da última foto do quadro.
+    @Published var photoMessage: String?
+    /// Abrindo um alerta de Eventos: a busca automática espera.
+    var openingRequest = false
+    /// Marca a gravação na lista sem disparar a reprodução do início (ela já toca no momento do alerta).
+    private(set) var suppressPlay = false
 
-    /// Pergunta onde salvar e baixa a gravação em MP4.
+    func selectWithoutPlaying(_ id: Recording.ID) {
+        suppressPlay = true
+        selected = id
+    }
+
+    func consumeSuppressedPlay() -> Bool {
+        defer { suppressPlay = false }
+        return suppressPlay
+    }
+
+    /// Baixa a gravação em MP4 na pasta de downloads das Preferências (ou pergunta onde, se configurado).
     func download(_ recording: Recording, camera: Camera) {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.mpeg4Movie]
-        panel.canCreateDirectories = true
-        panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
-        let stamp = recording.begin.formatted(.verbatim(
-            "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits) \(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased))h\(minute: .twoDigits)m\(second: .twoDigits)s",
-            timeZone: .current, calendar: .current))
-        panel.nameFieldStringValue = "\(camera.displayName) \(stamp).mp4"
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let prefs = AppPreferences.shared
+        guard let url = prefs.destination(named: "\(camera.displayName) \(AppPreferences.stamp(recording.begin))",
+                                          in: prefs.downloadFolder, type: .mpeg4Movie) else { return }
         let job = RecordingDownload(recording: recording, camera: camera, url: url)
         downloads.insert(job, at: 0)
+        AppLog.shared.add(.file, "Download de gravação: \(url.lastPathComponent)", device: camera.displayName)
         Task { await job.start() }
     }
 
@@ -114,12 +122,18 @@ final class RecordingBrowser: ObservableObject {
 }
 
 struct PlaybackView: View {
+    /// Câmera escolhida na lista ao lado da janela principal.
+    let cameraID: Camera.ID?
+    /// Vindo de Eventos: abre a gravação que contém este momento.
+    @Binding var request: PlaybackRequest?
+
     @EnvironmentObject private var store: CameraStore
     @StateObject private var browser = RecordingBrowser()
     @StateObject private var session = PlaybackSession()
+    @StateObject private var zoom = DigitalZoom()
 
     private var camera: Camera? {
-        store.cameras.first { $0.id == browser.cameraID } ?? store.cameras.first
+        store.cameras.first { $0.id == cameraID }
     }
 
     var body: some View {
@@ -130,6 +144,13 @@ struct PlaybackView: View {
             player
         }
         .onDisappear { session.stop() }
+        // A câmera vem da lista ao lado: ao trocar de câmera ou de dia, busca de novo.
+        .task(id: "\(cameraID?.uuidString ?? "")-\(Calendar.current.startOfDay(for: browser.day).timeIntervalSince1970)") {
+            guard let camera, !browser.openingRequest else { return }
+            await browser.search(camera: camera)
+        }
+        .onAppear(perform: openRequest)
+        .onChange(of: request) { openRequest() }
         .sheet(isPresented: Binding(get: { browser.diagnosticText != nil }, set: { if !$0 { browser.diagnosticText = nil } })) {
             DiagnosticSheet(text: browser.diagnosticText ?? "")
         }
@@ -139,13 +160,12 @@ struct PlaybackView: View {
 
     private var searchPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("Câmera", selection: Binding(get: { camera?.id }, set: { browser.cameraID = $0 })) {
-                ForEach(store.standaloneCameras) { Text($0.name).tag(Optional($0.id)) }
-                ForEach(store.groups, id: \.self) { group in
-                    Section(group) {
-                        ForEach(store.channels(in: group)) { Text($0.displayName).tag(Optional($0.id)) }
-                    }
-                }
+            if let camera {
+                Label(camera.displayName, systemImage: "video")
+                    .font(.headline)
+            } else {
+                Label("Escolha uma câmera ou canal na lista ao lado.", systemImage: "arrow.left")
+                    .foregroundStyle(.secondary)
             }
             DatePicker("Dia", selection: $browser.day, displayedComponents: .date)
                 .datePickerStyle(.graphical)
@@ -153,7 +173,7 @@ struct PlaybackView: View {
                 guard let camera else { return }
                 Task { await browser.search(camera: camera) }
             } label: {
-                Label("Buscar gravações", systemImage: "magnifyingglass")
+                Label("Buscar de novo", systemImage: "arrow.clockwise")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -185,6 +205,7 @@ struct PlaybackView: View {
             }
             .listStyle(.inset)
             .onChange(of: browser.selected) {
+                if browser.consumeSuppressedPlay() { return }
                 if let id = browser.selected, let recording = browser.recordings.first(where: { $0.id == id }) {
                     play(recording)
                 }
@@ -213,11 +234,54 @@ struct PlaybackView: View {
 
     // MARK: - Player
 
+    /// Busca o dia do alerta e toca a gravação que contém o momento (começando alguns segundos antes).
+    private func openRequest() {
+        guard let request, request.cameraID == cameraID, let camera else { return }
+        self.request = nil
+        browser.openingRequest = true
+        browser.day = request.date
+        Task {
+            await browser.search(camera: camera)
+            browser.openingRequest = false
+            let target = request.date.addingTimeInterval(-5)
+            let match = browser.recordings.first { $0.begin <= target && target <= $0.end }
+                ?? browser.recordings.first { $0.begin >= target }
+            guard let match else {
+                if browser.message == nil { browser.message = "Nenhuma gravação neste momento." }
+                return
+            }
+            browser.selectWithoutPlaying(match.id)
+            await session.play(match, camera: camera, from: max(target, match.begin))
+        }
+    }
+
+    /// Foto do quadro atual (pausar antes ajuda a escolher o momento exato).
+    private func takePhoto(zoomed: Bool) {
+        let stamp = (session.clock ?? Date()).formatted(.verbatim(
+            "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits) \(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased))h\(minute: .twoDigits)m\(second: .twoDigits)s",
+            timeZone: .current, calendar: .current))
+        let name = "\(session.camera?.displayName ?? "Gravação") \(stamp)\(zoomed ? " zoom" : "")"
+        do {
+            if let url = try FrameSnapshot.save(from: session.displayLayer.sampleBufferRenderer, name: name,
+                                                zoom: zoomed ? zoom : nil) {
+                browser.photoMessage = "Foto salva: \(url.lastPathComponent)"
+            }
+        } catch {
+            browser.photoMessage = error.localizedDescription
+        }
+    }
+
     private var player: some View {
         VStack(spacing: 0) {
             ZStack {
-                VideoLayerView(layer: session.displayLayer)
+                GeometryReader { proxy in
+                    VideoLayerView(layer: session.displayLayer, zoom: zoom.scale, pan: zoom.pan)
+                        .gesture(session.recording == nil ? nil : zoom.gesture)
+                        .onAppear { zoom.viewSize = proxy.size }
+                        .onChange(of: proxy.size) { zoom.viewSize = proxy.size }
+                }
                 overlay
+                if session.recording != nil { ZoomControls(zoom: zoom) }
             }
             .background(Color.black)
 
@@ -266,6 +330,28 @@ struct PlaybackView: View {
                     .help("Baixar esta gravação em MP4")
                     .disabled(session.recording == nil)
 
+                    Button {
+                        takePhoto(zoomed: false)
+                    } label: {
+                        Label("Foto", systemImage: "camera")
+                    }
+                    .help("Salvar uma foto do quadro que está na tela")
+                    .disabled(session.recording == nil)
+
+                    if zoom.scale > 1 {
+                        Button {
+                            takePhoto(zoomed: true)
+                        } label: {
+                            Label("Foto do zoom", systemImage: "camera.viewfinder")
+                        }
+                        .help("Salvar só a parte ampliada pelo zoom digital")
+                    }
+
+                    if session.hasAudio {
+                        SpeakerButton(id: session.audioID, setAudio: session.setAudio)
+                            .disabled(session.speed != 1)
+                    }
+
                     Picker("Velocidade", selection: Binding(get: { session.speed }, set: { session.setSpeed($0) })) {
                         ForEach([0.5, 1, 2, 4, 8], id: \.self) { Text("\($0 == 0.5 ? "½" : String(Int($0)))×").tag($0) }
                     }
@@ -277,6 +363,9 @@ struct PlaybackView: View {
                     if let clock = session.clock {
                         Text(clock.formatted(date: .abbreviated, time: .standard))
                             .monospacedDigit()
+                    }
+                    if let message = browser.photoMessage {
+                        Text(message).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
                     if !session.info.isEmpty {
                         Text(session.info).font(.caption).foregroundStyle(.secondary)

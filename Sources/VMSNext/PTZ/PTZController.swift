@@ -18,6 +18,12 @@ enum PTZCommand: String {
     case setPreset = "SetPreset"
     case gotoPreset = "GotoPreset"
     case clearPreset = "ClearPreset"
+    /// Ronda: passeio automático entre presets.
+    case addTour = "AddTour"
+    case deleteTour = "DeleteTour"
+    case clearTour = "ClearTour"
+    case startTour = "StartTour"
+    case stopTour = "StopTour"
 }
 
 /// Envia comandos OPPTZControl (código 1400) para o canal da câmera.
@@ -27,6 +33,9 @@ enum PTZCommand: String {
 final class PTZController: ObservableObject {
     @Published var speed: Double = 5
     @Published var preset = 1
+    /// Ronda escolhida (como no VMS antigo, começa em 1) e quanto tempo parar em cada preset.
+    @Published var tour = 1
+    @Published var tourDwell = 10
     @Published private(set) var active: PTZCommand?
     @Published private(set) var message: String?
 
@@ -54,7 +63,13 @@ final class PTZController: ObservableObject {
         send(command, step: Int(speed), preset: preset)
     }
 
-    private func send(_ command: PTZCommand, step: Int, preset: Int) {
+    /// Comandos da ronda. "Adicionar" põe o preset escolhido na ronda, parando `tourDwell` segundos nele.
+    func tourAction(_ command: PTZCommand) {
+        let step = command == .addTour ? tourDwell : Int(speed)
+        send(command, step: step, preset: command == .addTour || command == .deleteTour ? preset : -1, tour: tour - 1)
+    }
+
+    private func send(_ command: PTZCommand, step: Int, preset: Int, tour: Int = 0) {
         let previous = chain
         let camera = camera
         chain = Task { [weak self] in
@@ -71,7 +86,7 @@ final class PTZController: ObservableObject {
                         "Pattern": "SetBegin",
                         "Preset": preset,
                         "Step": step,
-                        "Tour": 0,
+                        "Tour": tour,
                     ] as [String: Any],
                 ])
                 self?.message = nil

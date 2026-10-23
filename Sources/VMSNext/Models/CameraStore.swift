@@ -57,8 +57,43 @@ final class CameraStore: ObservableObject {
         }
     }
 
+    /// Canais do NVR na ordem da lista (que o usuário pode mudar arrastando).
     func channels(in group: String) -> [Camera] {
-        cameras.filter { $0.group == group }.sorted { $0.channel < $1.channel }
+        cameras.filter { $0.group == group }
+    }
+
+    /// Itens do primeiro nível da lista: câmeras avulsas e NVRs, na ordem em que aparecem.
+    enum TopItem: Hashable {
+        case camera(Camera.ID)
+        case group(String)
+    }
+
+    var topLevel: [TopItem] {
+        var seen = Set<String>()
+        return cameras.compactMap { camera in
+            guard let group = camera.group else { return .camera(camera.id) }
+            return seen.insert(group).inserted ? .group(group) : nil
+        }
+    }
+
+    /// Reordena câmeras avulsas e NVRs (os canais de cada NVR vão juntos).
+    func moveTopLevel(from source: IndexSet, to destination: Int) {
+        var items = topLevel
+        items.move(fromOffsets: source, toOffset: destination)
+        cameras = items.flatMap { item -> [Camera] in
+            switch item {
+            case let .camera(id): return cameras.filter { $0.id == id }
+            case let .group(name): return cameras.filter { $0.group == name }
+            }
+        }
+    }
+
+    /// Reordena os canais dentro de um NVR.
+    func moveChannels(in group: String, from source: IndexSet, to destination: Int) {
+        var ordered = channels(in: group)
+        ordered.move(fromOffsets: source, toOffset: destination)
+        var next = ordered.makeIterator()
+        cameras = cameras.map { $0.group == group ? (next.next() ?? $0) : $0 }
     }
 
     func removeGroup(_ group: String) {
@@ -128,6 +163,28 @@ final class CameraStore: ObservableObject {
     func importLegacy() throws -> Int {
         let existing = Set(cameras.map { "\($0.host)#\($0.channel)" })
         let new = try LegacyVMSImporter.load().filter { !existing.contains("\($0.host)#\($0.channel)") }
+        cameras.append(contentsOf: new)
+        return new.count
+    }
+
+    /// Arquivo para levar a lista a outro Mac. As senhas ficam de fora (estão só no cofre deste Mac).
+    struct ExportFile: Codable {
+        var app = "VMS Next"
+        var version = 1
+        var cameras: [Camera]
+    }
+
+    func exportData() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(ExportFile(cameras: cameras))
+    }
+
+    /// Junta as câmeras do arquivo às daqui (as que já existem, pelo mesmo IP e canal, ficam como estão).
+    func importData(_ data: Data) throws -> Int {
+        let file = try JSONDecoder().decode(ExportFile.self, from: data)
+        let existing = Set(cameras.map { "\($0.host)#\($0.dvripPort)#\($0.channel)" })
+        let new = file.cameras.filter { !existing.contains("\($0.host)#\($0.dvripPort)#\($0.channel)") }
         cameras.append(contentsOf: new)
         return new.count
     }
