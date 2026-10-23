@@ -43,6 +43,21 @@ final class CameraStore: ObservableObject {
         }
     }
 
+    /// Atualiza todas as câmeras de um IP (ex.: canais de um NVR) e leva a senha junto no Keychain.
+    func changeHost(from old: String, to new: String) {
+        guard old != new else { return }
+        for index in cameras.indices where cameras[index].host == old {
+            let before = cameras[index]
+            cameras[index].host = new
+            if let password = Keychain.password(for: before.keychainAccount),
+               Keychain.password(for: cameras[index].keychainAccount) == nil
+            {
+                Keychain.setPassword(password, for: cameras[index].keychainAccount)
+            }
+        }
+        passwordRevision += 1
+    }
+
     func remove(_ camera: Camera) {
         cameras.removeAll { $0.id == camera.id }
     }

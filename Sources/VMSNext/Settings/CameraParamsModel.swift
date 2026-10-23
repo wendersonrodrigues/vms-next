@@ -191,31 +191,10 @@ final class CameraParamsModel: ObservableObject {
     /// Não inclui senhas.
     func diagnostic() async -> String {
         let ch = camera.channel - 1
-        // (código, nome): 1042 = CONFIG_GET, 1360 = ABILITY_GET
-        let requests: [(UInt16, String)] = [
+        return await ConfigDiagnostics.dump(camera: camera, requests: [
             (1042, paramName), (1042, "Camera.ParamEx.[\(ch)]"), (1042, colorName),
-            (1042, "Camera.WhiteLight"), (1042, "Camera.WhiteLight.[\(ch)]"),
-            (1042, "CameraDayLightModes"), (1360, "CameraDayLightModes"),
-            (1360, "ChannelSystemFunction"),
-        ]
-        var output = "Câmera: \(camera.name) · canal \(camera.channel)\n"
-        do {
-            let client = try await DeviceSessions.shared.client(for: camera)
-            for (code, name) in requests {
-                output += "\n== \(name)\(code == 1360 ? " (capacidade)" : "")\n"
-                do {
-                    let response = try await client.command(code: code, name: name, payload: nil)
-                    guard let value = response[name] else { throw DVRIPError.invalidResponse }
-                    let data = try JSONSerialization.data(withJSONObject: value, options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed])
-                    output += String(decoding: data, as: UTF8.self) + "\n"
-                } catch {
-                    output += "(não suportado: \(error.localizedDescription))\n"
-                }
-            }
-        } catch {
-            output += "\nFalha ao conectar: \(error.localizedDescription)\n"
-        }
-        return output
+            (1042, whiteLightName),
+        ])
     }
 
     /// Retorna nil quando o equipamento recusa o nome (configuração não suportada).

@@ -20,6 +20,14 @@ enum DVRIPError: LocalizedError {
         case .invalidResponse: return "Resposta inválida da câmera"
         }
     }
+
+    /// A conexão caiu ou a câmera parou de responder (ex.: depois de trocar de IP).
+    var isDisconnect: Bool {
+        switch self {
+        case .closed, .timeout, .connection: return true
+        default: return false
+        }
+    }
 }
 
 /// Sessão no protocolo DVRIP ("Sofia") da Xiongmai, porta 34567.

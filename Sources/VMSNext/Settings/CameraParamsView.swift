@@ -112,13 +112,13 @@ struct CameraParamsView: View {
 }
 
 /// Mostra o JSON de configuração lido da câmera, com botão para copiar.
-private struct DiagnosticSheet: View {
+struct DiagnosticSheet: View {
     let text: String
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Diagnóstico de imagem").font(.headline)
+            Text("Diagnóstico").font(.headline)
             Text("Configurações lidas da câmera, sem senhas. Copie e envie para análise.")
                 .font(.caption).foregroundStyle(.secondary)
             ScrollView {

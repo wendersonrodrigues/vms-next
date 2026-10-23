@@ -3,16 +3,19 @@ import SwiftUI
 /// Categorias de configuração da câmera; as próximas fases entram aqui.
 enum SettingsCategory: String, CaseIterable, Identifiable {
     case imageParams
+    case network
 
     var id: String { rawValue }
     var title: String {
         switch self {
         case .imageParams: return "Parâmetros da cam"
+        case .network: return "Rede"
         }
     }
     var icon: String {
         switch self {
         case .imageParams: return "camera.aperture"
+        case .network: return "network"
         }
     }
 }
@@ -43,6 +46,8 @@ struct CameraSettingsView: View {
                     switch navigation.category {
                     case .imageParams:
                         CameraParamsView(camera: camera)
+                    case .network:
+                        NetworkView(camera: camera)
                     case nil:
                         Text("Escolha uma categoria").foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
