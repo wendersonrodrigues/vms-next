@@ -3,6 +3,8 @@ import SwiftUI
 /// Categorias de configuração da câmera; as próximas fases entram aqui.
 enum SettingsCategory: String, CaseIterable, Identifiable {
     case imageParams
+    case recording
+    case disk
     case network
     case version
 
@@ -10,6 +12,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .imageParams: return "Parâmetros da cam"
+        case .recording: return "Config. de gravação"
+        case .disk: return "Gerenciamento de disco"
         case .network: return "Rede"
         case .version: return "Versão"
         }
@@ -17,6 +21,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .imageParams: return "camera.aperture"
+        case .recording: return "record.circle"
+        case .disk: return "internaldrive"
         case .network: return "network"
         case .version: return "info.circle"
         }
@@ -31,9 +37,9 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .network, .version]
-        case .recorder: return [.network, .version]
-        case .channel: return [.imageParams]
+        case .camera: return [.imageParams, .recording, .disk, .network, .version]
+        case .recorder: return [.disk, .network, .version]
+        case .channel: return [.imageParams, .recording]
         }
     }
 }
@@ -88,6 +94,10 @@ struct CameraSettingsView: View {
                     switch navigation.category {
                     case .imageParams:
                         CameraParamsView(camera: camera)
+                    case .recording:
+                        RecordingConfigView(camera: camera)
+                    case .disk:
+                        DiskView(camera: camera)
                     case .network:
                         NetworkView(camera: camera)
                     case .version:
@@ -110,6 +120,6 @@ struct CameraSettingsView: View {
             }
             .padding(12)
         }
-        .frame(width: 720, height: 540)
+        .frame(minWidth: 860, idealWidth: 900, minHeight: 600, idealHeight: 640)
     }
 }
