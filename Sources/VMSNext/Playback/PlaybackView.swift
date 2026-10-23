@@ -178,39 +178,98 @@ struct PlaybackView: View {
             }
             .background(Color.black)
 
-            HStack(spacing: 12) {
-                Button {
-                    session.togglePause()
-                } label: {
-                    Image(systemName: session.status == .paused ? "play.fill" : "pause.fill")
-                }
-                .disabled(session.status != .playing && session.status != .paused)
+            VStack(spacing: 6) {
+                seekBar
+                HStack(spacing: 12) {
+                    Button {
+                        session.skip(by: -10)
+                    } label: {
+                        Image(systemName: "gobackward.10")
+                    }
+                    .help("Voltar 10 s")
+                    .disabled(session.recording == nil)
 
-                Button {
-                    session.stop()
-                } label: {
-                    Image(systemName: "stop.fill")
-                }
-                .disabled(session.status == .idle)
+                    Button {
+                        if session.status == .finished {
+                            session.seek(to: 0)
+                        } else {
+                            session.togglePause()
+                        }
+                    } label: {
+                        Image(systemName: session.status == .playing ? "pause.fill" : "play.fill")
+                    }
+                    .disabled(![.playing, .paused, .finished].contains(session.status))
 
-                Picker("Velocidade", selection: Binding(get: { session.speed }, set: { session.setSpeed($0) })) {
-                    ForEach([0.5, 1, 2, 4, 8], id: \.self) { Text("\($0 == 0.5 ? "½" : String(Int($0)))×").tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 220)
+                    Button {
+                        session.skip(by: 10)
+                    } label: {
+                        Image(systemName: "goforward.10")
+                    }
+                    .help("Avançar 10 s")
+                    .disabled(session.recording == nil)
 
-                Spacer()
+                    Button {
+                        session.stop()
+                    } label: {
+                        Image(systemName: "stop.fill")
+                    }
+                    .disabled(session.status == .idle)
 
-                if let clock = session.clock {
-                    Text(clock.formatted(date: .abbreviated, time: .standard))
-                        .monospacedDigit()
-                }
-                if !session.info.isEmpty {
-                    Text(session.info).font(.caption).foregroundStyle(.secondary)
+                    Picker("Velocidade", selection: Binding(get: { session.speed }, set: { session.setSpeed($0) })) {
+                        ForEach([0.5, 1, 2, 4, 8], id: \.self) { Text("\($0 == 0.5 ? "½" : String(Int($0)))×").tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 220)
+
+                    Spacer()
+
+                    if let clock = session.clock {
+                        Text(clock.formatted(date: .abbreviated, time: .standard))
+                            .monospacedDigit()
+                    }
+                    if !session.info.isEmpty {
+                        Text(session.info).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
             }
             .padding(10)
         }
+    }
+
+    /// Barra de progresso: clicar ou arrastar pula para o ponto escolhido.
+    private var seekBar: some View {
+        let shown = session.scrubbing ? session.scrubPosition : session.position
+        return HStack(spacing: 8) {
+            Text(Self.timeText(shown))
+                .font(.caption.monospacedDigit())
+                .frame(width: 52, alignment: .trailing)
+            Slider(
+                value: Binding(get: { session.scrubbing ? session.scrubPosition : session.position },
+                               set: { session.scrubPosition = $0 }),
+                in: 0 ... session.duration,
+                onEditingChanged: { editing in
+                    if editing {
+                        session.scrubPosition = session.position
+                        session.scrubbing = true
+                    } else {
+                        session.scrubbing = false
+                        session.seek(to: session.scrubPosition)
+                    }
+                }
+            )
+            .controlSize(.small)
+            .disabled(session.recording == nil)
+            Text(Self.timeText(session.duration))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 52, alignment: .leading)
+        }
+    }
+
+    private static func timeText(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds.rounded(.down))
+        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
     }
 
     @ViewBuilder
