@@ -13,6 +13,11 @@ final class DiskModel: ObservableObject {
         let isCurrent: Bool
         let oldest: String?
         let newest: String?
+        /// Números usados pelo OPStorageManager para escolher o disco e a partição.
+        let serial: Int
+        let partNo: Int
+        /// DirverType do StorageInfo: 0 leitura/gravação, 1 somente leitura, 3 redundante, 4 fotos.
+        let type: Int?
 
         var usedFraction: Double { totalMB > 0 ? Double(totalMB - freeMB) / Double(totalMB) : 0 }
     }
@@ -25,6 +30,23 @@ final class DiskModel: ObservableObject {
     @Published private(set) var hasOverwrite = false
     @Published var overwrite = true
     @Published var diagnosticText: String?
+    /// Ação de disco esperando confirmação.
+    @Published var pendingAction: DiskAction?
+
+    /// Ações da tela "Gerenciamento de disco" do VMS antigo (OPStorageManager).
+    struct DiskAction: Identifiable {
+        let id = UUID()
+        let partition: Partition
+        let action: String
+        let type: String?
+        let title: String
+        let warning: String
+    }
+
+    static let types: [(value: String, code: Int, label: String)] = [
+        ("ReadWrite", 0, "Leitura e gravação (Leit/grav)"), ("ReadOnly", 1, "Somente leitura"),
+        ("Redundant", 3, "Redundante (cópia de segurança)"), ("SnapShot", 4, "Fotos (Foto)"),
+    ]
 
     let camera: Camera
     private var generalRaw: [String: Any]?
@@ -75,6 +97,26 @@ final class DiskModel: ObservableObject {
         await ConfigDiagnostics.dump(camera: camera, requests: [(1020, "StorageInfo"), (1042, "General.General")])
     }
 
+    /// Executa a ação confirmada (código 1460, OPStorageManager) e lê o disco de novo.
+    func run(_ action: DiskAction) async {
+        saving = true
+        error = nil
+        notice = nil
+        defer { saving = false }
+        do {
+            let client = try await DeviceSessions.shared.client(for: camera)
+            var payload: [String: Any] = ["Action": action.action, "PartNo": action.partition.partNo,
+                                          "SerialNo": action.partition.serial]
+            if let type = action.type { payload["Type"] = type }
+            try await client.command(code: 1460, name: "OPStorageManager", payload: payload)
+            AppLog.shared.add(.device, "Disco: \(action.title)", device: camera.displayName)
+            notice = "\(action.title): pedido enviado ao equipamento."
+            await load()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     /// StorageInfo: lista de discos físicos, cada um com "Partition" (TotalSpace/RemainSpace em MB, hex).
     static func parse(_ raw: Any?) -> [Partition] {
         let disks = raw as? [[String: Any]] ?? []
@@ -95,7 +137,10 @@ final class DiskModel: ObservableObject {
                     status: ConfigValue.int(part["Status"]) ?? 0,
                     isCurrent: part["IsCurrent"] as? Bool ?? false,
                     oldest: oldest,
-                    newest: newest
+                    newest: newest,
+                    serial: physical,
+                    partNo: partIndex,
+                    type: ConfigValue.int(part["DirverType"])
                 ))
             }
         }
@@ -135,6 +180,34 @@ struct DiskView: View {
                             if let oldest = part.oldest, let newest = part.newest {
                                 LabeledContent("Gravações de", value: "\(oldest) até \(newest)")
                             }
+                            if let type = part.type {
+                                LabeledContent("Uso", value: DiskModel.types.first { $0.code == type }?.label ?? "Tipo \(type)")
+                            }
+                            HStack {
+                                Menu("Usar para") {
+                                    ForEach(DiskModel.types, id: \.value) { option in
+                                        Button(option.label) {
+                                            model.pendingAction = .init(partition: part, action: "SetType", type: option.value,
+                                                                        title: "Usar \(part.title) para \(option.label.lowercased())",
+                                                                        warning: "O equipamento passa a usar este disco assim. Em \"Somente leitura\" ele para de gravar nele.")
+                                        }
+                                        .disabled(option.code == part.type)
+                                    }
+                                }
+                                .fixedSize()
+                                Button("Recuperar…") {
+                                    model.pendingAction = .init(partition: part, action: "Recover", type: nil,
+                                                                title: "Recuperar \(part.title)",
+                                                                warning: "Tenta corrigir erros do disco. Pode levar alguns minutos e a gravação pode parar enquanto isso.")
+                                }
+                                Spacer()
+                                Button("Formatar…", role: .destructive) {
+                                    model.pendingAction = .init(partition: part, action: "Clear", type: "Data",
+                                                                title: "Formatar \(part.title)",
+                                                                warning: "Apaga TODAS as gravações e fotos deste disco. Não dá para desfazer.")
+                                }
+                            }
+                            .disabled(model.saving)
                         }
                     }
                     if model.hasOverwrite {
@@ -147,7 +220,7 @@ struct DiskView: View {
                                            detail: "Sobrescrever mantém sempre os dias mais recentes; parar guarda o que já foi gravado, mas deixa de gravar.")
                             }
                         } footer: {
-                            Text("Formatar o disco ainda não está disponível aqui; use o menu do equipamento.")
+                            Text("Particionar o disco ainda não está disponível aqui; use o VMS antigo ou o menu do equipamento.")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -177,6 +250,16 @@ struct DiskView: View {
             .padding(12)
         }
         .task { await model.load() }
+        .confirmationDialog(model.pendingAction?.title ?? "", isPresented: Binding(
+            get: { model.pendingAction != nil }, set: { if !$0 { model.pendingAction = nil } }
+        ), presenting: model.pendingAction) { action in
+            Button(action.action == "Clear" ? "Apagar tudo e formatar" : "Confirmar", role: action.action == "Clear" ? .destructive : nil) {
+                Task { await model.run(action) }
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: { action in
+            Text(action.warning)
+        }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")
         }

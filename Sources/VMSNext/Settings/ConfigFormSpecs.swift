@@ -72,8 +72,8 @@ enum ConfigFormSpecs {
                 ConfigSection(title: "Vídeo extra (Stream secundário)", fields: stream("ExtraFormat", extra: true)),
                 ConfigSection(title: "Avançado", fields: [
                     ConfigField(source: 1, path: ["Profile"], kind: .choice([
-                        ConfigOption("1", "Básico (Baseline)"), ConfigOption("2", "Principal (Main Profile)"),
-                        ConfigOption("3", "Alto (High Profile)"),
+                        ConfigOption("1", "Base (Baseline)"), ConfigOption("2", "Perfil principal (Main)"),
+                        ConfigOption("3", "Perfil de destaque (High)"),
                     ]), title: "Perfil de codificação", original: "Configuração de codificação estática",
                     detail: "Perfis mais altos comprimem melhor; alguns aparelhos antigos só tocam o Básico."),
                 ]),
@@ -137,20 +137,31 @@ enum ConfigFormSpecs {
     ]
 
     /// Lista de taxas como no VMS antigo: seis degraus (15%, 30%, 40%, 60%, 80% e 100%) de um máximo que
-    /// cresce com a resolução e o FPS. O máximo é uma aproximação dos valores vistos no VMS antigo
-    /// (4M a 12 qps = 4897, a 27 qps = 6077; D1 a 12 qps = 795); a câmera aceita qualquer valor.
+    /// cresce com a resolução e o FPS. O máximo segue os valores medidos no VMS antigo (4M a 12 qps = 4897,
+    /// a 24 qps = 5632, a 27 qps = 6077; D1 a 12 qps = 795); a câmera aceita qualquer valor.
     @MainActor
     private static func bitRates(_ model: ConfigFormModel, video: [ConfigKey]) -> [ConfigOption]? {
         guard let resolution = model.value(source: 0, path: video + ["Resolution"]) as? String,
               let pixels = resolutionPixels[resolution] else { return nil }
         let fps = Double(ConfigValue.int(model.value(source: 0, path: video + ["FPS"])) ?? 12)
-        let maximum = 4897 * pow(pixels / (2560 * 1440), 0.82) * pow(max(fps, 1) / 12, 0.266)
+        let maximum = 4897 * pow(pixels / (2560 * 1440), 0.82) * fpsFactor(fps)
         var values = [0.15, 0.3, 0.4, 0.6, 0.8, 1.0].map { Int(maximum * $0) }
         if let current = ConfigValue.int(model.value(source: 0, path: video + ["BitRate"])), !values.contains(current) {
             values.append(current)
             values.sort()
         }
         return values.map { ConfigOption(String($0), "\($0) kb/s") }
+    }
+
+    /// Quanto o máximo cresce com o FPS, em relação a 12 qps: interpolado entre os pontos medidos.
+    private static func fpsFactor(_ fps: Double) -> Double {
+        let points: [(fps: Double, factor: Double)] = [(12, 1), (24, 5632.0 / 4897), (27, 6077.0 / 4897)]
+        if fps <= 12 { return pow(max(fps, 1) / 12, 0.266) }
+        for (low, high) in zip(points, points.dropFirst()) where fps <= high.fps {
+            return low.factor + (high.factor - low.factor) * (fps - low.fps) / (high.fps - low.fps)
+        }
+        let (low, high) = (points[points.count - 2], points[points.count - 1])
+        return high.factor + (high.factor - low.factor) * (fps - high.fps) / (high.fps - low.fps)
     }
 
     /// "Camera".Speeds: tempos fixos do obturador em µs, um por nível manual (1, 2, ...).

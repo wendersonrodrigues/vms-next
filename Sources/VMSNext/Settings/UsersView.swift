@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Usuários": contas (Users, 1472), grupos (Groups, 1474), adicionar (User, 1482), apagar (DelUser, 1486)
+/// "Usuários": contas (Users, 1472), grupos (Groups, 1474; criar 1476, apagar 1480), adicionar (User, 1482), apagar (DelUser, 1486)
 /// e troca de senha (ModifyPassword, 1488; senhas no hash de 8 caracteres do login DVRIP). Ao trocar a
 /// senha da conta usada pelo app, o cofre é atualizado para o app continuar conectando.
 @MainActor
@@ -70,6 +70,13 @@ final class UsersModel: ObservableObject {
     @Published var newUserConfirmation = ""
 
     @Published var deleting: Account?
+
+    // Grupos ("Add grupo" e "Deletar grupo" do VMS antigo): o novo grupo copia as permissões de um existente.
+    @Published var addingGroup = false
+    @Published var newGroupName = ""
+    @Published var newGroupMemo = ""
+    @Published var groupTemplate = "user"
+    @Published var deletingGroup: Group?
 
     /// Conta com a troca de senha aberta.
     @Published var editing: Account?
@@ -233,6 +240,64 @@ final class UsersModel: ObservableObject {
         }
     }
 
+    func beginAddingGroup() {
+        newGroupName = ""
+        newGroupMemo = ""
+        groupTemplate = groups.contains { $0.name == "user" } ? "user" : (groups.first?.name ?? "user")
+        formError = nil
+        addingGroup = true
+    }
+
+    func addGroup() async {
+        let name = newGroupName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty, name.range(of: "^[A-Za-z0-9_.-]+$", options: .regularExpression) != nil else {
+            formError = "Use só letras sem acento, números, ponto, traço ou sublinhado no nome."
+            return
+        }
+        guard !groups.contains(where: { $0.name.lowercased() == name.lowercased() }) else {
+            formError = "Já existe um grupo com esse nome."
+            return
+        }
+        saving = true
+        formError = nil
+        defer { saving = false }
+        do {
+            let client = try await DeviceSessions.shared.client(for: camera)
+            let authorities = groups.first { $0.name == groupTemplate }?.authorities ?? []
+            try await client.command(code: 1476, name: "Group", payload: [
+                "AuthorityList": authorities, "Memo": newGroupMemo, "Name": name,
+            ] as [String: Any])
+            notice = "Grupo \(name) criado."
+            addingGroup = false
+            await load()
+        } catch {
+            formError = error.localizedDescription
+        }
+    }
+
+    /// Motivo para não deixar apagar o grupo (nil = pode apagar).
+    func deleteBlocker(_ group: Group) -> String? {
+        if ["admin", "user"].contains(group.name.lowercased()) { return "Grupo padrão do equipamento." }
+        if accounts.contains(where: { $0.group == group.name }) { return "Há contas neste grupo." }
+        return nil
+    }
+
+    func deleteGroup(_ group: Group) async {
+        guard deleteBlocker(group) == nil else { return }
+        saving = true
+        error = nil
+        notice = nil
+        defer { saving = false }
+        do {
+            let client = try await DeviceSessions.shared.client(for: camera)
+            try await client.request(code: 1480, fields: ["Name": group.name])
+            notice = "Grupo \(group.name) apagado."
+            await load()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     func diagnostic() async -> String {
         await ConfigDiagnostics.dump(camera: camera, requests: [(1472, "Users"), (1474, "Groups")])
     }
@@ -307,17 +372,33 @@ struct UsersView: View {
                                         Label(item, systemImage: "checkmark").font(.callout)
                                     }
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(groupLabel(group.name)).fontWeight(.medium)
-                                        Text("\(group.authorities.count) permissões" + (group.memo.isEmpty ? "" : " · \(group.memo)"))
-                                            .font(.caption).foregroundStyle(.secondary)
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(groupLabel(group.name)).fontWeight(.medium)
+                                            Text("\(group.authorities.count) permissões" + (group.memo.isEmpty ? "" : " · \(group.memo)"))
+                                                .font(.caption).foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        Button(role: .destructive) {
+                                            model.deletingGroup = group
+                                        } label: {
+                                            Image(systemName: "trash")
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .disabled(model.deleteBlocker(group) != nil)
+                                        .help(model.deleteBlocker(group).map { "Não pode apagar: \($0)" } ?? "Apagar grupo")
                                     }
                                 }
+                            }
+                            Button {
+                                model.beginAddingGroup()
+                            } label: {
+                                Label("Adicionar grupo", systemImage: "person.3")
                             }
                         } header: {
                             Text("Grupos e permissões")
                         } footer: {
-                            Text("Cada conta recebe as permissões do seu grupo. Criar e editar grupos ainda é feito no VMS antigo.")
+                            Text("Cada conta recebe as permissões do seu grupo. O grupo novo começa com as permissões de um grupo existente; editar permissões ainda é feito no VMS antigo.")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -348,6 +429,14 @@ struct UsersView: View {
             passwordSheet(account)
         }
         .sheet(isPresented: $model.adding) { addSheet }
+        .sheet(isPresented: $model.addingGroup) { addGroupSheet }
+        .confirmationDialog("Apagar o grupo \(model.deletingGroup?.name ?? "")?",
+                            isPresented: Binding(get: { model.deletingGroup != nil }, set: { if !$0 { model.deletingGroup = nil } })) {
+            Button("Apagar", role: .destructive) {
+                if let group = model.deletingGroup { Task { await model.deleteGroup(group) } }
+            }
+            Button("Cancelar", role: .cancel) { model.deletingGroup = nil }
+        }
         .confirmationDialog("Apagar a conta \(model.deleting?.name ?? "")?",
                             isPresented: Binding(get: { model.deleting != nil }, set: { if !$0 { model.deleting = nil } })) {
             Button("Apagar", role: .destructive) {
@@ -396,6 +485,35 @@ struct UsersView: View {
                 Button("Adicionar") { Task { _ = await model.addUser() } }
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.saving || model.newName.isEmpty || model.newUserPassword.isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 460)
+    }
+
+    private var addGroupSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Adicionar grupo").font(.headline)
+            Form {
+                TextField("Nome do grupo", text: $model.newGroupName)
+                Picker(selection: $model.groupTemplate) {
+                    ForEach(model.groups) { Text(groupLabel($0.name)).tag($0.name) }
+                } label: {
+                    FieldLabel("Começar com as permissões de", detail: "O grupo novo recebe as mesmas permissões deste grupo.")
+                }
+                TextField("Descrição (opcional)", text: $model.newGroupMemo)
+            }
+            .formStyle(.grouped)
+            if let error = model.formError {
+                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            }
+            HStack {
+                Spacer()
+                Button("Cancelar") { model.addingGroup = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Adicionar") { Task { await model.addGroup() } }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(model.saving || model.newGroupName.isEmpty)
             }
         }
         .padding(20)

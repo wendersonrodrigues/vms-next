@@ -62,7 +62,7 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
   0 = Star IR → **Visão noturna infravermelha**; 1 = Full Color → **Colorida (luz das estrelas)**;
   2 = BlackAndWhiteMode → **Alerta de luz dupla**. (Hoje o app diz "Preto e branco" para o 2.)
 - [x] Seção **Luz branca** (iCSee) só com `SupportCameraWhiteLight`. Hoje aparece na Sala.
-- [ ] "Ajuste dia e noite" (`AutomaticAdjustment`) ✅ feito. "Sensibilidade da troca" (`DncThr`) só se o campo existir ✅.
+- [x] "Ajuste dia e noite" (`AutomaticAdjustment`) ✅ feito. "Sensibilidade da troca" (`DncThr`) só se o campo existir ✅.
 
 ### 2.3 Exposição e ajustes finos
 - [x] Adicionar o que falta, cada um só se o campo existir na câmera:
@@ -75,8 +75,8 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 - [x] Nomes iguais ao VMS antigo: IR CUT = **Sincronização** / **Sincronização automática**;
   Obturador lento = **Nenhum / Baixo / Média / Forte** (conferir os valores 0/2/4/6 ou 0/1/2/3 no Diagnóstico);
   Modo de exposição = **Automático / Manual 1/60 … 1/10000** ✅.
-- [ ] ON/OFF (Luz de fundo, Espelhar, Anti brilho, Auto íris, Troca de IR) como interruptores ✅ (já são).
-- [ ] Perfil de imagem: typedefault/type1/type2 = Estilo 1/2/3 ✅ feito.
+- [x] ON/OFF (Luz de fundo, Espelhar, Anti brilho, Auto íris, Troca de IR) como interruptores ✅ (já são).
+- [x] Perfil de imagem: typedefault/type1/type2 = Estilo 1/2/3 ✅ feito.
 
 ### 2.4 Sistema e horário
 - [ ] **Fuso horário editável** (lista UTC−12 … UTC+14). Hoje é só leitura. Falta confirmar como o código do
@@ -122,22 +122,22 @@ Enviar e-mail, Escrever log, FTP, Notificações, Saída de alarme.
   Internet desconectada, Conflito de IP. Cada um com Habilitar, Timed Alarm e Notificações.
 
 ### 2.9 Disco
-- [ ] Botões do VMS antigo: Leitura/gravação, Foto, Somente leitura, Redundante, **Formatar**, Recuperar,
+- [x] Botões do VMS antigo (menos Particionar; não testados no equipamento, mexem no disco de verdade): Leitura/gravação, Foto, Somente leitura, Redundante, **Formatar**, Recuperar,
   Particionar (todos com confirmação). Colunas de início e fim da gravação.
 
 ### 2.10 Usuários
-- [ ] **Grupos**: adicionar, modificar e apagar grupo (hoje só usuários). Modificar usuário.
+- [x] **Grupos**: adicionar (copiando permissões) e apagar grupo vazio. Falta: modificar grupo e modificar usuário.
 
 ### 2.11 Manutenção
-- [ ] **Auto reiniciar**: Nunca, Todo dia, Domingo … Sábado (conferir se já existe).
-- [ ] **Auto deletar** arquivos antigos: Nunca deletar ou Customizado (número de dias).
+- [x] **Auto reiniciar** (já existia): Nunca, Todo dia, Domingo … Sábado (conferir se já existe).
+- [x] **Auto deletar** arquivos antigos (já existia): Nunca deletar ou Customizado (número de dias).
 - [ ] Importar / exportar configuração ✅ (conferir).
 
 ### 2.12 Qualidade do vídeo (Mídia)
 Lido na Sala (na segunda tentativa; na primeira o VMS antigo não carregou):
 H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio ligado; extra D1 · Bom · 24 · CBR · 1126.
-- [ ] **Configuração de codificação estática**: Base, Perfil principal, Perfil de destaque (Baseline/Main/High).
-- [ ] **Taxa de bit como lista calculada** igual ao VMS antigo (na Sala: 844, 1688, 2252, 3378, 4504, 5632),
+- [x] **Configuração de codificação estática**: Base, Perfil principal, Perfil de destaque (Baseline/Main/High).
+- [x] **Taxa de bit como lista calculada** (máximo recalibrado: 4M a 24 qps = 5632) igual ao VMS antigo (na Sala: 844, 1688, 2252, 3378, 4504, 5632),
   além do valor atual. Conferir: o VMS Next mostra 3223/963 e o VMS antigo 3378/1126 — ver qual é o valor real.
 - [ ] Smart Encode: Fechar / H265AI ✅ (conferir o nome "H265AI").
 - [ ] Resolução: o VMS antigo mostra só as que a câmera aceita (Sala: só 4M e D1) ✅ já é assim.
@@ -155,8 +155,8 @@ H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio
   Prioridade de fluxo 1–4), Modo (Single link), Resolução de sincronização.
 - [x] **Modo de canal** (só leitura, "Modo dos canais"): tabela de modos (ex.: 10 × 5M ou 4 × 4K), máximo de playback e de visualização.
 - [x] **Status do canal** ("Estado dos canais"): canal, resolução máxima, resolução atual, conectado / não configurado.
-- [ ] **Detec. Smart** do NVR: canal (Todos), HumanoidDetect, Gravar, Aviso no celular, Avançado, Sensibilidade, Rule.
-- [ ] **CarShape Detect** (veículo) do NVR: canal (Todos), Habilitar, Período, Tour (canais 1–10 e Todos),
+- [x] **Detec. Smart** do NVR (já existia como Detecção inteligente): canal (Todos), HumanoidDetect, Gravar, Aviso no celular, Avançado, Sensibilidade, Rule.
+- [x] **CarShape Detect** (já existia como Detecção de veículos) (veículo) do NVR: canal (Todos), Habilitar, Período, Tour (canais 1–10 e Todos),
   Enviar e-mail, Escrever log, Aviso no celular, Som de alarme.
 - Detalhes do IPC Param lidos: Imagem (período dia/noite com dois horários, brilho, contraste, saturação,
   matiz, ganho, nitidez horizontal/vertical, modo dia/noite, limiar, cena, faixa dinâmica, espelhar, virar,
@@ -170,7 +170,7 @@ H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio
 
 ## 4. Funções do próprio app (fora das câmeras)
 
-- [ ] **Som por tipo de alarme** (o VMS antigo tem 10: movimento, ocluído, perda de vídeo, alarme I/O,
+- [x] **Som por tipo de alarme** (já existia, com arquivo próprio) (o VMS antigo tem 10: movimento, ocluído, perda de vídeo, alarme I/O,
   análise de vídeo, detecção humana, rosto, disco cheio, erro de disco, veículo), com arquivo próprio.
 - [ ] Preferências: "Auto Connect Device", "Auto comutação entre stream secundário e principal",
   formato da gravação no Mac, pasta de exportar log.
@@ -185,6 +185,6 @@ H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio
 2. Telas com erro hoje: dia/noite (2.2), Luz branca (2.2), grade (2.1), ações de alarme (2.7), Rede/Wi-Fi (2.5).
 3. Campos que faltam: Exposição (2.3), Sistema (2.4), Sobrepor (2.6), Anormalidade (2.8).
 4. ✅ Telas novas do NVR (3), só leitura. Editar a câmera de cada canal fica para depois, com confirmação.
-5. Disco, Usuários, Manutenção, Mídia (2.9–2.12) e funções do app (4).
+5. ✅ Disco, Usuários, Manutenção, Mídia (2.9–2.12) e sons de alarme (4). Sobram os itens ainda desmarcados acima.
 
 Cada etapa: implementar → testar com Sala, Frente e NVR → commit.
