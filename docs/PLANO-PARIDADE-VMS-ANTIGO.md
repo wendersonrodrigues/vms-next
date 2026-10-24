@@ -81,6 +81,8 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 ### 2.4 Sistema e horário
 - [ ] **Fuso horário editável** (lista UTC−12 … UTC+14). Hoje é só leitura. Falta confirmar como o código do
   equipamento (14 = UTC−03:00) vira cada fuso antes de liberar a edição; um fuso errado bagunça a hora das gravações.
+  Lista do VMS antigo (na ordem): UTC−12 … −04, −03:30, −03, −02, −01, +00 … +03, +03:30, +04, +04:30, +05, +05:30,
+  +05:45, +06, +06:30, +07 … +09, +09:30, +10 … +13. UTC−03:00 é o 11º item, mas a câmera grava 14: a regra ainda não é conhecida.
 - [ ] **Horário de verão** com o botão "Configuração" (início e fim), não só liga/desliga.
 - [x] **Idioma**: usar a lista que a câmera informa (na Sala: Inglês, Chinês simples, Espanhol, Russo,
   Português, Japonês). A Sala grava "Brazilian", que não está na lista do VMS antigo; por isso ele mostra
@@ -93,8 +95,8 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
   por isso mostra o aviso e bloqueia. Ler `NetWork.Wifi` e mostrar a interface em uso.
 - [ ] **Aba Wi-Fi** completa (o VMS antigo deixa editar): procurar redes (SSID, modo, sinal), habilitar, DHCP,
   SSID, senha, IP, máscara, gateway. Com confirmação forte (rede errada desconecta a câmera).
-- [ ] **Porta ONVIF** e **OnvifProtect**.
-- [ ] **Nuvem**: além de ligar/desligar, o **MTU** (1280 bytes).
+- [x] **OnvifProtect** (`NetWork.OnvifPwdCheckout.Enable`). A **porta ONVIF** não veio em nenhuma configuração lida; falta descobrir onde fica.
+- [x] **Nuvem**: além de ligar/desligar, o **MTU** (`NetWork.Nat.XMeyeMTU`, 1280 bytes).
 - [ ] **Filtro de IP** editável (tipo lista negra/branca, adicionar, apagar). Hoje é só leitura.
 - [ ] **NTP**: "Custom" ou "Auto Select Server" + intervalo ✅ (conferir se o modo automático existe).
 
@@ -111,9 +113,9 @@ Enviar e-mail, Escrever log, FTP, Notificações, Saída de alarme.
   Aviso sonoro (`SupportAlarmVoiceTips`), Saída de alarme (`AlarmOutChannel > 0`), opções antigas (SMS, MMS,
   Matriz, ShowInfo, SaveSer) sempre escondidas.
 - [x] **Sensibilidade em 6 níveis**: Muito baixa, Baixa, Média, Alta, Muito alta, Ultra alta.
-- [ ] **Ativação de PTZ**: canal + tipo (Nenhum, Predefinido, Ronda, Padrão) + número.
-- [ ] **Câmera bloqueada**: corrigir "Tirar foto" que aparece **duas vezes**; não tem Intervalo nem Saída de alarme.
-- [ ] Desativar os campos quando "Habilitar" estiver desligado.
+- [x] **Ativação de PTZ**: tipo (Nenhum, Predefinido, Ronda, Padrão) + número, para o próprio canal (`EventHandler.PtzLink`).
+- [x] **Câmera bloqueada**: corrigido o "Tirar foto" que aparecia **duas vezes** (era o "Continuar gravando por" com identificador repetido); não tem Intervalo nem Saída de alarme.
+- [x] Desativar os campos quando "Habilitar" estiver desligado.
 - [ ] Editor de regra: conferir as formas do VMS antigo (triângulo, quadrado, pentágono, hexágono,
   heptágono, octógono, linha "Cordão" ou área "alertArea", "Mostrar traços").
 

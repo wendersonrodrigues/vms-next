@@ -22,6 +22,7 @@ struct HandlerState {
     var masks: [ChannelMask] = []
     var actions: [SmartAlertModel.Action] = []
     var delays: [SmartAlertModel.Delay] = []
+    var ptzLink: SmartAlertModel.PTZLink?
     var hasPeriod = false
     var period: [[Int]] = ScheduleCodec.emptyWeek()
     var sectionsPerDay = 6
@@ -49,6 +50,7 @@ struct HandlerState {
         delays = SmartAlertModel.delaySpecs.compactMap { spec in
             ConfigValue.int(handler[spec.key]).map { SmartAlertModel.Delay(spec: spec, seconds: $0) }
         }
+        ptzLink = SmartAlertModel.readPTZLink(handler, index: 0)
         if let sections = handler["TimeSection"] as? [[String]] {
             hasPeriod = true
             sectionsPerDay = sections.first?.count ?? 6
@@ -63,6 +65,7 @@ struct HandlerState {
         }
         for action in actions { handler[action.spec.key] = action.isOn }
         for delay in delays { ConfigValue.set(&handler, delay.spec.key, delay.seconds) }
+        SmartAlertModel.writePTZLink(ptzLink, into: &handler, index: 0)
         if hasPeriod, var sections = handler["TimeSection"] as? [[String]] {
             var noMasks: [[Any]]? = nil
             ScheduleCodec.encode(period, sections: &sections, masks: &noMasks)
@@ -613,11 +616,13 @@ struct EventConfigView: View {
     @ViewBuilder
     private func singleSections(_ entry: Binding<EventConfigModel.Entry>) -> some View {
         let definition = entry.wrappedValue.definition
+        // Como no VMS antigo, com "Ativar" desligado o resto fica apagado.
+        let off = !entry.wrappedValue.enabled
         Section(definition.title) {
             enableToggle(entry)
-            levelPicker(entry)
+            levelPicker(entry).disabled(off)
         }
-        maskSection(entry)
+        maskSection(entry).disabled(off)
         ForEach([SmartAlertModel.ActionGroup.record, .notify, .external], id: \.self) { group in
             let actions = actionIndices(entry.wrappedValue, group: group)
             let delays = entry.wrappedValue.handler.delays.indices.filter {
@@ -628,7 +633,13 @@ struct EventConfigView: View {
                 Section("Quando acontecer · \(group.rawValue.lowercased())") {
                     actionToggles(entry, indices: actions)
                     delaySteppers(entry, indices: delays)
+                    if group == .external, entry.wrappedValue.handler.ptzLink != nil,
+                       entry.wrappedValue.handler.actions.contains(where: { $0.spec.key == "PtzEnable" && $0.isOn }) {
+                        PTZLinkRow(link: Binding(get: { entry.wrappedValue.handler.ptzLink! },
+                                                 set: { entry.wrappedValue.handler.ptzLink = $0 }))
+                    }
                 }
+                .disabled(off)
             }
         }
         if entry.wrappedValue.handler.hasPeriod {
@@ -639,6 +650,7 @@ struct EventConfigView: View {
             } footer: {
                 Text("Fora dos horários marcados, o alarme não dispara.").foregroundStyle(.secondary)
             }
+            .disabled(off)
         }
     }
 
@@ -702,6 +714,8 @@ struct EventConfigView: View {
         }
     }
 
+    // Ações e tempos ficam na mesma seção: identificadores com prefixo para o SwiftUI não confundir a
+    // ação 1 com o tempo 1 (isso mostrava "Tirar foto" duas vezes no lugar de "Continuar gravando por").
     private func actionToggles(_ entry: Binding<EventConfigModel.Entry>, indices: [Int]) -> some View {
         ForEach(indices, id: \.self) { index in
             let action = entry.wrappedValue.handler.actions[index]
@@ -714,7 +728,8 @@ struct EventConfigView: View {
     }
 
     private func delaySteppers(_ entry: Binding<EventConfigModel.Entry>, indices: [Int]) -> some View {
-        ForEach(indices, id: \.self) { index in
+        ForEach(indices.map { -1 - $0 }, id: \.self) { key in
+            let index = -1 - key
             let delay = entry.wrappedValue.handler.delays[index]
             Stepper(value: entry.handler.delays[index].seconds, in: 0 ... 600) {
                 FieldLabel("\(delay.spec.title): \(delay.seconds) s", original: delay.spec.original, detail: delay.spec.detail)

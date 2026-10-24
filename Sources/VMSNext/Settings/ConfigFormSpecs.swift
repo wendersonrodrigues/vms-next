@@ -366,6 +366,7 @@ enum ConfigFormSpecs {
                 ConfigSource(name: "NetWork.NetIPFilter"),
                 ConfigSource(name: "NetWork.Wifi"),
                 ConfigSource(name: "NetWork.PMS"),
+                ConfigSource(name: "NetWork.OnvifPwdCheckout"),
             ],
             sections: [
                 ConfigSection(title: "Transmissão (TCP/IP)", fields: [
@@ -384,7 +385,22 @@ enum ConfigFormSpecs {
                     ConfigField(source: 1, path: ["NatEnable"], kind: .toggle,
                                 title: "Acesso pela nuvem", original: "Nuvem",
                                 detail: "Permite ver a câmera pelo iCSee/XMEye fora de casa. Desligado, só funciona na rede local."),
+                    ConfigField(source: 1, path: ["XMeyeMTU"], kind: .number(576 ... 1500, unit: "bytes"),
+                                title: "Tamanho do pacote (MTU)", original: "MTU",
+                                detail: "Padrão 1280. Só mude se o acesso pela nuvem ficar travando.",
+                                enabledWhen: ConfigCondition(source: 1, path: ["NatEnable"], values: ["1"])),
                 ], requires: "NetServerFunction.NetNat"),
+                ConfigSection(title: "ONVIF", fields: [
+                    ConfigField(source: 6, path: ["OnvifPort"], kind: .number(1 ... 65535, unit: nil),
+                                title: "Porta ONVIF", original: "Porta onvif",
+                                detail: "Usada por NVRs e programas de outras marcas para achar a câmera."),
+                    ConfigField(source: 6, path: ["Port"], kind: .number(1 ... 65535, unit: nil),
+                                title: "Porta ONVIF", original: "Porta onvif",
+                                detail: "Usada por NVRs e programas de outras marcas para achar a câmera."),
+                    ConfigField(source: 6, path: ["Enable"], kind: .toggle,
+                                title: "Exigir senha no ONVIF", original: "OnvifProtect",
+                                detail: "Desligado, qualquer aparelho da rede consegue ver a câmera pelo ONVIF sem senha."),
+                ]),
                 ConfigSection(title: "RTSP (RTSP)",
                               footer: "O VMS Next usa o RTSP para o vídeo ao vivo das câmeras avulsas. Se mudar a porta, ajuste também \"Porta RTSP\" em Editar câmera.",
                               fields: [

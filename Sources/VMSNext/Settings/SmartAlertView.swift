@@ -88,6 +88,27 @@ final class SmartAlertModel: ObservableObject {
              detail: "Enquanto o problema continuar, o equipamento volta a avisar nesse intervalo.", group: .legacy),
     ]
 
+    /// "Ativação de PTZ" do VMS antigo: EventHandler.PtzLink tem, para cada canal, [tipo, número].
+    struct PTZLink: Equatable {
+        var type: String
+        var number: Int
+    }
+    nonisolated static let ptzLinkTypes: [(value: String, label: String)] = [
+        ("None", "Nenhum"), ("Preset", "Predefinido (preset)"), ("Tour", "Ronda"), ("Pattern", "Padrão"),
+    ]
+
+    nonisolated static func readPTZLink(_ handler: [String: Any], index: Int) -> PTZLink? {
+        guard let list = handler["PtzLink"] as? [[Any]], list.indices.contains(index), list[index].count >= 2,
+              let type = list[index][0] as? String else { return nil }
+        return PTZLink(type: type, number: ConfigValue.int(list[index][1]) ?? 0)
+    }
+
+    nonisolated static func writePTZLink(_ link: PTZLink?, into handler: inout [String: Any], index: Int) {
+        guard let link, var list = handler["PtzLink"] as? [[Any]], list.indices.contains(index) else { return }
+        list[index] = [link.type, link.number]
+        handler["PtzLink"] = list
+    }
+
     /// Mesmos nomes da Sensibilidade do VMS antigo.
     nonisolated static let levelNames = [1: "Muito baixa", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito alta", 6: "Ultra alta"]
 
@@ -128,6 +149,8 @@ final class SmartAlertModel: ObservableObject {
 
     @Published var actions: [Action] = []
     @Published var delays: [Delay] = []
+    /// Ação PTZ ao detectar (para o próprio canal); nil se a câmera não tiver PtzLink.
+    @Published var ptzLink: PTZLink?
     private var profile = DeviceCapabilities.Profile.empty
     @Published private(set) var hasPeriod = false
     @Published var period: [[Int]] = ScheduleCodec.emptyWeek()
@@ -199,6 +222,7 @@ final class SmartAlertModel: ObservableObject {
                 if var handler = motion["EventHandler"] as? [String: Any] {
                     for action in actions { handler[action.spec.key] = action.isOn }
                     for delay in delays { ConfigValue.set(&handler, delay.spec.key, delay.seconds) }
+                    Self.writePTZLink(ptzLink, into: &handler, index: 0)
                     if hasPeriod, var sections = handler["TimeSection"] as? [[String]] {
                         var noMasks: [[Any]]? = nil
                         ScheduleCodec.encode(period, sections: &sections, masks: &noMasks)
@@ -255,6 +279,7 @@ final class SmartAlertModel: ObservableObject {
         delays = Self.delaySpecs.compactMap { spec in
             ConfigValue.int(handler[spec.key]).map { Delay(spec: spec, seconds: $0) }
         }
+        ptzLink = Self.readPTZLink(handler, index: 0)
         if let sections = handler["TimeSection"] as? [[String]] {
             hasPeriod = true
             sectionsPerDay = sections.first?.count ?? 6
@@ -387,10 +412,12 @@ struct SmartAlertView: View {
                 Form {
                     if model.hasHuman { humanSection }
                     if model.hasMotion { motionSection }
+                    // Com movimento e pessoas desligados, as ações ficam apagadas (como no VMS antigo).
+                    let off = !model.motionEnabled && !model.humanEnabled
                     ForEach([SmartAlertModel.ActionGroup.record, .notify, .external], id: \.self) { group in
-                        actionSection(group)
+                        actionSection(group).disabled(off)
                     }
-                    if model.hasPeriod { periodSection }
+                    if model.hasPeriod { periodSection.disabled(off) }
                     legacySection
                     if let message = model.error ?? model.validationError {
                         Section {
@@ -497,6 +524,10 @@ struct SmartAlertView: View {
                         FieldLabel("\(delay.spec.title): \(delay.seconds) s", original: delay.spec.original, detail: delay.spec.detail)
                     }
                 }
+                if group == .external, let link = model.ptzLink,
+                   model.actions.contains(where: { $0.spec.key == "PtzEnable" && $0.isOn }) {
+                    PTZLinkRow(link: Binding(get: { link }, set: { model.ptzLink = $0 }))
+                }
             }
         }
     }
@@ -530,6 +561,28 @@ struct SmartAlertView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/// "Ativação de PTZ": o que a câmera PTZ faz quando o alarme dispara (ir a um preset, ronda ou padrão).
+struct PTZLinkRow: View {
+    @Binding var link: SmartAlertModel.PTZLink
+
+    var body: some View {
+        Picker(selection: $link.type) {
+            ForEach(SmartAlertModel.ptzLinkTypes, id: \.value) { Text($0.label).tag($0.value) }
+            if !SmartAlertModel.ptzLinkTypes.contains(where: { $0.value == link.type }) {
+                Text(link.type).tag(link.type)
+            }
+        } label: {
+            FieldLabel("Ação da PTZ", original: "Ativação de PTZ",
+                       detail: "O que a câmera PTZ faz quando o alarme dispara.")
+        }
+        if link.type != "None" {
+            Stepper(value: $link.number, in: 0 ... 255) {
+                FieldLabel(link.type == "Preset" ? "Número do preset: \(link.number)" : "Número: \(link.number)")
             }
         }
     }
