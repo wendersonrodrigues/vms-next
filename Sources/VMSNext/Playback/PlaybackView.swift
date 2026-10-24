@@ -257,7 +257,8 @@ struct PlaybackView: View {
     }
 
     /// Foto do quadro atual (pausar antes ajuda a escolher o momento exato).
-    private func takePhoto(zoomed: Bool) {
+    private func takePhoto() {
+        let zoomed = zoom.scale > 1
         let stamp = (session.clock ?? Date()).formatted(.verbatim(
             "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits) \(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased))h\(minute: .twoDigits)m\(second: .twoDigits)s",
             timeZone: .current, calendar: .current))
@@ -282,6 +283,7 @@ struct PlaybackView: View {
                         .onChange(of: proxy.size) { zoom.viewSize = proxy.size }
                 }
                 overlay
+                if session.recording != nil { ZoomControls(zoom: zoom) }
             }
             .background(Color.black)
 
@@ -331,26 +333,8 @@ struct PlaybackView: View {
                             .font(.system(size: 18))
                             .disabled(session.speed != 1)
                     }
-                    HStack(spacing: 4) {
-                        BarButton(icon: "minus.magnifyingglass", help: "Diminuir o zoom digital") { zoom.step(-1) }
-                            .disabled(zoom.scale <= 1 || !hasRecording)
-                        Button { zoom.reset() } label: {
-                            Text(String(format: "%.1f×", zoom.scale)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
-                                .frame(width: 40)
-                        }
-                        .buttonStyle(.hover)
-                        .disabled(zoom.scale <= 1)
-                        .help("Voltar ao tamanho normal")
-                        BarButton(icon: "plus.magnifyingglass", help: "Zoom digital (também pinça no trackpad e arrastar para mover)") { zoom.step(1) }
-                            .disabled(zoom.scale >= DigitalZoom.maximum || !hasRecording)
-                    }
-                    BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do quadro que está na tela") { takePhoto(zoomed: false) }
+                    BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)") { takePhoto() }
                         .disabled(!hasRecording)
-                    if zoom.scale > 1 {
-                        BarButton(icon: "camera.viewfinder", title: "Foto do zoom", help: "Salvar só a parte ampliada pelo zoom digital") {
-                            takePhoto(zoomed: true)
-                        }
-                    }
                     BarButton(icon: "arrow.down.circle", title: "Baixar", help: "Baixar esta gravação em MP4") {
                         if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
                     }

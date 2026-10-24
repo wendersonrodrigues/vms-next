@@ -84,27 +84,7 @@ struct CameraTile: View {
                 qualityButton(.sub, icon: "sd", title: "SD", single: single,
                               help: "SD: vídeo extra, mais leve (rede lenta ou Wi-Fi fraco)")
             }
-            HStack(spacing: 10) {
-                Button { zoom.step(-1) } label: { Image(systemName: "minus.magnifyingglass") }
-                    .disabled(zoom.scale <= 1)
-                    .help("Diminuir o zoom digital")
-                Button { zoom.reset() } label: {
-                    Text(String(format: "%.1f×", zoom.scale)).monospacedDigit().font(.system(size: 13, weight: .semibold))
-                }
-                .disabled(zoom.scale <= 1)
-                .help("Voltar ao tamanho normal")
-                Button { zoom.step(1) } label: { Image(systemName: "plus.magnifyingglass") }
-                    .disabled(zoom.scale >= DigitalZoom.maximum)
-                    .help("Zoom digital: amplia a imagem no Mac (qualquer câmera). Também: pinça no trackpad e arrastar para mover.")
-            }
-            .buttonStyle(.hover)
-            .font(.system(size: 20))
-            BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do quadro que está na tela") { takePhoto(zoomed: false) }
-            if zoom.scale > 1 {
-                BarButton(icon: "camera.viewfinder", title: "Foto do zoom", help: "Salvar só a parte ampliada pelo zoom digital") {
-                    takePhoto(zoomed: true)
-                }
-            }
+            BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)") { takePhoto() }
             Button {
                 recorder.toggle(camera)
             } label: {
@@ -169,8 +149,9 @@ struct CameraTile: View {
         .help(help)
     }
 
-    /// Foto do quadro ao vivo (inteiro ou só a parte ampliada), na pasta de fotos das Preferências.
-    private func takePhoto(zoomed: Bool) {
+    /// Foto do quadro ao vivo como aparece na tela (com zoom, só a parte ampliada), na pasta de fotos das Preferências.
+    private func takePhoto() {
+        let zoomed = zoom.scale > 1
         let renderer = (part == .bottom ? stream.mirrorLayer() : stream.displayLayer).sampleBufferRenderer
         let name = "\(camera.title(for: part)) \(AppPreferences.stamp(Date()))\(zoomed ? " zoom" : "")"
         do {
@@ -206,6 +187,7 @@ struct CameraTile: View {
                 .gesture(allowsZoom ? zoom.gesture : nil)
             overlay
             if single == nil { nameOverlay }
+            if allowsZoom { ZoomControls(zoom: zoom) }
             if recorder.isRecording(camera) {
                 Label("REC", systemImage: "record.circle.fill")
                     .font(.caption.weight(.bold))

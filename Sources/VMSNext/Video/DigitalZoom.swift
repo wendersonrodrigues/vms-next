@@ -60,32 +60,40 @@ final class DigitalZoom: ObservableObject {
     }
 }
 
-/// Botões − / tamanho / + do zoom digital, no canto de cima do vídeo.
+/// Zoom digital por cima do vídeo, na lateral direita: lupa + em cima, o tamanho no meio e lupa − embaixo.
+/// Fica quase transparente para não atrapalhar a imagem e acende em branco quando o mouse passa por cima.
 struct ZoomControls: View {
     @ObservedObject var zoom: DigitalZoom
+    var enabled = true
+    @StateObject private var hover = HoverFlag()
 
     var body: some View {
-        VStack {
-            HStack(spacing: 4) {
-                Spacer()
-                Button { zoom.step(-1) } label: { Image(systemName: "minus.magnifyingglass") }
-                    .disabled(zoom.scale <= 1)
-                    .help("Diminuir o zoom digital")
-                if zoom.scale > 1 {
-                    Button { zoom.reset() } label: { Text(String(format: "%.1f×", zoom.scale)).monospacedDigit() }
-                        .help("Voltar ao tamanho normal")
-                }
-                Button { zoom.step(1) } label: { Image(systemName: "plus.magnifyingglass") }
-                    .disabled(zoom.scale >= DigitalZoom.maximum)
-                    .help("Zoom digital: amplia a imagem no Mac (funciona em qualquer câmera). Também dá para usar a pinça no trackpad e arrastar para mover.")
+        VStack(spacing: 6) {
+            Button { zoom.step(1) } label: { Image(systemName: "plus.magnifyingglass").frame(width: 48, height: 44) }
+                .disabled(!enabled || zoom.scale >= DigitalZoom.maximum)
+                .help("Zoom digital: amplia a imagem no Mac (qualquer câmera). Também: pinça no trackpad e arrastar para mover.")
+            Button { zoom.reset() } label: {
+                Text(String(format: "%.1f×", zoom.scale))
+                    .font(.system(size: 15, weight: .bold)).monospacedDigit()
+                    .frame(width: 52, height: 24)
             }
-            .buttonStyle(.plain)
-            .font(.system(size: 18, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(8)
-            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
-            .padding(8)
-            Spacer()
+            .disabled(zoom.scale <= 1)
+            .help("Voltar ao tamanho normal")
+            Button { zoom.step(-1) } label: { Image(systemName: "minus.magnifyingglass").frame(width: 48, height: 44) }
+                .disabled(!enabled || zoom.scale <= 1)
+                .help("Diminuir o zoom digital")
         }
+        .buttonStyle(.plain)
+        .font(.system(size: 26, weight: .semibold))
+        .foregroundStyle(.white)
+        .padding(.vertical, 8)
+        .background(.black.opacity(hover.on ? 0.6 : 0.2), in: Capsule())
+        .overlay(Capsule().strokeBorder(.white.opacity(hover.on ? 0.35 : 0.1)))
+        .opacity(hover.on ? 1 : 0.35)
+        .contentShape(Capsule())
+        .onHover { hover.on = $0 }
+        .animation(.easeOut(duration: 0.15), value: hover.on)
+        .padding(.trailing, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
     }
 }
