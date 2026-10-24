@@ -42,6 +42,8 @@ final class DVRIPClient: @unchecked Sendable {
     private let queue = DispatchQueue(label: "vmsnext.dvrip")
 
     private var connection: NWConnection?
+    /// Motivo da última espera ao conectar, para a mensagem se o tempo acabar.
+    private var waitingError: String?
     private var connectContinuation: CheckedContinuation<Void, Error>?
     private var buffer: [UInt8] = []
     private var sessionID: UInt32 = 0
@@ -76,6 +78,10 @@ final class DVRIPClient: @unchecked Sendable {
                         connectContinuation?.resume()
                         connectContinuation = nil
                         receive()
+                    case let .waiting(error) where connectContinuation != nil:
+                        // "Aguardando" é passageiro (ex.: logo ao abrir o app, enquanto o macOS libera a rede
+                        // local): a conexão tenta de novo sozinha. Só desiste no tempo limite abaixo.
+                        waitingError = error.localizedDescription
                     case let .waiting(error), let .failed(error):
                         shutdown(.connection(error.localizedDescription))
                     default:
@@ -85,7 +91,7 @@ final class DVRIPClient: @unchecked Sendable {
                 conn.start(queue: queue)
                 queue.asyncAfter(deadline: .now() + 8) { [weak self] in
                     guard let self, connectContinuation != nil else { return }
-                    shutdown(.timeout)
+                    shutdown(waitingError.map { .connection($0) } ?? .timeout)
                 }
             }
         }
