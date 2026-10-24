@@ -39,24 +39,63 @@ final class PTZController: ObservableObject {
     @Published private(set) var active: PTZCommand?
     @Published private(set) var message: String?
 
+    /// Inverter o movimento, para câmeras instaladas de ponta-cabeça ou com o motor ao contrário.
+    /// Fica guardado por câmera, no Mac.
+    @Published var invertHorizontal: Bool {
+        didSet { UserDefaults.standard.set(invertHorizontal, forKey: "ptz.invertH.\(camera.id)") }
+    }
+    @Published var invertVertical: Bool {
+        didSet { UserDefaults.standard.set(invertVertical, forKey: "ptz.invertV.\(camera.id)") }
+    }
+
     private let camera: Camera
     private var chain: Task<Void, Never>?
 
     init(camera: Camera) {
         self.camera = camera
+        invertHorizontal = UserDefaults.standard.bool(forKey: "ptz.invertH.\(camera.id)")
+        invertVertical = UserDefaults.standard.bool(forKey: "ptz.invertV.\(camera.id)")
     }
 
     func begin(_ command: PTZCommand) {
         guard active != command else { return }
-        if let current = active { send(current, step: 0, preset: -1) }
+        if let current = active { send(oriented(current), step: 0, preset: -1) }
         active = command
-        send(command, step: Int(speed), preset: 65535)
+        send(oriented(command), step: Int(speed), preset: 65535)
     }
 
     func end() {
         guard let command = active else { return }
         active = nil
-        send(command, step: 0, preset: -1)
+        send(oriented(command), step: 0, preset: -1)
+    }
+
+    /// Direção que vai para a câmera, já com a inversão escolhida.
+    private func oriented(_ command: PTZCommand) -> PTZCommand {
+        var horizontal = 0, vertical = 0
+        switch command {
+        case .left: horizontal = -1
+        case .right: horizontal = 1
+        case .up: vertical = 1
+        case .down: vertical = -1
+        case .upLeft: (horizontal, vertical) = (-1, 1)
+        case .upRight: (horizontal, vertical) = (1, 1)
+        case .downLeft: (horizontal, vertical) = (-1, -1)
+        case .downRight: (horizontal, vertical) = (1, -1)
+        default: return command
+        }
+        if invertHorizontal { horizontal = -horizontal }
+        if invertVertical { vertical = -vertical }
+        switch (horizontal, vertical) {
+        case (-1, 0): return .left
+        case (1, 0): return .right
+        case (0, 1): return .up
+        case (0, -1): return .down
+        case (-1, 1): return .upLeft
+        case (1, 1): return .upRight
+        case (-1, -1): return .downLeft
+        default: return .downRight
+        }
     }
 
     func presetAction(_ command: PTZCommand) {

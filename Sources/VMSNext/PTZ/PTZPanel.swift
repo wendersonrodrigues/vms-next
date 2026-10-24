@@ -87,45 +87,15 @@ struct PTZBar: View {
         _ptz = StateObject(wrappedValue: PTZController(camera: camera))
     }
 
+    // Da direita para a esquerda: as setas ficam no canto direito, perto do mouse que vem do vídeo.
     var body: some View {
         HStack(alignment: .center, spacing: 22) {
-            Grid(horizontalSpacing: 4, verticalSpacing: 4) {
-                GridRow {
-                    HoldButton(icon: "arrow.up.left", command: .upLeft, ptz: ptz, size: 30)
-                    HoldButton(icon: "arrow.up", command: .up, ptz: ptz, size: 30)
-                    HoldButton(icon: "arrow.up.right", command: .upRight, ptz: ptz, size: 30)
-                }
-                GridRow {
-                    HoldButton(icon: "arrow.left", command: .left, ptz: ptz, size: 30)
-                    Image(systemName: "video").foregroundStyle(.secondary).frame(width: 30, height: 30)
-                    HoldButton(icon: "arrow.right", command: .right, ptz: ptz, size: 30)
-                }
-                GridRow {
-                    HoldButton(icon: "arrow.down.left", command: .downLeft, ptz: ptz, size: 30)
-                    HoldButton(icon: "arrow.down", command: .down, ptz: ptz, size: 30)
-                    HoldButton(icon: "arrow.down.right", command: .downRight, ptz: ptz, size: 30)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Velocidade: \(Int(ptz.speed))").font(.caption).foregroundStyle(.secondary)
-                Slider(value: $ptz.speed, in: 1 ... 8, step: 1).frame(width: 140)
-            }
-
-            Grid(alignment: .leading, horizontalSpacing: 6, verticalSpacing: 4) {
-                pairRow("Zoom óptico", minus: ("minus.magnifyingglass", .zoomOut), plus: ("plus.magnifyingglass", .zoomIn))
-                pairRow("Foco", minus: ("minus", .focusNear), plus: ("plus", .focusFar))
-                pairRow("Íris", minus: ("circle.dotted", .irisClose), plus: ("circle", .irisOpen))
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Stepper("Preset \(ptz.preset)", value: $ptz.preset, in: 1 ... 255)
-                HStack {
-                    Button("Ir") { ptz.presetAction(.gotoPreset) }
-                    Button("Salvar") { ptz.presetAction(.setPreset) }
-                    Button("Apagar") { ptz.presetAction(.clearPreset) }
-                }
-                .controlSize(.small)
+            Spacer(minLength: 0)
+            if let message = ptz.message {
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: 200, alignment: .leading)
             }
 
             // Ronda: lista de presets que a câmera percorre sozinha (como "Ronda" no PTZ do VMS antigo).
@@ -150,13 +120,50 @@ struct PTZBar: View {
                 .controlSize(.small)
             }
 
-            if let message = ptz.message {
-                Label(message, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .frame(maxWidth: 200, alignment: .leading)
+            VStack(alignment: .leading, spacing: 6) {
+                Stepper("Preset \(ptz.preset)", value: $ptz.preset, in: 1 ... 255)
+                HStack {
+                    Button("Ir") { ptz.presetAction(.gotoPreset) }
+                    Button("Salvar") { ptz.presetAction(.setPreset) }
+                    Button("Apagar") { ptz.presetAction(.clearPreset) }
+                }
+                .controlSize(.small)
             }
-            Spacer(minLength: 0)
+
+            Grid(alignment: .leading, horizontalSpacing: 6, verticalSpacing: 4) {
+                pairRow("Zoom óptico", minus: ("minus.magnifyingglass", .zoomOut), plus: ("plus.magnifyingglass", .zoomIn))
+                pairRow("Foco", minus: ("minus", .focusNear), plus: ("plus", .focusFar))
+                pairRow("Íris", minus: ("circle.dotted", .irisClose), plus: ("circle", .irisOpen))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Velocidade: \(Int(ptz.speed))").font(.caption).foregroundStyle(.secondary)
+                Slider(value: $ptz.speed, in: 1 ... 8, step: 1).frame(width: 140)
+                Toggle("Inverter esquerda/direita", isOn: $ptz.invertHorizontal)
+                    .help("Use quando a câmera vira para o lado contrário da seta")
+                Toggle("Inverter cima/baixo", isOn: $ptz.invertVertical)
+                    .help("Use quando a câmera sobe ao apertar para baixo (ex.: instalada de ponta-cabeça)")
+            }
+            .toggleStyle(.checkbox)
+            .font(.caption)
+
+            Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+                GridRow {
+                    HoldButton(icon: "arrow.up.left", command: .upLeft, ptz: ptz, size: 30)
+                    HoldButton(icon: "arrow.up", command: .up, ptz: ptz, size: 30)
+                    HoldButton(icon: "arrow.up.right", command: .upRight, ptz: ptz, size: 30)
+                }
+                GridRow {
+                    HoldButton(icon: "arrow.left", command: .left, ptz: ptz, size: 30)
+                    Image(systemName: "video").foregroundStyle(.secondary).frame(width: 30, height: 30)
+                    HoldButton(icon: "arrow.right", command: .right, ptz: ptz, size: 30)
+                }
+                GridRow {
+                    HoldButton(icon: "arrow.down.left", command: .downLeft, ptz: ptz, size: 30)
+                    HoldButton(icon: "arrow.down", command: .down, ptz: ptz, size: 30)
+                    HoldButton(icon: "arrow.down.right", command: .downRight, ptz: ptz, size: 30)
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
