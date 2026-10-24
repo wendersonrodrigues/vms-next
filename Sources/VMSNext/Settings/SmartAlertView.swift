@@ -88,7 +88,21 @@ final class SmartAlertModel: ObservableObject {
              detail: "Enquanto o problema continuar, o equipamento volta a avisar nesse intervalo.", group: .legacy),
     ]
 
-    nonisolated static let levelNames = [1: "Mínima", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito alta", 6: "Máxima"]
+    /// Mesmos nomes da Sensibilidade do VMS antigo.
+    nonisolated static let levelNames = [1: "Muito baixa", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito alta", 6: "Ultra alta"]
+
+    /// Como no VMS antigo, só aparecem as ações que o equipamento tem: bipe e aviso na tela somem com
+    /// TipShow.NoBeepTipShow, o aviso sonoro exige SupportAlarmVoiceTips, a saída de alarme exige
+    /// sirene/relé e as opções antigas (SMS, MMS, matriz…) não aparecem. Escondidas, ficam como estão.
+    nonisolated static func isShown(_ spec: Spec, profile: DeviceCapabilities.Profile) -> Bool {
+        if spec.group == .legacy { return false }
+        switch spec.key {
+        case "TipEnable", "BeepEnable": return !profile.has("TipShow.NoBeepTipShow")
+        case "VoiceEnable": return profile.functions == nil || profile.has("OtherFunction.SupportAlarmVoiceTips")
+        case "AlarmOutEnable", "AlarmOutLatch": return (profile.alarmOutputs ?? 1) > 0
+        default: return true
+        }
+    }
 
     @Published private(set) var loading = false
     @Published private(set) var saving = false
@@ -114,6 +128,7 @@ final class SmartAlertModel: ObservableObject {
 
     @Published var actions: [Action] = []
     @Published var delays: [Delay] = []
+    private var profile = DeviceCapabilities.Profile.empty
     @Published private(set) var hasPeriod = false
     @Published var period: [[Int]] = ScheduleCodec.emptyWeek()
 
@@ -136,13 +151,13 @@ final class SmartAlertModel: ObservableObject {
     var humanSensitivityOptions: [Int] { Array(Set(Array(1 ... 3) + [humanSensitivity])).sorted() }
 
     func actions(in group: ActionGroup) -> [Binding<Action>] {
-        actions.indices.filter { actions[$0].spec.group == group }.map { index in
+        actions.indices.filter { actions[$0].spec.group == group && Self.isShown(actions[$0].spec, profile: profile) }.map { index in
             Binding(get: { self.actions[index] }, set: { self.actions[index] = $0 })
         }
     }
 
     func delays(in group: ActionGroup) -> [Binding<Delay>] {
-        delays.indices.filter { delays[$0].spec.group == group }.map { index in
+        delays.indices.filter { delays[$0].spec.group == group && Self.isShown(delays[$0].spec, profile: profile) }.map { index in
             Binding(get: { self.delays[index] }, set: { self.delays[index] = $0 })
         }
     }
@@ -154,6 +169,7 @@ final class SmartAlertModel: ObservableObject {
         defer { loading = false }
         do {
             let client = try await DeviceSessions.shared.client(for: camera)
+            profile = await DeviceCapabilities.profile(for: camera)
             motionRaw = try await optional(client, motionName)
             humanRaw = try await optional(client, humanName)
             readMotion()

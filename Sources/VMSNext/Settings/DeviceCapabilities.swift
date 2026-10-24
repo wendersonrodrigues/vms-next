@@ -23,6 +23,48 @@ enum DeviceCapabilities {
     }
 
     private static var cache: [String: [String: Any]] = [:]
+    private static var profiles: [String: Profile] = [:]
+
+    /// Tudo o que o VMS antigo consulta para montar as telas de um equipamento: SystemFunction,
+    /// a capacidade "Camera" (modos dia/noite, luz dupla) e o SystemInfo (saídas de alarme).
+    /// Campos nil = o equipamento não informou; nesse caso as telas mostram tudo, como antes.
+    struct Profile {
+        var functions: [String: Any]?
+        var camera: [String: Any]?
+        var system: [String: Any]?
+
+        static let empty = Profile()
+
+        /// Função em SystemFunction, ex.: "OtherFunction.SupportCameraWhiteLight".
+        func supports(_ path: String) -> Bool { DeviceCapabilities.supports(functions, path) }
+
+        /// Função que só vale se o equipamento disser que tem (sem a lista, considera que não tem).
+        func has(_ path: String) -> Bool { functions != nil && supports(path) }
+
+        /// Campo da capacidade "Camera" ligado (1 ou true).
+        func cameraFlag(_ key: String) -> Bool {
+            guard let value = camera?[key] else { return false }
+            if let bool = value as? Bool { return bool }
+            return ConfigValue.int(value) == 1
+        }
+
+        /// Saídas de alarme (sirene/relé). nil quando o equipamento não informou.
+        var alarmOutputs: Int? { system.flatMap { ConfigValue.int($0["AlarmOutChannel"]) } }
+    }
+
+    /// Perfil do equipamento (guardado por endereço; lido uma vez por abertura do app).
+    @MainActor
+    static func profile(for camera: Camera) async -> Profile {
+        let key = "\(camera.host):\(camera.dvripPort)"
+        if let cached = profiles[key] { return cached }
+        guard let client = try? await DeviceSessions.shared.client(for: camera) else { return .empty }
+        var profile = Profile()
+        profile.functions = await systemFunction(for: camera)
+        profile.camera = (try? await client.command(code: 1360, name: "Camera", payload: nil))?["Camera"] as? [String: Any]
+        profile.system = (try? await client.command(code: 1020, name: "SystemInfo", payload: nil))?["SystemInfo"] as? [String: Any]
+        if profile.functions != nil { profiles[key] = profile }
+        return profile
+    }
 
     /// SystemFunction do equipamento (guardado por endereço). nil quando ele não informa.
     @MainActor

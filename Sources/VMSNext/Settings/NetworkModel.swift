@@ -28,6 +28,20 @@ final class NetworkModel: ObservableObject {
     @Published private(set) var mac = ""
     @Published private(set) var hostName = ""
 
+    /// Wi-Fi (NetWork.Wifi), como na aba "Wifi" do VMS antigo. Câmeras como a Sala ficam no Wi-Fi e o
+    /// IP do cabo (NetCommon) é outro; o app reconhece a interface em uso em vez de bloquear tudo.
+    struct WifiInfo {
+        var enabled: Bool
+        var ssid: String
+        var ip: String
+        var mask: String
+        var gateway: String
+        var dhcp: Bool?
+    }
+    @Published private(set) var wifi: WifiInfo?
+    /// A conexão do app com a câmera está passando pelo Wi-Fi.
+    var connectedByWifi: Bool { wifi.map { $0.enabled && $0.ip == camera.host } ?? false }
+
     let camera: Camera
     /// Chamado quando o IP da câmera muda, para atualizar a lista de câmeras do app.
     var onAddressChanged: ((_ old: String, _ new: String) -> Void)?
@@ -35,11 +49,13 @@ final class NetworkModel: ObservableObject {
     private var commonRaw: [String: Any]?
     private var dhcpRaw: [Any]?
     private var dnsRaw: [String: Any]?
+    private var wifiRaw: [String: Any]?
     private var loaded: (dhcp: Bool, ip: String) = (false, "")
 
     private let commonName = "NetWork.NetCommon"
     private let dhcpName = "NetWork.NetDHCP"
     private let dnsName = "NetWork.NetDNS"
+    private let wifiName = "NetWork.Wifi"
 
     init(camera: Camera) {
         self.camera = camera
@@ -75,6 +91,7 @@ final class NetworkModel: ObservableObject {
             commonRaw = ConfigValue.object(in: try await optional(client, commonName))
             dhcpRaw = try await optional(client, dhcpName) as? [Any]
             dnsRaw = ConfigValue.object(in: try await optional(client, dnsName))
+            wifiRaw = ConfigValue.object(in: try await optional(client, wifiName))
             read()
         } catch {
             self.error = error.localizedDescription
@@ -147,7 +164,7 @@ final class NetworkModel: ObservableObject {
 
     func diagnostic() async -> String {
         await ConfigDiagnostics.dump(camera: camera, requests: [
-            (1042, commonName), (1042, dhcpName), (1042, dnsName),
+            (1042, commonName), (1042, dhcpName), (1042, dnsName), (1042, wifiName),
         ])
     }
 
@@ -182,8 +199,23 @@ final class NetworkModel: ObservableObject {
             dns2 = Self.hexToIP(dns["SpareAddress"]).flatMap { $0 == "0.0.0.0" ? nil : $0 } ?? ""
         }
 
+        if let raw = wifiRaw {
+            let wifiDHCP = (dhcpRaw?.compactMap { $0 as? [String: Any] }.first { ($0["Interface"] as? String)?.hasPrefix("wlan") == true })
+                .map { ($0["Enable"] as? Bool) ?? (ConfigValue.int($0["Enable"]) == 1) }
+            wifi = WifiInfo(enabled: (raw["Enable"] as? Bool) ?? (ConfigValue.int(raw["Enable"]) == 1),
+                            ssid: raw["SSID"] as? String ?? "",
+                            ip: Self.hexToIP(raw["HostIP"]) ?? "",
+                            mask: Self.hexToIP(raw["Submask"]) ?? "",
+                            gateway: Self.hexToIP(raw["GateWay"]) ?? "",
+                            dhcp: wifiDHCP)
+        } else {
+            wifi = nil
+        }
+
         loaded = (dhcp, ip)
-        decodingVerified = ip == camera.host
+        // O formato dos endereços está confirmado se o IP do cabo ou o do Wi-Fi for o usado pelo app.
+        // Pelo Wi-Fi, mexer no IP do cabo não derruba a conexão atual.
+        decodingVerified = ip == camera.host || connectedByWifi
         if !decodingVerified {
             error = "O IP lido (\(ip.isEmpty ? "vazio" : ip)) não bate com o endereço usado (\(camera.host)). A edição fica bloqueada por segurança; use \"Diagnóstico…\" e me envie o resultado."
         }

@@ -17,6 +17,22 @@ struct NetworkView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Form {
+                    if let wifi = model.wifi, wifi.enabled {
+                        Section {
+                            LabeledContent("Rede (SSID)", value: wifi.ssid.isEmpty ? "—" : wifi.ssid)
+                            if let dhcp = wifi.dhcp {
+                                LabeledContent("IP automático (DHCP)", value: dhcp ? "Ligado" : "Desligado")
+                            }
+                            LabeledContent("Endereço IP", value: wifi.ip.isEmpty ? "—" : wifi.ip)
+                            LabeledContent("Máscara de sub-rede", value: wifi.mask.isEmpty ? "—" : wifi.mask)
+                            LabeledContent("Gateway", value: wifi.gateway.isEmpty ? "—" : wifi.gateway)
+                        } header: {
+                            Text(model.connectedByWifi ? "Wi-Fi (em uso pelo VMS Next)" : "Wi-Fi")
+                        } footer: {
+                            Text("Para trocar a rede Wi-Fi, use o iCSee: uma rede ou senha errada desconecta a câmera.")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     Section {
                         if model.hasDHCP {
                             Toggle(isOn: $model.dhcp) {
@@ -28,7 +44,7 @@ struct NetworkView: View {
                         field("Máscara de sub-rede", text: $model.mask)
                         field("Gateway", text: $model.gateway)
                     } header: {
-                        Text("Endereço")
+                        Text(model.connectedByWifi ? "Cabo de rede (Interface cabeada, sem uso agora)" : "Endereço")
                     } footer: {
                         Text("Com DHCP o roteador escolhe o IP e ele pode mudar. Para câmeras de segurança, um IP fixo é mais confiável.")
                             .foregroundStyle(.secondary)

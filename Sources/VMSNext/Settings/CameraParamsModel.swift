@@ -4,14 +4,31 @@ import Foundation
 /// conhecidos e grava de volta o objeto completo, preservando o que o app não entende.
 @MainActor
 final class CameraParamsModel: ObservableObject {
-    /// Valores de DayNightColor no SDK da Xiongmai: 0 colorido, 1 automático, 2 preto e branco.
-    /// Alguns modelos usam valores extras (ex.: 3); eles aparecem como "modo do equipamento" e são preservados.
-    static let knownDayNightModes: [(value: Int, label: String)] = [
-        (1, "Automático"),
-        (0, "Sempre colorido"),
-        (2, "Sempre preto e branco"),
+    /// Valores de DayNightColor na ordem da lista "Modo dia/noite" do VMS antigo (o índice é o valor).
+    /// Os três últimos só existem em câmeras de luz dupla; a capacidade "Camera" diz se a câmera tem.
+    struct DayNightMode {
+        let value: Int
+        let label: String
+        let original: String
+        let detail: String
+        let needsDoubleLight: Bool
+    }
+    static let knownDayNightModes: [DayNightMode] = [
+        // Nomes de 0 a 2 conforme a tradução do próprio VMS antigo (tela IPC Param e English.qm).
+        DayNightMode(value: 0, label: "Visão noturna infravermelha", original: "Star IR",
+                     detail: "À noite liga o infravermelho; imagem em preto e branco.", needsDoubleLight: false),
+        DayNightMode(value: 1, label: "Colorida (luz das estrelas)", original: "Full Color",
+                     detail: "Fica colorido também à noite, usando a luz do local ou a luz branca.", needsDoubleLight: false),
+        DayNightMode(value: 2, label: "Alerta de luz dupla", original: "BlackAndWhiteMode",
+                     detail: "Infravermelho em preto e branco; ao detectar alguém, a luz acende e fica colorido.", needsDoubleLight: false),
+        DayNightMode(value: 3, label: "Luz ao detectar movimento", original: "IntellMotionDetect",
+                     detail: "Infravermelho à noite; ao detectar movimento, a luz acende e a imagem fica colorida.", needsDoubleLight: true),
+        DayNightMode(value: 4, label: "Luz quente", original: "WarmLight",
+                     detail: "Usa a luz quente da câmera para a imagem ficar colorida à noite.", needsDoubleLight: true),
+        DayNightMode(value: 5, label: "Infravermelho inteligente", original: "IntelligentInfrared",
+                     detail: "Infravermelho que se ajusta para não estourar quem está perto da câmera.", needsDoubleLight: true),
     ]
-    static let autoDayNightMode = 1
+    static let autoDayNightMode = 0
 
     /// Câmeras de luz dupla (IR + LED branco) controlam a visão noturna por Camera.WhiteLight.WorkMode,
     /// com os mesmos três modos do app iCSee.
@@ -36,18 +53,48 @@ final class CameraParamsModel: ObservableObject {
     @Published private(set) var hasColor = false
     @Published private(set) var hasDayNightThreshold = false
 
-    @Published var dayNight = CameraParamsModel.autoDayNightMode
+    @Published var dayNight = CameraParamsModel.autoDayNightMode { didSet { dayNightChanged = true } }
+    private var dayNightChanged = false
     /// Valor lido da câmera, para oferecer de volta um modo que o app não conhece.
     @Published private(set) var deviceDayNight: Int?
+    /// Capacidade "Camera" (ABILITY_GET): diz se a câmera tem luz dupla, como o VMS antigo consulta.
+    @Published private(set) var cameraAbility: [String: Any]?
 
-    var dayNightOptions: [(value: Int, label: String)] {
+    /// Capacidades do equipamento (as mesmas que o VMS antigo usa para esconder opções).
+    private(set) var profile = DeviceCapabilities.Profile.empty
+
+    /// Câmera com luz dupla, pela capacidade "Camera".
+    var hasDoubleLight: Bool {
+        let ability = cameraAbility ?? [:]
+        return ConfigValue.int(ability["SupportIntellDoubleLight"]) == 1
+            || ConfigValue.int(ability["SupDayNightMotionDetect"]) == 1
+    }
+
+    /// SupportHideNormalDLMode: a câmera esconde os modos 0 a 2 (a Frente, por exemplo, só tem os de luz dupla).
+    var hidesNormalModes: Bool { profile.has("OtherFunction.SupportHideNormalDLMode") }
+
+    var dayNightOptions: [DayNightMode] {
         var options = Self.knownDayNightModes
         if let device = deviceDayNight, !options.contains(where: { $0.value == device }) {
-            options.append((device, "Modo do equipamento (\(device))"))
+            options.append(DayNightMode(value: device, label: "Modo do equipamento (\(device))", original: "",
+                                        detail: "", needsDoubleLight: false))
         }
         return options
     }
+
+    /// Modos que a câmera tem, como no VMS antigo; o modo atual sempre aparece.
+    var visibleDayNightOptions: [DayNightMode] {
+        dayNightOptions.filter { mode in
+            if mode.value == deviceDayNight { return true }
+            if mode.needsDoubleLight { return cameraAbility == nil || hasDoubleLight }
+            return mode.value > 5 || !hidesNormalModes
+        }
+    }
     @Published var dayNightThreshold: Double = 30
+    /// "Ajuste dia e noite" do VMS antigo (Camera.ParamEx.AutomaticAdjustment, de 1 a 5).
+    @Published private(set) var hasDayNightAdjust = false
+    @Published var dayNightAdjust: Double = 3 { didSet { dayNightAdjustChanged = true } }
+    private var dayNightAdjustChanged = false
     @Published var mirror = false
     @Published var flip = false
     @Published var backlight = false
@@ -87,12 +134,14 @@ final class CameraParamsModel: ObservableObject {
     let camera: Camera
     private var paramRaw: Any?
     private var colorRaw: Any?
+    private var paramExRaw: Any?
     private var whiteLightRaw: [String: Any]?
     /// Camera.WhiteLight não leva índice de canal nessas câmeras.
     private let whiteLightName = "Camera.WhiteLight"
 
     private var paramName: String { "Camera.Param.[\(camera.channel - 1)]" }
     private var colorName: String { "AVEnc.VideoColor.[\(camera.channel - 1)]" }
+    private var paramExName: String { "Camera.ParamEx.[\(camera.channel - 1)]" }
 
     init(camera: Camera) {
         self.camera = camera
@@ -107,10 +156,14 @@ final class CameraParamsModel: ObservableObject {
             let client = try await DeviceSessions.shared.client(for: camera)
             paramRaw = try await optionalConfig(client, paramName)
             colorRaw = try await optionalConfig(client, colorName)
+            paramExRaw = try await optionalConfig(client, paramExName)
+            profile = await DeviceCapabilities.profile(for: camera)
+            cameraAbility = profile.camera
             whiteLightRaw = try await optionalConfig(client, whiteLightName) as? [String: Any]
             readParams()
             readColor()
             readWhiteLight()
+            readParamEx()
             if !hasImageParams && !hasColor && !hasWhiteLight {
                 error = "Este equipamento não informou parâmetros de imagem para o canal \(camera.channel)."
             }
@@ -128,7 +181,8 @@ final class CameraParamsModel: ObservableObject {
             let client = try await DeviceSessions.shared.client(for: camera)
             if let raw = paramRaw, var dict = ConfigValue.object(in: raw) {
                 // Em câmeras de luz dupla o DayNightColor não controla a visão noturna; fica como está.
-                if !hasWhiteLight { ConfigValue.set(&dict, "DayNightColor", dayNight) }
+                // Só grava o modo dia/noite se ele foi mudado aqui, para não mexer no que a câmera já usa.
+                if dayNightChanged { ConfigValue.set(&dict, "DayNightColor", dayNight) }
                 ConfigValue.set(&dict, "DncThr", Int(dayNightThreshold))
                 ConfigValue.set(&dict, "PictureMirror", mirror ? 1 : 0)
                 ConfigValue.set(&dict, "PictureFlip", flip ? 1 : 0)
@@ -137,6 +191,13 @@ final class CameraParamsModel: ObservableObject {
                 let updated = ConfigValue.replacingObject(in: raw, with: dict)
                 try await client.setConfig(paramName, updated)
                 paramRaw = updated
+            }
+            if dayNightAdjustChanged, let raw = paramExRaw, var dict = ConfigValue.object(in: raw) {
+                ConfigValue.set(&dict, "AutomaticAdjustment", Int(dayNightAdjust))
+                let updated = ConfigValue.replacingObject(in: raw, with: dict)
+                try await client.setConfig(paramExName, updated)
+                paramExRaw = updated
+                dayNightAdjustChanged = false
             }
             if let raw = colorRaw as? [Any] {
                 let updated = raw.map { section -> Any in
@@ -169,7 +230,7 @@ final class CameraParamsModel: ObservableObject {
                     error = "A câmera aceitou o comando mas manteve a visão noturna anterior (\(applied))."
                     return
                 }
-            } else if hasImageParams {
+            } else if hasImageParams && dayNightChanged {
                 // Algumas câmeras aceitam o comando mas ignoram o modo dia/noite: confere lendo de volta.
                 let check = ConfigValue.object(in: try await optionalConfig(client, paramName))
                 let applied = ConfigValue.int(check?["DayNightColor"])
@@ -181,6 +242,7 @@ final class CameraParamsModel: ObservableObject {
                     return
                 }
             }
+            dayNightChanged = false
             notice = "Configurações aplicadas."
         } catch {
             self.error = error.localizedDescription
@@ -214,6 +276,7 @@ final class CameraParamsModel: ObservableObject {
         hasImageParams = true
         deviceDayNight = ConfigValue.int(dict["DayNightColor"])
         dayNight = deviceDayNight ?? Self.autoDayNightMode
+        dayNightChanged = false
         if let threshold = ConfigValue.int(dict["DncThr"]) {
             hasDayNightThreshold = true
             dayNightThreshold = Double(threshold)
@@ -238,7 +301,20 @@ final class CameraParamsModel: ObservableObject {
         hue = Double(ConfigValue.int(color["Hue"]) ?? 50)
     }
 
+    private func readParamEx() {
+        guard let dict = ConfigValue.object(in: paramExRaw), let value = ConfigValue.int(dict["AutomaticAdjustment"]) else {
+            hasDayNightAdjust = false
+            return
+        }
+        hasDayNightAdjust = true
+        dayNightAdjust = Double(min(max(value, 1), 5))
+        dayNightAdjustChanged = false
+    }
+
     private func readWhiteLight() {
+        // Como no VMS antigo: luz branca só em câmeras com SupportCameraWhiteLight (a Sala responde a
+        // configuração, mas não tem a luz). Escondida, ela também não é regravada.
+        if profile.functions != nil && !profile.has("OtherFunction.SupportCameraWhiteLight") { whiteLightRaw = nil }
         guard let light = whiteLightRaw, let mode = light["WorkMode"] as? String else {
             hasWhiteLight = false
             return

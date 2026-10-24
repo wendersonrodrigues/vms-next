@@ -503,9 +503,7 @@ struct ConfigFormView: View {
         case let .number(range, unit):
             LabeledContent {
                 HStack(spacing: 6) {
-                    TextField("", text: model.numberText(field, range: range))
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 90)
+                    NumberField(value: model.numberText(field, range: range))
                     if let unit { Text(unit).foregroundStyle(.secondary) }
                 }
             } label: {
@@ -534,4 +532,32 @@ struct ConfigFormView: View {
             }
         }
     }
+}
+
+/// Campo numérico com texto próprio: dá para apagar tudo e digitar outro número; o valor só vai para a
+/// configuração quando é um número, e ao sair do campo volta a mostrar o valor guardado.
+private struct NumberField: View {
+    let value: Binding<String>
+    @StateObject private var box = TextBox()
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField("", text: $box.text)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 90)
+            .focused($focused)
+            .onAppear { if box.text != value.wrappedValue { box.text = value.wrappedValue } }
+            .onChange(of: box.text) {
+                // Só grava o que a pessoa digita; mudanças vindas da própria configuração não voltam para ela.
+                guard focused, box.text != value.wrappedValue, Int(box.text.filter(\.isNumber)) != nil else { return }
+                value.wrappedValue = box.text
+            }
+            .onChange(of: value.wrappedValue) { if !focused, box.text != value.wrappedValue { box.text = value.wrappedValue } }
+            .onChange(of: focused) { if !focused { box.text = value.wrappedValue } }
+            .onSubmit { box.text = value.wrappedValue }
+    }
+}
+
+private final class TextBox: ObservableObject {
+    @Published var text = ""
 }

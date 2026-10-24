@@ -218,7 +218,7 @@ enum ConfigFormSpecs {
                     ConfigField(source: 0, path: ["ExposureParam", "MostTime"], kind: .number(10 ... 80000, unit: "µs"),
                                 title: "Tempo máximo do obturador", original: "Horário",
                                 detail: "Tempos maiores clareiam a noite, mas borram quem se move."),
-                    ConfigField(source: 0, path: ["ElecLevel"], kind: .number(0 ... 100, unit: nil),
+                    ConfigField(source: 0, path: ["ElecLevel"], kind: .slider(0 ... 100),
                                 title: "Brilho de referência", original: "Referência AE",
                                 detail: "Quão clara a câmera tenta deixar a imagem. Padrão 50."),
                     ConfigField(source: 0, path: ["AeSensitivity"], kind: .slider(1 ... 10),
@@ -252,7 +252,7 @@ enum ConfigFormSpecs {
                     ]), title: "Modo de cena", original: "Modo de cena",
                     detail: "Ajusta as cores para o tipo de luz do local."),
                     ConfigField(source: 1, path: ["Style"], kind: .choice([
-                        ConfigOption("type1", "Estilo 1"), ConfigOption("type2", "Estilo 2"), ConfigOption("type3", "Estilo 3"),
+                        ConfigOption("typedefault", "Estilo 1"), ConfigOption("type1", "Estilo 2"), ConfigOption("type2", "Estilo 3"),
                     ]), title: "Perfil de imagem", original: "Perfil de vídeo",
                     detail: "Predefinições de nitidez e cor da fábrica."),
                     ConfigField(source: 0, path: ["Day_nfLevel"], kind: .choice(level0to5),

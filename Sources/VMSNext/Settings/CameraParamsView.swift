@@ -25,8 +25,33 @@ struct CameraParamsView: View {
                             slider("Matiz", original: "Hue", detail: "Puxa as cores para outro tom. Normalmente fica em 50.", value: $model.hue)
                         }
                     }
+                    if model.hasImageParams {
+                        Section("Dia / Noite") {
+                            previewRow(SettingPreview(night: dayNightPreview, caption: dayNightCaption))
+                            // Mesma lista do "Modo dia/noite" do VMS antigo; só os modos que a câmera tem.
+                            Picker(selection: $model.dayNight) {
+                                ForEach(model.visibleDayNightOptions, id: \.value) { option in
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(option.original.isEmpty ? option.label : "\(option.label) (\(option.original))")
+                                        if !option.detail.isEmpty {
+                                            Text(option.detail).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .tag(option.value)
+                                }
+                            } label: {
+                                FieldLabel("Modo dia/noite", original: "Modo dia/noite",
+                                           detail: "Como a câmera se comporta quando escurece.")
+                            }
+                            .pickerStyle(.radioGroup)
+                            if model.hasDayNightThreshold {
+                                slider("Sensibilidade da troca", detail: "Com que escuridão a câmera passa para o modo noturno.", value: $model.dayNightThreshold)
+                            }
+                            dayNightAdjustRow
+                        }
+                    }
                     if model.hasWhiteLight {
-                        Section("Visão noturna") {
+                        Section("Luz branca") {
                             previewRow(SettingPreview(night: nightPreview, caption: nightCaption))
                             Picker("Modo", selection: $model.nightMode) {
                                 ForEach(model.nightModeOptions, id: \.value) { option in
@@ -55,22 +80,6 @@ struct CameraParamsView: View {
                                 } label: {
                                     FieldLabel("Duração da luz ligada", detail: "Por quanto tempo a luz fica acesa depois de detectar alguém.")
                                 }
-                            }
-                        }
-                    }
-                    if model.hasImageParams && !model.hasWhiteLight {
-                        Section("Dia / Noite") {
-                            previewRow(SettingPreview(night: model.dayNight == 2 ? .infrared : model.dayNight == 0 ? .color : .none,
-                                                      caption: model.dayNight == 2 ? "À noite: preto e branco (infravermelho)"
-                                                          : model.dayNight == 0 ? "À noite: colorido (precisa de luz no local)"
-                                                          : "De dia colorido; à noite troca para preto e branco"))
-                            Picker(selection: $model.dayNight) {
-                                ForEach(model.dayNightOptions, id: \.value) { Text($0.label).tag($0.value) }
-                            } label: {
-                                FieldLabel("Modo", original: "Modo dia/noite", detail: "Colorido, preto e branco, ou troca automática conforme a luz.")
-                            }
-                            if model.hasDayNightThreshold && model.dayNight == CameraParamsModel.autoDayNightMode {
-                                slider("Sensibilidade da troca", detail: "Com que escuridão a câmera passa para o modo noturno.", value: $model.dayNightThreshold)
                             }
                         }
                     }
@@ -140,6 +149,18 @@ struct CameraParamsView: View {
         }
     }
 
+    private var dayNightPreview: SettingPreview.Night {
+        switch model.dayNight {
+        case 1, 4: return .color
+        case 2, 3: return .dualLight
+        default: return .infrared
+        }
+    }
+
+    private var dayNightCaption: String {
+        model.dayNightOptions.first { $0.value == model.dayNight }.map { "À noite: \($0.label.lowercased())" } ?? "Modo do equipamento"
+    }
+
     private var nightPreview: SettingPreview.Night {
         switch model.nightMode {
         case "Auto": return .color
@@ -153,6 +174,20 @@ struct CameraParamsView: View {
         case "Auto": return "Visão noturna colorida: luz branca acesa, imagem em cores"
         case "Intelligent": return "Luz dupla: infravermelho e, ao detectar alguém, acende a luz e fica colorido"
         default: return "Infravermelho: imagem em preto e branco, sem luz visível"
+        }
+    }
+
+    /// "Ajuste dia e noite": de 1 a 5, quão cedo a câmera troca entre o modo dia e o noturno.
+    @ViewBuilder
+    private var dayNightAdjustRow: some View {
+        if model.hasDayNightAdjust {
+            HStack(alignment: .top) {
+                FieldLabel("Ajuste dia e noite", original: "Day and night adjustment",
+                           detail: "Quão cedo a câmera troca entre o modo dia e o noturno conforme a luz (1 a 5), como no VMS antigo.")
+                    .frame(width: 260, alignment: .leading)
+                Slider(value: $model.dayNightAdjust, in: 1 ... 5, step: 1)
+                Text("\(Int(model.dayNightAdjust))").monospacedDigit().frame(width: 32, alignment: .trailing)
+            }
         }
     }
 

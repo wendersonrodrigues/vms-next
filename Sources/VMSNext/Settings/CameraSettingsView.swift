@@ -126,8 +126,11 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         }
     }
 
-    func isSupported(by functions: [String: Any]?) -> Bool {
-        requiredFunctions.isEmpty || requiredFunctions.contains { DeviceCapabilities.supports(functions, $0) }
+    /// Como no VMS antigo: a tela só aparece se o equipamento tiver a função.
+    func isSupported(by profile: DeviceCapabilities.Profile) -> Bool {
+        // Saída de alarme: só com sirene/relé (SystemInfo.AlarmOutChannel > 0).
+        if self == .alarmOutput, let outputs = profile.alarmOutputs, outputs == 0 { return false }
+        return requiredFunctions.isEmpty || requiredFunctions.contains { profile.supports($0) }
     }
 
     var icon: String {
@@ -165,7 +168,7 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .blind, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version]
+        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .blind, .videoLoss, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version]
         case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version]
         case .channel: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
         }
@@ -265,8 +268,8 @@ struct SettingsContent: View {
 }
 
 final class SettingsPaneState: ObservableObject {
-    /// SystemFunction do equipamento: esconde as telas de funções que ele não tem.
-    @Published var functions: [String: Any]?
+    /// Capacidades do equipamento: esconde as telas de funções que ele não tem.
+    @Published var profile = DeviceCapabilities.Profile.empty
     @Published var loadedFor: String?
 }
 
@@ -280,7 +283,7 @@ struct SettingsPane: View {
 
     fileprivate var available: [SettingsCategory] {
         guard let target else { return [] }
-        return target.scope.categories.filter { $0.isSupported(by: state.functions) }
+        return target.scope.categories.filter { $0.isSupported(by: state.profile) }
     }
 
     var body: some View {
@@ -336,8 +339,8 @@ struct SettingsPane: View {
         }
         .task(id: target.map { "\($0.camera.host):\($0.camera.dvripPort)" }) {
             guard let target else { return }
-            state.functions = nil
-            state.functions = await DeviceCapabilities.systemFunction(for: target.camera)
+            state.profile = .empty
+            state.profile = await DeviceCapabilities.profile(for: target.camera)
         }
     }
 }

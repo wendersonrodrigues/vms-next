@@ -175,6 +175,8 @@ final class EventConfigModel: ObservableObject {
     @Published private(set) var notice: String?
     @Published var diagnosticText: String?
     @Published var entries: [Entry] = []
+    /// Capacidades do equipamento: escondem as ações que ele não tem.
+    @Published private(set) var profile = DeviceCapabilities.Profile.empty
     /// NVR: canal em edição (nil = todos os canais recebem a mesma configuração).
     @Published private(set) var selectedChannel: Int?
     @Published private(set) var channelCount = 1
@@ -240,6 +242,7 @@ final class EventConfigModel: ObservableObject {
         defer { loading = false }
         do {
             let client = try await DeviceSessions.shared.client(for: camera)
+            profile = await DeviceCapabilities.profile(for: camera)
             if allChannels {
                 try await loadAllChannels(client)
                 return
@@ -612,6 +615,7 @@ struct EventConfigView: View {
             let actions = actionIndices(entry.wrappedValue, group: group)
             let delays = entry.wrappedValue.handler.delays.indices.filter {
                 entry.wrappedValue.handler.delays[$0].spec.group == group && entry.wrappedValue.handler.delays[$0].spec.key != "CheckDiskInterval"
+                    && SmartAlertModel.isShown(entry.wrappedValue.handler.delays[$0].spec, profile: model.profile)
             }
             if !actions.isEmpty || !delays.isEmpty {
                 Section("Quando acontecer · \(group.rawValue.lowercased())") {
@@ -627,18 +631,6 @@ struct EventConfigView: View {
                 Text("Horários em que o alarme fica ativo (Período)")
             } footer: {
                 Text("Fora dos horários marcados, o alarme não dispara.").foregroundStyle(.secondary)
-            }
-        }
-        let legacy = actionIndices(entry.wrappedValue, group: .legacy)
-        let legacyDelays = entry.wrappedValue.handler.delays.indices.filter {
-            entry.wrappedValue.handler.delays[$0].spec.group == .legacy && entry.wrappedValue.handler.delays[$0].spec.key != "CheckDiskInterval"
-        }
-        if !legacy.isEmpty || !legacyDelays.isEmpty {
-            Section {
-                DisclosureGroup("Opções antigas (pouco usadas)") {
-                    actionToggles(entry, indices: legacy)
-                    delaySteppers(entry, indices: legacyDelays)
-                }
             }
         }
     }
@@ -698,7 +690,9 @@ struct EventConfigView: View {
         if let allowed = entry.definition.allowedActions {
             return allowed.compactMap { key in actions.firstIndex { $0.spec.key == key } }
         }
-        return actions.indices.filter { group == nil || actions[$0].spec.group == group }
+        return actions.indices.filter {
+            (group == nil || actions[$0].spec.group == group) && SmartAlertModel.isShown(actions[$0].spec, profile: model.profile)
+        }
     }
 
     private func actionToggles(_ entry: Binding<EventConfigModel.Entry>, indices: [Int]) -> some View {
