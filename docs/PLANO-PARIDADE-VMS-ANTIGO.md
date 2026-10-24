@@ -65,24 +65,27 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 - [ ] "Ajuste dia e noite" (`AutomaticAdjustment`) ✅ feito. "Sensibilidade da troca" (`DncThr`) só se o campo existir ✅.
 
 ### 2.3 Exposição e ajustes finos
-- [ ] Adicionar o que falta, cada um só se o campo existir na câmera:
+- [x] Adicionar o que falta, cada um só se o campo existir na câmera:
   - **Nevoeiro nublado** (Clear Fog) ON/OFF + Level;
   - **Girar** (rotação da imagem);
   - **NoRedFaceExposure** (exposição de rosto, sem traduzir no VMS antigo);
   - "Superior" da Faixa dinâmica ✅ já existe.
-  Descobrir as chaves pelo Diagnóstico (Camera.ClearFog / ParamEx) antes de implementar.
-- [ ] Nomes iguais ao VMS antigo: IR CUT = **Sincronização** / **Sincronização automática**;
+  Chaves confirmadas comparando Sala e Frente: Nevoeiro = `Camera.ClearFog`, NoRedFaceExposure =
+  `ParamEx.PreventOverExpo`, Girar = `PictureFlip` (já existia como "Virar de cabeça para baixo").
+- [x] Nomes iguais ao VMS antigo: IR CUT = **Sincronização** / **Sincronização automática**;
   Obturador lento = **Nenhum / Baixo / Média / Forte** (conferir os valores 0/2/4/6 ou 0/1/2/3 no Diagnóstico);
   Modo de exposição = **Automático / Manual 1/60 … 1/10000** ✅.
 - [ ] ON/OFF (Luz de fundo, Espelhar, Anti brilho, Auto íris, Troca de IR) como interruptores ✅ (já são).
 - [ ] Perfil de imagem: typedefault/type1/type2 = Estilo 1/2/3 ✅ feito.
 
 ### 2.4 Sistema e horário
-- [ ] **Fuso horário editável** (lista UTC−12 … UTC+14). Hoje é só leitura.
+- [ ] **Fuso horário editável** (lista UTC−12 … UTC+14). Hoje é só leitura. Falta confirmar como o código do
+  equipamento (14 = UTC−03:00) vira cada fuso antes de liberar a edição; um fuso errado bagunça a hora das gravações.
 - [ ] **Horário de verão** com o botão "Configuração" (início e fim), não só liga/desliga.
-- [ ] **Idioma**: usar a lista que a câmera informa (na Sala: Inglês, Chinês simples, Espanhol, Russo,
-  Português, Japonês). O VMS antigo mostra **Inglês** na Sala e o VMS Next mostra **Português** — conferir o valor real.
-- [ ] **HD cheio** (Parar / Sobrescrever) também aqui, como no VMS antigo (hoje fica em Disco).
+- [x] **Idioma**: usar a lista que a câmera informa (na Sala: Inglês, Chinês simples, Espanhol, Russo,
+  Português, Japonês). A Sala grava "Brazilian", que não está na lista do VMS antigo; por isso ele mostra
+  o primeiro item (Inglês). O VMS Next mostra o valor real.
+- [x] **HD cheio** (Parar / Sobrescrever) também aqui, como no VMS antigo (hoje fica em Disco).
 - Lista de fuso lida: UTC−12:00 … UTC+13:00, com as meias horas (UTC−03:30, UTC+05:30, UTC+05:45 etc.).
 
 ### 2.5 Rede e Serviços de rede
@@ -96,9 +99,9 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 - [ ] **NTP**: "Custom" ou "Auto Select Server" + intervalo ✅ (conferir se o modo automático existe).
 
 ### 2.6 Sobrepor (Texto na imagem)
-- [ ] Mostrar as opções extras **só quando a câmera tiver**: Channel Title, Time Title, Status de gravação,
+- [x] Mostrar as opções extras **só quando a câmera tiver**: Channel Title, Time Title, Status de gravação,
   Alarm flashes, Channel Docking Line, Brilho, Device QR Code, Antivibração, Transparência, Resolução, OSD extra.
-  Hoje o app mostra um conjunto fixo.
+  Feito para o texto extra (exige `OtherFunction.SupportOSDInfo`); as outras opções o VMS Next ainda não tem.
 
 ### 2.7 Detecção inteligente, Câmera bloqueada, Perda de vídeo
 O VMS antigo mostra **só**: Habilitar, HumanoidDetect, Sensibilidade, Rule, Período, Intervalo,
@@ -115,7 +118,7 @@ Enviar e-mail, Escrever log, FTP, Notificações, Saída de alarme.
   heptágono, octógono, linha "Cordão" ou área "alertArea", "Mostrar traços").
 
 ### 2.8 Anormalidade (Problemas no equipamento)
-- [ ] Eventos só os que a câmera informa: Nenhum disco, Falha de armazenamento, Espaço de armazenamento,
+- [x] Eventos só os que a câmera informa: Nenhum disco, Falha de armazenamento, Espaço de armazenamento,
   Internet desconectada, Conflito de IP. Cada um com Habilitar, Timed Alarm e Notificações.
 
 ### 2.9 Disco

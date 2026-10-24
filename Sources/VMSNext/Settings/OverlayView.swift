@@ -79,9 +79,13 @@ final class OverlayModel: ObservableObject {
                 originalName = channelName
             }
             osdRaw = try? await client.getConfig("fVideo.OSDInfo")
+            // Como no VMS antigo, o texto extra só aparece em câmeras com SupportOSDInfo; se já houver texto
+            // escrito, a seção continua visível para dar para apagar.
+            let profile = await DeviceCapabilities.profile(for: camera)
             if let osd = ConfigValue.object(in: osdRaw), let first = (osd["OSDInfo"] as? [[String: Any]])?.first {
-                hasExtraText = true
                 extraLines = (first["Info"] as? [String]) ?? []
+                hasExtraText = profile.functions == nil || profile.has("OtherFunction.SupportOSDInfo")
+                    || extraLines.contains { !$0.isEmpty }
                 if let widget = first["OSDInfoWidget"] { extraTitle = Self.title(widget) ?? extraTitle }
             }
             if channelTitle == nil && timeTitle == nil && channelName == nil {

@@ -110,6 +110,8 @@ enum EventScreen {
         var originalNames: [String: String] = [:]
         /// Tempos mostrados (nil = os padrão). "CheckDiskInterval" só aparece nos itens de disco.
         var allowedDelays: [String]? = nil
+        /// Função em SystemFunction que o equipamento precisa ter (o VMS antigo esconde o item sem ela).
+        var requires: String? = nil
     }
 
     /// Itens de disco: no VMS antigo aparecem "Timed Alarm" (aviso na tela) e "Notificações".
@@ -136,17 +138,22 @@ enum EventScreen {
             return [
                 Definition(names: { _ in ["Storage.StorageNotExist", "Alarm.StorageNotExist"] }, title: "Sem disco ou cartão", original: "Nenhum disco",
                            detail: "Avisa quando o equipamento não encontra onde gravar.",
-                           allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays),
+                           allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays,
+                           requires: "AlarmFunction.StorageNotExist"),
                 Definition(names: { _ in ["Storage.StorageFailure", "Alarm.StorageFailure"] }, title: "Erro no disco", original: "Falha de armazenamento",
                            detail: "Avisa quando o disco ou cartão falha ao ler ou gravar.",
-                           allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays),
+                           allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays,
+                           requires: "AlarmFunction.StorageFailure"),
                 Definition(names: { _ in ["Storage.StorageLowSpace", "Alarm.StorageLowSpace"] }, title: "Disco quase cheio", original: "Espaço de armazenamento",
                            detail: "Avisa quando o espaço livre cai abaixo do limite escolhido.",
-                           allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays),
+                           allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays,
+                           requires: "AlarmFunction.StorageLowSpace"),
                 Definition(names: { _ in ["Alarm.NetAbort"] }, title: "Rede desconectada", original: "Internet desconectada",
-                           detail: "Avisa quando o equipamento perde a conexão com a rede.", allowedActions: []),
+                           detail: "Avisa quando o equipamento perde a conexão com a rede.", allowedActions: [],
+                           requires: "AlarmFunction.NetAbort"),
                 Definition(names: { _ in ["Alarm.NetIPConflict"] }, title: "Conflito de IP", original: "Conflito de IP",
-                           detail: "Avisa quando outro aparelho da rede usa o mesmo endereço IP.", allowedActions: []),
+                           detail: "Avisa quando outro aparelho da rede usa o mesmo endereço IP.", allowedActions: [],
+                           requires: "AlarmFunction.NetIpConflict"),
             ]
         }
     }
@@ -248,7 +255,7 @@ final class EventConfigModel: ObservableObject {
                 return
             }
             var result: [Entry] = []
-            for definition in screen.definitions {
+            for definition in screen.definitions where definition.requires.map(profile.supports) ?? true {
                 var found: (name: String, raw: Any)?
                 for candidate in definition.names(camera.channel - 1) {
                     if let raw = try await optional(client, candidate) {

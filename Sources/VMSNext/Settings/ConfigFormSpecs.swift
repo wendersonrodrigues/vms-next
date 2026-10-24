@@ -204,6 +204,8 @@ enum ConfigFormSpecs {
             sources: [
                 ConfigSource(name: "Camera.Param.[\(channel)]"),
                 ConfigSource(name: "Camera.ParamEx.[\(channel)]"),
+                // "Nevoeiro nublado" do VMS antigo; só aparece se a câmera responder.
+                ConfigSource(name: "Camera.ClearFog", element: channel),
             ],
             sections: [
                 ConfigSection(title: "Exposição", fields: [
@@ -225,8 +227,8 @@ enum ConfigFormSpecs {
                                 title: "Rapidez da exposição", original: "Sensibilidade AE",
                                 detail: "Quão rápido a imagem se ajusta quando a luz muda."),
                     ConfigField(source: 0, path: ["EsShutter"], kind: .choice([
-                        ConfigOption("0", "Desligado"), ConfigOption("2", "Baixo"),
-                        ConfigOption("4", "Médio"), ConfigOption("6", "Alto"),
+                        ConfigOption("0", "Nenhum"), ConfigOption("2", "Baixo"),
+                        ConfigOption("4", "Média"), ConfigOption("6", "Forte"),
                     ]), title: "Obturador lento", original: "Obturador lento",
                     detail: "Clareia cenas escuras deixando o obturador aberto por mais tempo; pode causar rastro."),
                     ConfigField(source: 0, path: ["ApertureMode"], kind: .toggle,
@@ -261,9 +263,26 @@ enum ConfigFormSpecs {
                     ConfigField(source: 0, path: ["Night_nfLevel"], kind: .choice(level0to5),
                                 title: "Redução de ruído à noite", original: "Nível de night NT"),
                 ]),
+                ConfigSection(title: "Nevoeiro e brilho", fields: [
+                    ConfigField(source: 2, path: ["enable"], kind: .toggle,
+                                title: "Nevoeiro nublado", original: "Clear Fog",
+                                detail: "Clareia a imagem em dias de neblina, chuva fina ou fumaça."),
+                    ConfigField(source: 2, path: ["Enable"], kind: .toggle,
+                                title: "Nevoeiro nublado", original: "Clear Fog",
+                                detail: "Clareia a imagem em dias de neblina, chuva fina ou fumaça."),
+                    ConfigField(source: 2, path: ["level"], kind: .slider(0 ... 100),
+                                title: "Intensidade do nevoeiro", original: "Level",
+                                enabledWhen: ConfigCondition(source: 2, path: ["enable"], values: ["1"])),
+                    ConfigField(source: 2, path: ["Level"], kind: .slider(0 ... 100),
+                                title: "Intensidade do nevoeiro", original: "Level",
+                                enabledWhen: ConfigCondition(source: 2, path: ["Enable"], values: ["1"])),
+                    ConfigField(source: 1, path: ["PreventOverExpo"], kind: .toggle,
+                                title: "Evitar rosto estourado", original: "NoRedFaceExposure",
+                                detail: "À noite, segura o infravermelho para quem chega perto da câmera não ficar branco."),
+                ]),
                 ConfigSection(title: "Filtro infravermelho", fields: [
                     ConfigField(source: 0, path: ["IRCUTMode"], kind: .choice([
-                        ConfigOption("0", "Junto com a luz IR (Sincronização)"), ConfigOption("1", "Automático (Troca automática)"),
+                        ConfigOption("0", "Sincronização"), ConfigOption("1", "Sincronização automática"),
                     ]), title: "Troca do filtro IR", original: "IR CUT",
                     detail: "Quando a câmera troca o filtro entre dia e noite."),
                     ConfigField(source: 0, path: ["IrcutSwap"], kind: .toggle,

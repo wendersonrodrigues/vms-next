@@ -88,10 +88,10 @@ struct CameraParamsView: View {
                             previewRow(SettingPreview(mirror: model.mirror, flip: model.flip,
                                                       caption: model.mirror || model.flip ? "Como fica com a orientação escolhida" : "Imagem normal"))
                             Toggle(isOn: $model.mirror) {
-                                FieldLabel("Espelhar", original: "Mirror", detail: "Inverte a imagem da esquerda para a direita.")
+                                FieldLabel("Espelhar", original: "Espelhar", detail: "Inverte a imagem da esquerda para a direita.")
                             }
                             Toggle(isOn: $model.flip) {
-                                FieldLabel("Virar de cabeça para baixo", original: "Flip", detail: "Use quando a câmera estiver instalada no teto ou invertida.")
+                                FieldLabel("Virar de cabeça para baixo", original: "Girar", detail: "Use quando a câmera estiver instalada no teto ou invertida.")
                             }
                         }
                         Section("Exposição") {

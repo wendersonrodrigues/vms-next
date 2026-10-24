@@ -15,6 +15,14 @@ final class DateTimeModel: ObservableObject {
         ("Brazilian", "Português (Brasil)"), ("Portugal", "Português (Portugal)"), ("English", "Inglês"),
         ("Spanish", "Espanhol"), ("SimpChinese", "Chinês simplificado"),
     ]
+    /// Nomes dos idiomas que a câmera informa em MultiLanguage.
+    static let languageNames = [
+        "Brazilian": "Português (Brasil)", "Portugal": "Português (Portugal)", "English": "Inglês",
+        "Spanish": "Espanhol", "SimpChinese": "Chinês simplificado", "TradChinese": "Chinês tradicional",
+        "Russian": "Russo", "Japanese": "Japonês", "Turkey": "Turco", "Turkish": "Turco", "French": "Francês",
+        "German": "Alemão", "Italian": "Italiano", "Korean": "Coreano", "Arabic": "Árabe", "Polish": "Polonês",
+        "Vietnamese": "Vietnamita", "Thai": "Tailandês", "Hebrew": "Hebraico", "Czech": "Tcheco",
+    ]
     static let videoFormats: [(value: String, label: String)] = [("NTSC", "NTSC (Brasil, Américas)"), ("PAL", "PAL (Europa, Ásia)")]
     /// Códigos de fuso do equipamento confirmados (o VMS antigo mostra 14 como UTC−03:00).
     static let knownTimeZones = [14: "UTC−03:00 · Brasília"]
@@ -42,6 +50,10 @@ final class DateTimeModel: ObservableObject {
     @Published private(set) var timeZoneCode: Int?
     @Published var language: String?
     @Published var videoFormat: String?
+    /// Idiomas que a câmera aceita (capacidade MultiLanguage), como na lista do VMS antigo.
+    @Published private(set) var supportedLanguages: [String]?
+    /// "Hd cheio" do VMS antigo (General.General.OverWrite): true = sobrescrever, false = parar.
+    @Published var overwrite: Bool?
 
     @Published private(set) var hasGeneral = false
     @Published var hostName: String?
@@ -90,10 +102,12 @@ final class DateTimeModel: ObservableObject {
                 language = location["Language"] as? String
                 videoFormat = location["VideoFormat"] as? String
             }
+            supportedLanguages = (try? await client.command(code: 1360, name: "MultiLanguage", payload: nil))?["MultiLanguage"] as? [String]
             generalRaw = try? await client.getConfig("General.General")
             if let general = ConfigValue.object(in: generalRaw) {
                 hasGeneral = true
                 autoLogout = ConfigValue.int(general["AutoLogout"])
+                overwrite = (general["OverWrite"] as? String).map { $0 == "OverWrite" }
             }
             commonRaw = try? await client.getConfig("NetWork.NetCommon")
             if let common = ConfigValue.object(in: commonRaw), let name = common["HostName"] as? String {
@@ -161,6 +175,7 @@ final class DateTimeModel: ObservableObject {
             }
             if let raw = generalRaw, var general = ConfigValue.object(in: raw) {
                 if let autoLogout { ConfigValue.set(&general, "AutoLogout", autoLogout) }
+                if let overwrite, general["OverWrite"] is String { general["OverWrite"] = overwrite ? "OverWrite" : "StopRecord" }
                 let updated = ConfigValue.replacingObject(in: raw, with: general)
                 try await client.setConfig("General.General", updated)
                 generalRaw = updated
@@ -174,7 +189,7 @@ final class DateTimeModel: ObservableObject {
     func diagnostic() async -> String {
         await ConfigDiagnostics.dump(camera: camera, requests: [
             (1452, "OPTimeQuery"), (1042, "NetWork.NetNTP"), (1042, "General.Location"), (1042, "General.General"),
-            (1042, "NetWork.NetCommon"),
+            (1042, "NetWork.NetCommon"), (1360, "MultiLanguage"),
         ])
     }
 
@@ -359,14 +374,23 @@ struct DateTimeView: View {
                 }
             }
             if let language = model.language {
+                // Só os idiomas que a câmera tem (MultiLanguage), como no VMS antigo; o atual sempre aparece.
+                let codes = model.supportedLanguages.map { $0.contains(language) ? $0 : $0 + [language] }
+                    ?? DateTimeModel.languages.map(\.value) + (DateTimeModel.languages.contains { $0.value == language } ? [] : [language])
                 Picker(selection: Binding(get: { language }, set: { model.language = $0 })) {
-                    ForEach(DateTimeModel.languages, id: \.value) { Text($0.label).tag($0.value) }
-                    if !DateTimeModel.languages.contains(where: { $0.value == language }) {
-                        Text(language).tag(language)
-                    }
+                    ForEach(codes, id: \.self) { Text(DateTimeModel.languageNames[$0] ?? $0).tag($0) }
                 } label: {
                     FieldLabel("Idioma do equipamento", original: "Idioma",
                                detail: "Idioma do menu no monitor ligado ao equipamento. Não muda o VMS Next.")
+                }
+            }
+            if let overwrite = model.overwrite {
+                Picker(selection: Binding(get: { overwrite }, set: { model.overwrite = $0 })) {
+                    Text("Sobrescrever (apaga as gravações mais antigas)").tag(true)
+                    Text("Parar de gravar").tag(false)
+                } label: {
+                    FieldLabel("Disco cheio", original: "Hd cheio",
+                               detail: "O que fazer quando o cartão ou o HD enche. Também aparece em Disco.")
                 }
             }
             if let video = model.videoFormat {
