@@ -93,10 +93,21 @@ struct ContentView: View {
         guard let split = camera.split else {
             return SidebarNode(id: .camera(camera.id), title: camera.name, icon: "video")
         }
-        return SidebarNode(id: .camera(camera.id), title: camera.name, icon: "video", children: [
-            SidebarNode(id: .part(camera.id, .top), title: split.topName, icon: "rectangle.tophalf.filled"),
-            SidebarNode(id: .part(camera.id, .bottom), title: split.bottomName, icon: "rectangle.bottomhalf.filled"),
-        ])
+        return SidebarNode(id: .camera(camera.id), title: camera.name, icon: "video", children: split.parts.map { part in
+            part == .top
+                ? SidebarNode(id: .part(camera.id, .top), title: split.topName, icon: "rectangle.tophalf.filled")
+                : SidebarNode(id: .part(camera.id, .bottom), title: split.bottomName, icon: "rectangle.bottomhalf.filled")
+        })
+    }
+
+    /// Arrastar as metades na lista: com duas, qualquer movimento troca a ordem.
+    private func moveParts(of id: Camera.ID, from source: IndexSet, to destination: Int) {
+        guard var camera = store.cameras.first(where: { $0.id == id }), var split = camera.split else { return }
+        var parts = split.parts
+        parts.move(fromOffsets: source, toOffset: destination)
+        split.bottomFirst = parts.first == .bottom
+        camera.split = split
+        store.upsert(camera)
     }
 
     private func toggleSplit(_ camera: Camera) {
@@ -180,6 +191,8 @@ struct ContentView: View {
         var move: ((IndexSet, Int) -> Void)?
         if case let .group(name) = node.id {
             move = { store.moveChannels(in: name, from: $0, to: $1) }
+        } else if case let .camera(id) = node.id {
+            move = { moveParts(of: id, from: $0, to: $1) }
         }
         return AnyView(DisclosureGroup(isExpanded: expanded("\(node.id)")) {
             ForEach(children) { child in nodeRow(child) }
@@ -284,8 +297,7 @@ struct ContentView: View {
     /// Quadros do mosaico: câmeras divididas ocupam dois quadros (cima e baixo) com o mesmo vídeo.
     private var gridTiles: [GridTile] {
         gridCameras.flatMap { camera in
-            camera.split == nil ? [GridTile(camera: camera, part: .full)]
-                : [GridTile(camera: camera, part: .top), GridTile(camera: camera, part: .bottom)]
+            (camera.split?.parts ?? [.full]).map { GridTile(camera: camera, part: $0) }
         }
     }
 

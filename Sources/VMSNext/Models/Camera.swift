@@ -71,6 +71,23 @@ struct Camera: Codable, Identifiable, Hashable {
 struct CameraSplit: Codable, Hashable {
     var topName: String
     var bottomName: String
+    /// Ordem das metades na lista e no mosaico (arrastar na lista troca); a imagem não muda.
+    var bottomFirst = false
+
+    /// Metades na ordem escolhida.
+    var parts: [SplitPart] { bottomFirst ? [.bottom, .top] : [.top, .bottom] }
+
+    init(topName: String, bottomName: String) {
+        self.topName = topName
+        self.bottomName = bottomName
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        topName = try c.decode(String.self, forKey: .topName)
+        bottomName = try c.decode(String.self, forKey: .bottomName)
+        bottomFirst = try c.decodeIfPresent(Bool.self, forKey: .bottomFirst) ?? false
+    }
 }
 
 /// Parte da imagem mostrada num quadro.
