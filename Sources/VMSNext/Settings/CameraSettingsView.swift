@@ -23,6 +23,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case netServices
     case ptzSerial
     case version
+    // Só no NVR, como no VMS antigo.
+    case digitalChannels
+    case channelMode
+    case channelStatus
 
     var id: String { rawValue }
     var title: String {
@@ -48,6 +52,9 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .defaults: return "Restaurar padrão"
         case .network: return "Rede"
         case .version: return "Informações"
+        case .digitalChannels: return "Câmeras do NVR"
+        case .channelMode: return "Modo dos canais"
+        case .channelStatus: return "Estado dos canais"
         }
     }
 
@@ -75,6 +82,9 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .defaults: return "Padrão"
         case .network: return "Rede"
         case .version: return "Versão"
+        case .digitalChannels: return "Canal digital"
+        case .channelMode: return "Modo de canal"
+        case .channelStatus: return "Status do canal"
         }
     }
 
@@ -101,6 +111,9 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .defaults: return "Voltar configurações de fábrica"
         case .network: return "Endereço IP, DNS e portas"
         case .version: return "Modelo, firmware e número de série"
+        case .digitalChannels: return "Quais câmeras estão ligadas em cada canal"
+        case .channelMode: return "Quantos canais e em que resolução o NVR aceita"
+        case .channelStatus: return "Conexão e resolução de cada canal"
         }
     }
 
@@ -109,7 +122,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams, .exposure, .overlay: return .image
         case .encoding, .recording, .snapshot, .disk: return .storage
         case .smartAlert, .videoLoss, .blind, .vehicle, .abnormality, .alarmOutput: return .alarms
-        case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version: return .device
+        case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version,
+             .digitalChannels, .channelMode, .channelStatus: return .device
         }
     }
     /// Funções de SystemFunction que liberam a tela (basta uma). Vazio = sempre aparece.
@@ -156,6 +170,9 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .defaults: return "arrow.counterclockwise"
         case .network: return "network"
         case .version: return "info.circle"
+        case .digitalChannels: return "video.badge.plus"
+        case .channelMode: return "square.grid.3x3"
+        case .channelStatus: return "dot.radiowaves.left.and.right"
         }
     }
 }
@@ -169,7 +186,7 @@ enum SettingsScope {
     var categories: [SettingsCategory] {
         switch self {
         case .camera: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .blind, .videoLoss, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version]
-        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version]
+        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version, .digitalChannels, .channelMode, .channelStatus]
         case .channel: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
         }
     }
@@ -261,6 +278,8 @@ struct SettingsContent: View {
             RestoreDefaultsView(camera: camera)
         case .network:
             NetworkView(camera: camera)
+        case .digitalChannels, .channelMode, .channelStatus:
+            RecorderInfoView(camera: camera, category: category)
         case .version:
             VersionView(camera: camera)
         }

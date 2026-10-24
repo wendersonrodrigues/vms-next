@@ -147,13 +147,14 @@ H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio
 
 ## 3. NVR (o VMS antigo mostra outra grade)
 
-- [ ] **IPC Param**: configurar a câmera ligada no NVR **através do NVR** (Versão + QR Code, Imagem, Luz,
+- [x] **IPC Param** — já coberto: as telas de cada canal do NVR (Imagem, Exposição, Mídia) configuram a câmera pelo NVR. Falta só "Reiniciar a câmera" e o volume.
+  Original: configurar a câmera ligada no NVR **através do NVR** (Versão + QR Code, Imagem, Luz,
   Codificação, Avançado com volume e nevoeiro, Reiniciar a câmera). Hoje o VMS Next não tem.
-- [ ] **Canal digital**: lista das câmeras do NVR (nome, tipo, IP, canal remoto), Habilitar,
+- [x] **Canal digital** (só leitura, "Câmeras do NVR"): lista das câmeras do NVR (nome, tipo, IP, canal remoto), Habilitar,
   Sincronizar horário (Aux. Off, Fuso horário, Horário local), Decodificar (Prioridade real 1/2, Média,
   Prioridade de fluxo 1–4), Modo (Single link), Resolução de sincronização.
-- [ ] **Modo de canal**: tabela de modos (ex.: 10 × 5M ou 4 × 4K), máximo de playback e de visualização.
-- [ ] **Status do canal**: canal, resolução máxima, resolução atual, conectado / não configurado.
+- [x] **Modo de canal** (só leitura, "Modo dos canais"): tabela de modos (ex.: 10 × 5M ou 4 × 4K), máximo de playback e de visualização.
+- [x] **Status do canal** ("Estado dos canais"): canal, resolução máxima, resolução atual, conectado / não configurado.
 - [ ] **Detec. Smart** do NVR: canal (Todos), HumanoidDetect, Gravar, Aviso no celular, Avançado, Sensibilidade, Rule.
 - [ ] **CarShape Detect** (veículo) do NVR: canal (Todos), Habilitar, Período, Tour (canais 1–10 e Todos),
   Enviar e-mail, Escrever log, Aviso no celular, Som de alarme.
@@ -183,7 +184,7 @@ H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio
 1. ✅ **Perfil de capacidades** + regra "esconder" (item 1) — `DeviceCapabilities.profile(for:)`.
 2. Telas com erro hoje: dia/noite (2.2), Luz branca (2.2), grade (2.1), ações de alarme (2.7), Rede/Wi-Fi (2.5).
 3. Campos que faltam: Exposição (2.3), Sistema (2.4), Sobrepor (2.6), Anormalidade (2.8).
-4. Telas novas do NVR (3).
+4. ✅ Telas novas do NVR (3), só leitura. Editar a câmera de cada canal fica para depois, com confirmação.
 5. Disco, Usuários, Manutenção, Mídia (2.9–2.12) e funções do app (4).
 
 Cada etapa: implementar → testar com Sala, Frente e NVR → commit.
