@@ -1,5 +1,14 @@
 # Novidades
 
+## 1.1.0 Beta 3 — 25/10/2026
+
+Versão de testes. Interface revista pelas regras da Apple para o macOS (relatório em `docs/REVISAO-INTERFACE-MACOS.md`).
+
+- **Visual**: ícones do menu e HD/SD novos, no estilo dos Ajustes do macOS; cores que passam no contraste mínimo também no modo claro; destaque azul único (não muda com a cor escolhida no macOS); bordas e cores mais fortes com "Aumentar contraste"; margens e cantos padronizados.
+- **VoiceOver**: todos os botões com nome em português; PTZ em português e acionável; alertas, seleção, HD/SD e gravação anunciados; quadros de vídeo com estado e ações; agenda com resumo falado por dia; editor de regra e editor de modelo usáveis sem mouse.
+- **Teclado**: ⌘, abre as Preferências; ⌘1 a ⌘6 trocam de tela; menu Mosaico (⌥⌘← ⌥⌘→ páginas, ⌥⌘↑ voltar ao mosaico, ⌥⌘R rodízio); Gravações com espaço, ← → e ⌘D; ⌘R recarrega as configurações.
+- **Acabamento**: nenhum texto abaixo de 10 pt; nomes iguais em todo o app ("Configurações", "Preferências"); rodapé igual em todas as telas de configuração; tela de entrada com logo e tema; respeita "Reduzir movimento".
+
 ## 1.1.0 Beta 2 — 25/10/2026
 
 Versão de testes. Traz de volta funções úteis que tinham sumido por não existirem no VMS antigo.
