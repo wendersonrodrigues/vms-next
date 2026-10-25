@@ -577,6 +577,8 @@ struct ContentView: View {
         }
         .buttonStyle(.hover)
         .help(template.map(Self.templateTitle) ?? "Auto: todas as câmeras, no melhor tamanho")
+        .accessibilityLabel(template.map(Self.templateTitle) ?? "Auto")
+        .accessibilityAddTraits(ui.templateID == id ? .isSelected : [])
     }
 
     private var templateLabel: String {
@@ -624,6 +626,8 @@ struct ContentView: View {
                     }
             }
             .help(alarms.unread > 0 ? "\(alarms.unread) alerta(s) novo(s)" : "Eventos")
+            .accessibilityLabel("Eventos")
+            .accessibilityValue(alarms.unread > 0 ? "\(alarms.unread) \(alarms.unread == 1 ? "alerta novo" : "alertas novos")" : "")
         }
     }
 
@@ -667,6 +671,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.hover)
                 .help("Criar ou editar um modelo personalizado (o \"25\" do VMS antigo)")
+                .accessibilityLabel("Criar ou editar modelo de tela")
             }
             // Voltar à ordem da lista (desfaz as câmeras arrastadas neste modelo).
             if let template = currentTemplate {
@@ -681,9 +686,11 @@ struct ContentView: View {
                 ControlGroup {
                     Button { ui.page = max(0, ui.page - 1) } label: { Image(systemName: "chevron.left") }
                         .disabled(ui.page == 0)
+                        .accessibilityLabel("Página anterior")
                     Text("\(min(ui.page, pageCount - 1) + 1)/\(pageCount)").monospacedDigit()
                     Button { ui.page = min(pageCount - 1, ui.page + 1) } label: { Image(systemName: "chevron.right") }
                         .disabled(ui.page >= pageCount - 1)
+                        .accessibilityLabel("Próxima página")
                 }
                 .fixedSize()
             }

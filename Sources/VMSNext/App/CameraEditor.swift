@@ -54,6 +54,7 @@ struct CameraEditor: View {
                         }
                         .buttonStyle(.borderless)
                         .help(form.showPassword ? "Esconder a senha" : "Mostrar a senha salva")
+                        .accessibilityLabel(form.showPassword ? "Esconder a senha" : "Mostrar a senha")
                     }
                 } header: {
                     Text("Acesso")

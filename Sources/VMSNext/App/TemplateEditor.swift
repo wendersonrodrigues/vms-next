@@ -73,6 +73,7 @@ struct TemplateEditor: View {
                         }
                         .buttonStyle(.borderless)
                         .help("Apagar este modelo")
+                        .accessibilityLabel("Apagar este modelo")
                     }
                 }
             }

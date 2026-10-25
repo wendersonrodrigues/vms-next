@@ -147,6 +147,8 @@ struct CameraTile: View {
         }
         .buttonStyle(.hover)
         .help(help)
+        .accessibilityLabel(quality == .main ? "Qualidade HD" : "Qualidade SD")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     /// Foto do quadro ao vivo como aparece na tela (com zoom, só a parte ampliada), na pasta de fotos das Preferências.
@@ -198,6 +200,7 @@ struct CameraTile: View {
                     .padding(Space.s)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .help("Gravando no Mac")
+                    .accessibilityLabel("Gravando no Mac")
             }
         }
     }

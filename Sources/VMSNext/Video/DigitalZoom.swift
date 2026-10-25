@@ -72,6 +72,7 @@ struct ZoomControls: View {
             Button { zoom.step(1) } label: { Image(systemName: "plus.magnifyingglass").frame(width: 48, height: 44) }
                 .disabled(!enabled || zoom.scale >= DigitalZoom.maximum)
                 .help("Zoom digital: amplia a imagem no Mac (qualquer câmera). Também: pinça no trackpad e arrastar para mover.")
+                .accessibilityLabel("Aumentar o zoom digital")
             Button { zoom.reset() } label: {
                 Text(String(format: "%.1f×", zoom.scale))
                     .font(.system(size: 15, weight: .bold)).monospacedDigit()
@@ -82,6 +83,7 @@ struct ZoomControls: View {
             Button { zoom.step(-1) } label: { Image(systemName: "minus.magnifyingglass").frame(width: 48, height: 44) }
                 .disabled(!enabled || zoom.scale <= 1)
                 .help("Diminuir o zoom digital")
+                .accessibilityLabel("Diminuir o zoom digital")
         }
         .buttonStyle(.plain)
         .font(.system(size: 26, weight: .semibold))

@@ -140,7 +140,9 @@ configuração seguem bem o formulário agrupado do macOS. Os pontos fracos são
 1. ✅ **Tema** (feito em 25/10): azul, laranja e verde com tom escuro no claro; um destaque só; variantes de alto
    contraste; escala de margens (`Space`) e arredondamentos (`Radius`). Ícones do menu e HD/SD refeitos no estilo
    dos Ajustes do macOS (Magnific).
-2. **Rótulos do VoiceOver**: `BarButton` (correção central), botões só de ícone, PTZ em português, selos.
+2. ✅ **Rótulos do VoiceOver** (feito em 25/10): `BarButton` com rótulo e estado "ligado", os 25 botões só de
+   ícone com nome em português, PTZ em português (dica e VoiceOver, com ação de mover por meio segundo), HD/SD,
+   selos de alertas (coluna e sino), item escolhido na coluna, modelo de tela escolhido e "REC".
 3. **Teclado**: ⌘, , menu Visualizar com ⌘1–⌘6, atalhos de Gravações e do mosaico.
 4. **Telas difíceis**: quadros de vídeo, agenda, editor de regra, editor de modelo.
 5. **Acabamento**: tamanhos mínimos de fonte, nomes iguais, rodapé padrão, tela de entrada.

@@ -440,6 +440,8 @@ struct OverlayView: View {
                     Spacer()
                     Button(role: .destructive) { model.removeMask(at: index) } label: { Image(systemName: "minus.circle") }
                         .buttonStyle(.borderless)
+                        .help("Apagar a máscara \(index + 1)")
+                        .accessibilityLabel("Apagar a máscara \(index + 1)")
                 }
             }
             Button {

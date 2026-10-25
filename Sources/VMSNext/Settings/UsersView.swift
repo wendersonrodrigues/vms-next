@@ -349,6 +349,7 @@ struct UsersView: View {
                                 .buttonStyle(.borderless)
                                 .disabled(model.deleteBlocker(account) != nil)
                                 .help(model.deleteBlocker(account).map { "Não pode apagar: \($0)" } ?? "Apagar conta")
+                                .accessibilityLabel("Apagar a conta \(account.name)")
                             }
                             .padding(.vertical, Space.xxs)
                         }
@@ -387,6 +388,7 @@ struct UsersView: View {
                                         .buttonStyle(.borderless)
                                         .disabled(model.deleteBlocker(group) != nil)
                                         .help(model.deleteBlocker(group).map { "Não pode apagar: \($0)" } ?? "Apagar grupo")
+                                        .accessibilityLabel("Apagar o grupo \(group.name)")
                                     }
                                 }
                             }

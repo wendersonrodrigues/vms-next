@@ -132,6 +132,7 @@ struct HomeView: View {
                     }
                     .buttonStyle(.borderless)
                     .help("Escolher a cidade")
+                    .accessibilityLabel("Escolher a cidade")
                 }
                 if let weather = model.weather {
                     let info = HomeModel.describe(weather)
@@ -310,12 +311,14 @@ struct HomeView: View {
                                     Image(systemName: "video.fill").frame(width: 18)
                                 }
                                 .help("Ver ao vivo")
+                                .accessibilityLabel("Ver ao vivo")
                                 Button {
                                     onSettings(device.camera, device.isRecorder)
                                 } label: {
                                     Image(systemName: "slider.horizontal.3").frame(width: 18)
                                 }
                                 .help("Configurações")
+                                .accessibilityLabel("Configurações")
                             }
                             .controlSize(.small)
                         }

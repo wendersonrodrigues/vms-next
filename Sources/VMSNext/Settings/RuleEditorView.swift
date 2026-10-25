@@ -94,6 +94,7 @@ struct RuleEditorView: View {
                     ForEach(shapes, id: \.sides) { shape in
                         Button { draft.applyShape(sides: shape.sides) } label: { Image(systemName: shape.icon) }
                             .help(shape.label)
+                            .accessibilityLabel(shape.label)
                     }
                     Button("Imagem toda") { draft.coverWholeImage() }
                 }

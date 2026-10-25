@@ -24,6 +24,27 @@ enum PTZCommand: String {
     case clearTour = "ClearTour"
     case startTour = "StartTour"
     case stopTour = "StopTour"
+
+    /// Nome em português para a dica do mouse e o VoiceOver (o rawValue é o nome do protocolo).
+    var label: String {
+        switch self {
+        case .up: return "Para cima"
+        case .down: return "Para baixo"
+        case .left: return "Para a esquerda"
+        case .right: return "Para a direita"
+        case .upLeft: return "Para cima e à esquerda"
+        case .upRight: return "Para cima e à direita"
+        case .downLeft: return "Para baixo e à esquerda"
+        case .downRight: return "Para baixo e à direita"
+        case .zoomIn: return "Aproximar (zoom)"
+        case .zoomOut: return "Afastar (zoom)"
+        case .focusNear: return "Foco mais perto"
+        case .focusFar: return "Foco mais longe"
+        case .irisOpen: return "Abrir a íris"
+        case .irisClose: return "Fechar a íris"
+        default: return rawValue
+        }
+    }
 }
 
 /// Envia comandos OPPTZControl (código 1400) para o canal da câmera.

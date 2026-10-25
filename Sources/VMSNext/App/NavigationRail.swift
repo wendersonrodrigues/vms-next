@@ -136,6 +136,10 @@ struct NavigationRail: View {
         }
         .buttonStyle(.hover)
         .help(title)
+        // VoiceOver: nome da tela, se está aberta e quantos alertas novos há.
+        .accessibilityLabel(title)
+        .accessibilityValue(badge > 0 ? "\(badge) \(badge == 1 ? "alerta novo" : "alertas novos")" : "")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
@@ -322,6 +326,7 @@ struct PreferencesView: View {
                     Image(systemName: "folder")
                 }
                 .help("Abrir a pasta no Finder")
+                .accessibilityLabel("Abrir a pasta no Finder")
             }
         } label: {
             FieldLabel(title, original: original, detail: detail)
@@ -345,6 +350,12 @@ struct ModeIcon: View {
     }()
 
     var body: some View {
+        // Decorativo: sempre aparece junto do nome da tela.
+        icon.accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var icon: some View {
         if let image = Self.images[mode.rawValue] {
             Image(nsImage: image)
                 .resizable()

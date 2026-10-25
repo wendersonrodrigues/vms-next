@@ -146,6 +146,9 @@ struct BarButton: View {
         }
         .buttonStyle(.hover)
         .help(help)
+        // VoiceOver: o texto do botão ou, nos só de ícone, a dica; e se está ligado.
+        .accessibilityLabel(title ?? help)
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 }
 

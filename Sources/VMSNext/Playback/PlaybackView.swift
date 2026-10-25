@@ -316,6 +316,7 @@ struct PlaybackView: View {
                     .buttonStyle(.hover)
                     .disabled(![.playing, .paused, .finished].contains(session.status))
                     .help(session.status == .playing ? "Pausar" : "Reproduzir")
+                    .accessibilityLabel(session.status == .playing ? "Pausar" : "Reproduzir")
                     BarButton(icon: "goforward.10", help: "Avançar 10 s") { session.skip(by: 10) }
                         .disabled(!hasRecording)
                     BarButton(icon: "stop.fill", help: "Parar") { session.stop() }
@@ -455,10 +456,12 @@ private struct DownloadRow: View {
                     Button { job.cancel() } label: { Image(systemName: "xmark.circle.fill") }
                         .buttonStyle(.borderless)
                         .help("Cancelar")
+                        .accessibilityLabel("Cancelar o download")
                 case .finished:
                     Button { NSWorkspace.shared.activateFileViewerSelecting([job.url]) } label: { Image(systemName: "magnifyingglass.circle.fill") }
                         .buttonStyle(.borderless)
                         .help("Mostrar no Finder")
+                        .accessibilityLabel("Mostrar no Finder")
                 default:
                     EmptyView()
                 }

@@ -108,8 +108,10 @@ struct PTZBar: View {
                 HStack {
                     Button { ptz.tourAction(.startTour) } label: { Image(systemName: "play.fill") }
                         .help("Começar a ronda")
+                        .accessibilityLabel("Começar a ronda")
                     Button { ptz.tourAction(.stopTour) } label: { Image(systemName: "stop.fill") }
                         .help("Parar a ronda")
+                        .accessibilityLabel("Parar a ronda")
                     Button("+ Preset \(ptz.preset)") { ptz.tourAction(.addTour) }
                         .help("Adicionar o preset \(ptz.preset) a esta ronda")
                     Button("− Preset") { ptz.tourAction(.deleteTour) }
@@ -202,6 +204,14 @@ private struct HoldButton: View {
                     .onChanged { _ in ptz.begin(command) }
                     .onEnded { _ in ptz.end() }
             )
-            .help(command.rawValue)
+            .help(command.label)
+            // VoiceOver: o gesto de segurar não serve; a ação move por meio segundo.
+            .accessibilityElement()
+            .accessibilityLabel(command.label)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                ptz.begin(command)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { ptz.end() }
+            }
     }
 }

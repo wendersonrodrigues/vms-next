@@ -15,6 +15,7 @@ struct SpeakerButton: View {
             Image(systemName: on ? "speaker.wave.2.fill" : "speaker.slash.fill")
         }
         .help(on ? "Desligar o som" : "Ligar o som (desliga o som de outra câmera)")
+        .accessibilityLabel(on ? "Desligar o som" : "Ligar o som")
         .onChange(of: focus.owner) { setAudio(focus.owner == id) }
         .onDisappear { focus.release(id) }
     }

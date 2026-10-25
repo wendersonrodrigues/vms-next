@@ -34,6 +34,8 @@ struct RotationEditor: View {
                         Spacer()
                         Button { rotation.steps.remove(at: index) } label: { Image(systemName: "trash") }
                             .buttonStyle(.borderless)
+                            .help("Apagar este passo do rodízio")
+                            .accessibilityLabel("Apagar este passo do rodízio")
                     }
                 }
                 .onMove { rotation.steps.move(fromOffsets: $0, toOffset: $1) }

@@ -129,6 +129,7 @@ struct EventsView: View {
                         Button { center.playSound(for: kind) } label: { Image(systemName: "play.circle") }
                             .buttonStyle(.borderless)
                             .help("Ouvir")
+                            .accessibilityLabel("Ouvir o som")
                     }
                 }
             } header: {

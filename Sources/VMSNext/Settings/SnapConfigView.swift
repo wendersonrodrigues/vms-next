@@ -273,6 +273,7 @@ private struct SnapConfigForm: View {
                                             }
                                             .buttonStyle(.borderless)
                                             .help("Remover horário")
+                                            .accessibilityLabel("Remover horário")
                                         }
                                     }
                                 }
