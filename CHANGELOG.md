@@ -1,5 +1,14 @@
 # Novidades
 
+## 1.1.0 Beta 2 — 25/10/2026
+
+Versão de testes. Traz de volta funções úteis que tinham sumido por não existirem no VMS antigo.
+
+- **Texto na imagem**: o texto extra (até 6 linhas, como endereço ou telefone) volta a aparecer em toda câmera que tenha essa configuração.
+- **Exposição**: "Evitar rosto estourado" aparece sempre que a câmera tiver o campo.
+- **Detecções**: grupo recolhido "Opções avançadas" com "Mostrar informação na imagem" e "Filtro de oscilação".
+- **Qualidade do vídeo e som**: o seletor de canal fica só nessa tela, como no VMS antigo.
+
 ## 1.1.0 Beta 1 — 25/10/2026
 
 Versão de testes: muita coisa nova, ainda com erros conhecidos. Fica em beta até tudo ser conferido nas câmeras.
