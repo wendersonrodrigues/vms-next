@@ -37,6 +37,7 @@ struct VMSNextApp: App {
         }
         .windowResizability(.contentSize)
         .commands {
+            AppCommands()
             CommandGroup(replacing: .appInfo) {
                 Button("Sobre o VMS Next") {
                     NSApp.orderFrontStandardAboutPanel(options: [

@@ -131,6 +131,8 @@ struct PlaybackView: View {
     @StateObject private var browser = RecordingBrowser()
     @StateObject private var session = PlaybackSession()
     @StateObject private var zoom = DigitalZoom()
+    /// Vídeo em foco: espaço toca/pausa, ← e → voltam e avançam 10 s (sem atrapalhar a lista e os campos).
+    @FocusState private var playerFocused: Bool
 
     private var camera: Camera? {
         store.cameras.first { $0.id == cameraID }
@@ -230,6 +232,7 @@ struct PlaybackView: View {
 
     private func play(_ recording: Recording) {
         guard let camera else { return }
+        playerFocused = true
         Task { await session.play(recording, camera: camera) }
     }
 
@@ -286,6 +289,25 @@ struct PlaybackView: View {
                 if session.recording != nil { ZoomControls(zoom: zoom) }
             }
             .background(Color.black)
+            .focusable()
+            .focusEffectDisabled()
+            .focused($playerFocused)
+            .simultaneousGesture(TapGesture().onEnded { playerFocused = true })
+            .onKeyPress(.space) {
+                guard session.recording != nil else { return .ignored }
+                if session.status == .finished { session.seek(to: 0) } else { session.togglePause() }
+                return .handled
+            }
+            .onKeyPress(.leftArrow) {
+                guard session.recording != nil else { return .ignored }
+                session.skip(by: -10)
+                return .handled
+            }
+            .onKeyPress(.rightArrow) {
+                guard session.recording != nil else { return .ignored }
+                session.skip(by: 10)
+                return .handled
+            }
 
             // Barra de baixo no mesmo estilo do ao vivo: controles no centro, ferramentas à direita.
             VStack(spacing: 8) {
@@ -301,7 +323,7 @@ struct PlaybackView: View {
                     .frame(minWidth: 150, alignment: .leading)
                     Spacer()
                     let hasRecording = session.recording != nil
-                    BarButton(icon: "gobackward.10", help: "Voltar 10 s") { session.skip(by: -10) }
+                    BarButton(icon: "gobackward.10", help: "Voltar 10 s (←)") { session.skip(by: -10) }
                         .disabled(!hasRecording)
                     Button {
                         if session.status == .finished { session.seek(to: 0) } else { session.togglePause() }
@@ -315,9 +337,9 @@ struct PlaybackView: View {
                     }
                     .buttonStyle(.hover)
                     .disabled(![.playing, .paused, .finished].contains(session.status))
-                    .help(session.status == .playing ? "Pausar" : "Reproduzir")
+                    .help(session.status == .playing ? "Pausar (espaço)" : "Reproduzir (espaço)")
                     .accessibilityLabel(session.status == .playing ? "Pausar" : "Reproduzir")
-                    BarButton(icon: "goforward.10", help: "Avançar 10 s") { session.skip(by: 10) }
+                    BarButton(icon: "goforward.10", help: "Avançar 10 s (→)") { session.skip(by: 10) }
                         .disabled(!hasRecording)
                     BarButton(icon: "stop.fill", help: "Parar") { session.stop() }
                         .disabled(session.status == .idle)
@@ -336,9 +358,10 @@ struct PlaybackView: View {
                     }
                     BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)") { takePhoto() }
                         .disabled(!hasRecording)
-                    BarButton(icon: "arrow.down.circle", title: "Baixar", help: "Baixar esta gravação em MP4") {
+                    BarButton(icon: "arrow.down.circle", title: "Baixar", help: "Baixar esta gravação em MP4 (⌘D)") {
                         if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
                     }
+                    .keyboardShortcut("d")
                     .disabled(!hasRecording)
                 }
                 if let message = browser.photoMessage ?? (session.info.isEmpty ? nil : session.info) {

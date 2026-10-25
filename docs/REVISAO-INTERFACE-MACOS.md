@@ -143,7 +143,9 @@ configuração seguem bem o formulário agrupado do macOS. Os pontos fracos são
 2. ✅ **Rótulos do VoiceOver** (feito em 25/10): `BarButton` com rótulo e estado "ligado", os 25 botões só de
    ícone com nome em português, PTZ em português (dica e VoiceOver, com ação de mover por meio segundo), HD/SD,
    selos de alertas (coluna e sino), item escolhido na coluna, modelo de tela escolhido e "REC".
-3. **Teclado**: ⌘, , menu Visualizar com ⌘1–⌘6, atalhos de Gravações e do mosaico.
+3. ✅ **Teclado** (feito em 25/10): ⌘, abre as Preferências; menu Visualizar com Início…Config. câmeras em ⌘1–⌘6;
+   menu Mosaico (página anterior/próxima ⌥⌘← ⌥⌘→, voltar ao mosaico ⌥⌘↑, rodízio ⌥⌘R); Gravações com espaço,
+   ← → (vídeo em foco) e ⌘D para baixar. Ficaram para depois: setas no PTZ, ⌘R em Recarregar e Delete para apagar.
 4. **Telas difíceis**: quadros de vídeo, agenda, editor de regra, editor de modelo.
 5. **Acabamento**: tamanhos mínimos de fonte, nomes iguais, rodapé padrão, tela de entrada.
 

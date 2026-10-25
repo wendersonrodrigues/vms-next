@@ -51,6 +51,12 @@ struct ContentView: View {
                 ui.mode = .live
             }
         }
+        // Menus com atalhos (AppCommands) leem o estado desta janela.
+        .focusedSceneObject(ui)
+        .onChange(of: pageCount, initial: true) { _, count in ui.pageCount = count }
+        .onChange(of: ui.selection, initial: true) { _, _ in
+            ui.gridSelection = focusedCamera.map { camera in camera.group.map { .group($0) } ?? .all }
+        }
         .onChange(of: alarms.openEventsRequested) { openEventsIfRequested() }
         .onAppear { openEventsIfRequested() }
         .sheet(isPresented: $ui.editingRotation) {
@@ -686,10 +692,12 @@ struct ContentView: View {
                 ControlGroup {
                     Button { ui.page = max(0, ui.page - 1) } label: { Image(systemName: "chevron.left") }
                         .disabled(ui.page == 0)
+                        .help("Página anterior (⌥⌘←)")
                         .accessibilityLabel("Página anterior")
                     Text("\(min(ui.page, pageCount - 1) + 1)/\(pageCount)").monospacedDigit()
                     Button { ui.page = min(pageCount - 1, ui.page + 1) } label: { Image(systemName: "chevron.right") }
                         .disabled(ui.page >= pageCount - 1)
+                        .help("Próxima página (⌥⌘→)")
                         .accessibilityLabel("Próxima página")
                 }
                 .fixedSize()
@@ -702,7 +710,7 @@ struct ContentView: View {
                       systemImage: rotation.running ? "stop.circle" : "arrow.triangle.2.circlepath.circle")
             }
             .buttonStyle(.hover)
-            .help(rotation.running ? "Parar o rodízio de telas" : "Passa sozinho pelas telas escolhidas (Tour do VMS antigo)")
+            .help(rotation.running ? "Parar o rodízio de telas" : "Passa sozinho pelas telas escolhidas (Tour do VMS antigo) · ⌥⌘R")
             BarButton(icon: "slider.horizontal.3", help: "Escolher as telas e o tempo do rodízio") { ui.editingRotation = true }
         }
         .padding(.horizontal, Space.l)
@@ -755,6 +763,10 @@ final class ContentUIState: ObservableObject {
     /// Lista de câmeras ao lado: recolhida no Início.
     @Published var columnVisibility: NavigationSplitViewVisibility = .detailOnly
     @Published var page = 0
+    /// Páginas do mosaico atual (o menu Mosaico usa para saber se há próxima página).
+    @Published var pageCount = 1
+    /// Para onde "Voltar ao mosaico" leva quando uma câmera está em tela única; nil no mosaico.
+    @Published var gridSelection: SidebarItem?
     @Published var selection: SidebarItem? = .all { didSet { save() } }
     @Published var editing: Camera?
     /// Categoria aberta em Configurações (nil = menu de ícones). Fica a mesma ao trocar de câmera.
