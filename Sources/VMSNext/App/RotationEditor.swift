@@ -9,7 +9,7 @@ struct RotationEditor: View {
     @StateObject private var draft = RotationDraft()
 
     private var contexts: [(id: String, name: String)] {
-        [("all", "Câmeras")] + store.groups.map { ("group:\($0)", $0) }
+        [("all", String(localized: "Câmeras"))] + store.groups.map { ("group:\($0)", $0) }
     }
 
     private var templates: [(id: String, name: String)] {

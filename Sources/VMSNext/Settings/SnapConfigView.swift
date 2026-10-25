@@ -29,7 +29,7 @@ final class SnapConfigModel: ObservableObject {
         var id: String { key }
     }
 
-    static let types: [(value: Int, label: String)] = [(0, "Intervalo"), (1, "Tempo de captura"), (2, "Fechar")]
+    static let types: [(value: Int, label: String)] = [(0, String(localized: "Intervalo")), (1, String(localized: "Tempo de captura")), (2, String(localized: "Fechar"))]
     static let defaultSeconds = 40
 
     @Published private(set) var availability = Availability.unknown
@@ -54,15 +54,15 @@ final class SnapConfigModel: ObservableObject {
     var validationError: String? {
         switch snapType {
         case 0:
-            if !destinations.contains(where: \.enabled) { return "Marque pelo menos um destino para as fotos por intervalo." }
+            if !destinations.contains(where: \.enabled) { return String(localized: "Marque pelo menos um destino para as fotos por intervalo.") }
             if let bad = destinations.first(where: { $0.enabled && !(1 ... 86_400).contains($0.seconds) }) {
-                return "\(bad.label): intervalo entre 1 e 86400 segundos."
+                return String(localized: "\(bad.label): intervalo entre 1 e 86400 segundos.")
             }
         case 1:
-            if triggers.isEmpty { return "Adicione pelo menos um horário de captura." }
+            if triggers.isEmpty { return String(localized: "Adicione pelo menos um horário de captura.") }
             for (index, trigger) in triggers.enumerated() {
-                if Self.normalizedTime(trigger.time) == nil { return "Horário \(index + 1): use HH:MM:SS (ex.: 23:30:00)." }
-                if !(trigger.email || trigger.ftp || trigger.storage) { return "Horário \(index + 1): marque pelo menos um destino." }
+                if Self.normalizedTime(trigger.time) == nil { return String(localized: "Horário \(index + 1): use HH:MM:SS (ex.: 23:30:00).") }
+                if !(trigger.email || trigger.ftp || trigger.storage) { return String(localized: "Horário \(index + 1): marque pelo menos um destino.") }
             }
         default:
             break
@@ -104,7 +104,7 @@ final class SnapConfigModel: ObservableObject {
             availability = .available
             snapType = ConfigValue.int(config["SnapType"]) ?? 2
             let interval = config["IntervalSnap"] as? [String: Any] ?? [:]
-            destinations = [("EmailTime", "E-mail"), ("FTPTime", "FTP"), ("StorageTime", "Disco")].map { key, label in
+            destinations = [("EmailTime", "E-mail"), ("FTPTime", "FTP"), ("StorageTime", String(localized: "Disco"))].map { key, label in
                 let seconds = ConfigValue.int(interval[key]) ?? 0
                 return Destination(key: key, label: label, enabled: seconds > 0, seconds: seconds > 0 ? seconds : Self.defaultSeconds)
             }
@@ -154,10 +154,10 @@ final class SnapConfigModel: ObservableObject {
             self.raw = updated
             let check = ConfigValue.object(in: try await client.getConfig(name))
             if let applied = ConfigValue.int(check?["SnapType"]), applied != snapType {
-                error = "O equipamento aceitou o comando mas manteve o modo anterior."
+                error = String(localized: "O equipamento aceitou o comando mas manteve o modo anterior.")
                 return
             }
-            notice = "Configuração de foto aplicada."
+            notice = String(localized: "Configuração de foto aplicada.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -208,7 +208,7 @@ private struct SnapConfigForm: View {
                         Picker(selection: $model.snapType) {
                             ForEach(SnapConfigModel.types, id: \.value) { Text($0.label).tag($0.value) }
                         } label: {
-                            FieldLabel("Modo", detail: "Intervalo tira fotos repetidamente; Tempo de captura tira nos horários da lista; Fechar desliga.")
+                            FieldLabel(String(localized: "Modo"), detail: String(localized: "Intervalo tira fotos repetidamente; Tempo de captura tira nos horários da lista; Fechar desliga."))
                         }
                         .pickerStyle(.segmented)
                     }

@@ -12,18 +12,18 @@ final class VersionModel: ObservableObject {
 
     /// Campos conhecidos, na ordem em que aparecem; os demais vêm depois com o nome original.
     private static let labels: [(key: String, label: String)] = [
-        ("HardWare", "Modelo"),
+        ("HardWare", String(localized: "Modelo")),
         ("SoftWareVersion", "Firmware"),
-        ("BuildTime", "Data do firmware"),
-        ("SerialNo", "Número de série"),
-        ("HardWareVersion", "Versão do hardware"),
-        ("DeviceRunTime", "Tempo ligado"),
-        ("VideoInChannel", "Canais de vídeo (analógicos)"),
-        ("DigChannel", "Canais digitais"),
-        ("AlarmInChannel", "Entradas de alarme"),
-        ("AlarmOutChannel", "Saídas de alarme"),
-        ("EncryptVersion", "Versão de criptografia"),
-        ("UpdataTime", "Última atualização"),
+        ("BuildTime", String(localized: "Data do firmware")),
+        ("SerialNo", String(localized: "Número de série")),
+        ("HardWareVersion", String(localized: "Versão do hardware")),
+        ("DeviceRunTime", String(localized: "Tempo ligado")),
+        ("VideoInChannel", String(localized: "Canais de vídeo (analógicos)")),
+        ("DigChannel", String(localized: "Canais digitais")),
+        ("AlarmInChannel", String(localized: "Entradas de alarme")),
+        ("AlarmOutChannel", String(localized: "Saídas de alarme")),
+        ("EncryptVersion", String(localized: "Versão de criptografia")),
+        ("UpdataTime", String(localized: "Última atualização")),
     ]
 
     init(camera: Camera) {
@@ -62,7 +62,7 @@ final class VersionModel: ObservableObject {
         if key == "DeviceRunTime", let minutes = ConfigValue.int(value) {
             let days = minutes / 1440
             let hours = (minutes % 1440) / 60
-            return days > 0 ? "\(days) dias e \(hours) h" : "\(hours) h e \(minutes % 60) min"
+            return days > 0 ? String(localized: "\(days) dias e \(hours) h") : String(localized: "\(hours) h e \(minutes % 60) min")
         }
         switch value {
         case let text as String: return text.isEmpty ? "—" : text

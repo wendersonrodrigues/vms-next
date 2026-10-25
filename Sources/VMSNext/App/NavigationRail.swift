@@ -140,6 +140,7 @@ struct NavigationRail: View {
 /// Preferências do app: aparência e funcionamento em segundo plano.
 struct PreferencesView: View {
     @ObservedObject private var appearance = AppearanceSettings.shared
+    @ObservedObject private var language = LanguageSettings.shared
     @ObservedObject private var background = BackgroundSettings.shared
     @ObservedObject private var alarms = AlarmCenter.shared
     @ObservedObject private var prefs = AppPreferences.shared
@@ -164,24 +165,39 @@ struct PreferencesView: View {
                 Picker(selection: $appearance.mode) {
                     ForEach(AppearanceSettings.Mode.allCases) { Text($0.label).tag($0) }
                 } label: {
-                    FieldLabel("Tema", detail: "Escuro deixa o mosaico mais confortável à noite. \"Igual ao Mac\" segue os Ajustes do Sistema.")
+                    FieldLabel("Tema", detail: String(localized: "Escuro deixa o mosaico mais confortável à noite. \"Igual ao Mac\" segue os Ajustes do Sistema."))
                 }
                 .pickerStyle(.segmented)
+                Picker(selection: $language.selected) {
+                    ForEach(LanguageSettings.Language.allCases) { Text($0.label).tag($0) }
+                } label: {
+                    FieldLabel("Idioma", original: "Language",
+                               detail: String(localized: "Idioma das telas do VMS Next. As configurações das câmeras continuam com os nomes do VMS antigo entre parênteses."))
+                }
+                if language.needsRestart {
+                    HStack {
+                        Label("O idioma muda depois de reiniciar o VMS Next.", systemImage: "arrow.clockwise")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Reiniciar agora") { language.restart() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
             }
             Section("Arquivos") {
-                folderRow("Pasta das fotos", original: "Caminho de foto",
-                          detail: "Fotos do quadro (ao vivo e gravações) e a captura automática.",
+                folderRow(String(localized: "Pasta das fotos"), original: "Caminho de foto",
+                          detail: String(localized: "Fotos do quadro (ao vivo e gravações) e a captura automática."),
                           url: prefs.photoFolder) { prefs.photoFolder = $0 }
-                folderRow("Pasta dos downloads", original: "Baixar caminho",
-                          detail: "Gravações baixadas em MP4.", url: prefs.downloadFolder) { prefs.downloadFolder = $0 }
+                folderRow(String(localized: "Pasta dos downloads"), original: "Baixar caminho",
+                          detail: String(localized: "Gravações baixadas em MP4."), url: prefs.downloadFolder) { prefs.downloadFolder = $0 }
                 Toggle(isOn: $prefs.askWhereToSave) {
-                    FieldLabel("Perguntar onde salvar cada arquivo",
-                               detail: "Desligado, as fotos e os downloads vão direto para as pastas acima.")
+                    FieldLabel(String(localized: "Perguntar onde salvar cada arquivo"),
+                               detail: String(localized: "Desligado, as fotos e os downloads vão direto para as pastas acima."))
                 }
             }
             Section {
-                folderRow("Pasta das gravações no Mac", original: "Caminho de gravação",
-                          detail: "Uma subpasta por câmera, com arquivos MP4.", url: prefs.recordingFolder) { prefs.recordingFolder = $0 }
+                folderRow(String(localized: "Pasta das gravações no Mac"), original: "Caminho de gravação",
+                          detail: String(localized: "Uma subpasta por câmera, com arquivos MP4."), url: prefs.recordingFolder) { prefs.recordingFolder = $0 }
                 LabeledContent {
                     HStack {
                         TextField("", value: $prefs.recordReserveMB, format: .number.grouping(.never))
@@ -190,26 +206,26 @@ struct PreferencesView: View {
                         Text("MB").foregroundStyle(.secondary)
                     }
                 } label: {
-                    FieldLabel("Espaço que fica sempre livre no Mac", original: "Reserva de espaço em disco",
-                               detail: "Mínimo 5000 MB. Quando chegar nele, a gravação para ou apaga as mais antigas.")
+                    FieldLabel(String(localized: "Espaço que fica sempre livre no Mac"), original: "Reserva de espaço em disco",
+                               detail: String(localized: "Mínimo 5000 MB. Quando chegar nele, a gravação para ou apaga as mais antigas."))
                 }
                 Stepper(value: $prefs.recordFileMinutes, in: 5 ... 120, step: 5) {
-                    FieldLabel("Tamanho de cada arquivo: \(prefs.recordFileMinutes) minutos", original: "Tamanho do arquivo")
+                    FieldLabel(String(localized: "Tamanho de cada arquivo: \(prefs.recordFileMinutes) minutos"), original: "Tamanho do arquivo")
                 }
                 Picker(selection: $prefs.recordOverwrite) {
                     Text("Parar a gravação").tag(false)
                     Text("Apagar as mais antigas (cíclica)").tag(true)
                 } label: {
-                    FieldLabel("Quando o espaço acabar", original: "Espaço de armazenamento está cheio")
+                    FieldLabel(String(localized: "Quando o espaço acabar"), original: "Espaço de armazenamento está cheio")
                 }
                 Toggle(isOn: $prefs.autoRecord) {
-                    FieldLabel("Gravar automaticamente", original: "Habilitar grav",
-                               detail: "Com o VMS Next aberto, grava no Mac dentro do horário abaixo. O botão Gravar da câmera grava na hora, a qualquer momento.")
+                    FieldLabel(String(localized: "Gravar automaticamente"), original: "Habilitar grav",
+                               detail: String(localized: "Com o VMS Next aberto, grava no Mac dentro do horário abaixo. O botão Gravar da câmera grava na hora, a qualquer momento."))
                 }
                 if prefs.autoRecord {
                     HStack {
                         DatePicker("Das", selection: minutes($prefs.autoRecordFrom), displayedComponents: .hourAndMinute)
-                        DatePicker("às", selection: minutes($prefs.autoRecordTo), displayedComponents: .hourAndMinute)
+                        DatePicker(String(localized: "às"), selection: minutes($prefs.autoRecordTo), displayedComponents: .hourAndMinute)
                     }
                     Toggle("Todas as câmeras", isOn: $prefs.autoRecordAll)
                     if !prefs.autoRecordAll {
@@ -229,29 +245,29 @@ struct PreferencesView: View {
             }
             Section("Ao abrir o app") {
                 Toggle(isOn: $prefs.restoreState) {
-                    FieldLabel("Voltar para onde parei", original: "Retomar ao estado anterior",
-                               detail: "Guarda a câmera e o modelo de tela escolhidos. O app sempre abre no Início.")
+                    FieldLabel(String(localized: "Voltar para onde parei"), original: "Retomar ao estado anterior",
+                               detail: String(localized: "Guarda a câmera e o modelo de tela escolhidos. O app sempre abre no Início."))
                 }
                 Toggle(isOn: Binding(get: { vault.hasRememberedLogin }, set: { try? vault.setRemember($0); vault.objectWillChange.send() })) {
-                    FieldLabel("Lembrar login e senha", original: "Lembrar login e senha",
-                               detail: "Entra direto, sem pedir a senha do VMS Next. Desligado, pede a senha toda vez.")
+                    FieldLabel(String(localized: "Lembrar login e senha"), original: "Lembrar login e senha",
+                               detail: String(localized: "Entra direto, sem pedir a senha do VMS Next. Desligado, pede a senha toda vez."))
                 }
                 Toggle(isOn: $prefs.syncDeviceClock) {
-                    FieldLabel("Acertar o relógio das câmeras com o do Mac", original: "Sincronizar automaticamente com o horário do sistema",
-                               detail: "Ao abrir o app, ajusta a data e a hora de cada câmera e NVR. Deixe desligado se elas já usam a internet (NTP).")
+                    FieldLabel(String(localized: "Acertar o relógio das câmeras com o do Mac"), original: "Sincronizar automaticamente com o horário do sistema",
+                               detail: String(localized: "Ao abrir o app, ajusta a data e a hora de cada câmera e NVR. Deixe desligado se elas já usam a internet (NTP)."))
                 }
                 Picker(selection: $prefs.singleQualityHD) {
                     Text("HD (vídeo principal)").tag(true)
                     Text("SD (vídeo extra)").tag(false)
                 } label: {
-                    FieldLabel("Qualidade ao abrir uma câmera", original: "Auto comutação entre stream secundário e principal",
-                               detail: "O mosaico usa sempre o vídeo extra, mais leve; a câmera em tela cheia começa nesta qualidade.")
+                    FieldLabel(String(localized: "Qualidade ao abrir uma câmera"), original: "Auto comutação entre stream secundário e principal",
+                               detail: String(localized: "O mosaico usa sempre o vídeo extra, mais leve; a câmera em tela cheia começa nesta qualidade."))
                 }
             }
             Section("Captura automática") {
                 Toggle(isOn: $prefs.autoSnapshot) {
-                    FieldLabel("Tirar fotos automaticamente", original: "Captura automática",
-                               detail: "Salva uma foto de cada câmera que está na tela, na pasta das fotos → Captura automática.")
+                    FieldLabel(String(localized: "Tirar fotos automaticamente"), original: "Captura automática",
+                               detail: String(localized: "Salva uma foto de cada câmera que está na tela, na pasta das fotos → Captura automática."))
                 }
                 Picker(selection: $prefs.autoSnapshotSeconds) {
                     ForEach([30, 60, 300, 600, 1800, 3600], id: \.self) { seconds in
@@ -266,25 +282,25 @@ struct PreferencesView: View {
                 Picker(selection: $prefs.maxEvents) {
                     ForEach([100, 500, 1000, 5000, 30000], id: \.self) { Text("\($0)").tag($0) }
                 } label: {
-                    FieldLabel("Quantos alertas guardar na lista", original: "Informação de número de alarme",
-                               detail: "Os mais antigos saem da lista de Eventos quando passar deste número. A lista fica guardada no Mac.")
+                    FieldLabel(String(localized: "Quantos alertas guardar na lista"), original: "Informação de número de alarme",
+                               detail: String(localized: "Os mais antigos saem da lista de Eventos quando passar deste número. A lista fica guardada no Mac."))
                 }
                 Picker(selection: $prefs.logDays) {
                     ForEach([7, 30, 90, 365], id: \.self) { Text("\($0) dias").tag($0) }
                 } label: {
-                    FieldLabel("Guardar o registro do app por", original: "Tempo de log salvo",
-                               detail: "Entradas, configurações alteradas, reinícios, fotos e downloads (Eventos → Registro).")
+                    FieldLabel(String(localized: "Guardar o registro do app por"), original: "Tempo de log salvo",
+                               detail: String(localized: "Entradas, configurações alteradas, reinícios, fotos e downloads (Eventos → Registro)."))
                 }
             }
             Section("Segundo plano") {
                 Toggle(isOn: $alarms.enabled) {
-                    FieldLabel("Receber alertas das câmeras", detail: "Notificações do macOS quando uma câmera detecta algo.")
+                    FieldLabel(String(localized: "Receber alertas das câmeras"), detail: String(localized: "Notificações do macOS quando uma câmera detecta algo."))
                 }
                 Toggle(isOn: Binding(get: { background.launchAtLogin }, set: { background.setLaunchAtLogin($0) })) {
-                    FieldLabel("Abrir junto com o Mac", detail: "O app fica na barra de menus recebendo alertas.")
+                    FieldLabel(String(localized: "Abrir junto com o Mac"), detail: String(localized: "O app fica na barra de menus recebendo alertas."))
                 }
                 Toggle(isOn: $background.hideDockWhenClosed) {
-                    FieldLabel("Esconder do Dock com a janela fechada", detail: "Continua acessível pelo ícone na barra de menus.")
+                    FieldLabel(String(localized: "Esconder do Dock com a janela fechada"), detail: String(localized: "Continua acessível pelo ícone na barra de menus."))
                 }
                 if let error = background.loginError {
                     Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)

@@ -81,7 +81,7 @@ struct ConfigFormSpec {
     let sections: [ConfigSection]
     /// Mensagem de confirmação antes de aplicar, para mudanças que podem cortar o acesso.
     var confirmApply: String?
-    var emptyMessage = "Este equipamento não tem estas opções."
+    var emptyMessage = String(localized: "Este equipamento não tem estas opções.")
     /// Pergunta se quer reiniciar depois de aplicar, como o VMS antigo faz na codificação (algumas
     /// câmeras respondem "salvo" sem avisar que só aplicam depois de reiniciar).
     var offersRestart = false
@@ -189,10 +189,10 @@ final class ConfigFormModel: ObservableObject {
                 loaded[index] = object
             }
             if needsRestart || (changed && spec.offersRestart) {
-                notice = "Salvo. Vale depois que a câmera reiniciar."
+                notice = String(localized: "Salvo. Vale depois que a câmera reiniciar.")
                 askingRestart = true
             } else {
-                notice = "Configuração aplicada."
+                notice = String(localized: "Configuração aplicada.")
             }
         } catch {
             self.error = error.localizedDescription
@@ -209,7 +209,7 @@ final class ConfigFormModel: ObservableObject {
         do {
             let client = try await DeviceSessions.shared.client(for: camera)
             try await client.command(code: 1450, name: "OPMachine", payload: ["Action": "Reboot"])
-            notice = "Reiniciando a câmera. Ela volta em cerca de 1 minuto."
+            notice = String(localized: "Reiniciando a câmera. Ela volta em cerca de 1 minuto.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -309,7 +309,7 @@ final class ConfigFormModel: ObservableObject {
         }
         guard let current = Self.choiceKey(value(source: field.source, path: field.path)),
               !result.contains(where: { $0.value == current }) else { return result }
-        return result + [ConfigOption(current, "Valor do equipamento (\(current))")]
+        return result + [ConfigOption(current, String(localized: "Valor do equipamento (\(current))"))]
     }
 
     func infoText(_ field: ConfigField) -> String {
@@ -320,11 +320,11 @@ final class ConfigFormModel: ObservableObject {
             return ips.isEmpty ? "—" : ips.joined(separator: ", ")
         }
         if let number = raw as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
-            return number.boolValue ? "Ligado" : "Desligado"
+            return number.boolValue ? String(localized: "Ligado") : String(localized: "Desligado")
         }
         if let text = raw as? String { return text.isEmpty ? "—" : text }
         if let number = raw as? NSNumber { return number.stringValue }
-        if let list = raw as? [Any] { return list.isEmpty ? "Nenhum" : list.map { "\($0)" }.joined(separator: ", ") }
+        if let list = raw as? [Any] { return list.isEmpty ? String(localized: "Nenhum") : list.map { "\($0)" }.joined(separator: ", ") }
         return "—"
     }
 

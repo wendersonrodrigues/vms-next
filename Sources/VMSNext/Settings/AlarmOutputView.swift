@@ -16,9 +16,9 @@ final class AlarmOutputModel: ObservableObject {
     }
 
     static let modes: [(value: String, label: String, detail: String)] = [
-        ("AUTO", "Automático (Schedule)", "Liga sozinha quando um alarme configurado para \"Acionar saída de alarme\" dispara."),
-        ("MANUAL", "Manual", "Você liga e desliga pela opção \"Ligada agora\" abaixo."),
-        ("CLOSE", "Desligada (Fechado)", "Nunca liga, mesmo com alarmes."),
+        ("AUTO", String(localized: "Automático (Schedule)"), String(localized: "Liga sozinha quando um alarme configurado para \"Acionar saída de alarme\" dispara.")),
+        ("MANUAL", "Manual", String(localized: "Você liga e desliga pela opção \"Ligada agora\" abaixo.")),
+        ("CLOSE", String(localized: "Desligada (Fechado)"), String(localized: "Nunca liga, mesmo com alarmes.")),
     ]
 
     @Published private(set) var loading = false
@@ -38,7 +38,7 @@ final class AlarmOutputModel: ObservableObject {
     func options(for output: Output) -> [(value: String, label: String, detail: String)] {
         var options = Self.modes
         if !options.contains(where: { $0.value == output.mode }) {
-            options.append((output.mode, "Modo do equipamento (\(output.mode))", ""))
+            options.append((output.mode, String(localized: "Modo do equipamento (\(output.mode))"), ""))
         }
         return options
     }
@@ -64,9 +64,9 @@ final class AlarmOutputModel: ObservableObject {
             }
             outputs = result
             if count == 0 {
-                error = "Este equipamento não tem saída de alarme (nenhum borne de sirene ou relé)."
+                error = String(localized: "Este equipamento não tem saída de alarme (nenhum borne de sirene ou relé).")
             } else if outputs.isEmpty {
-                error = "O equipamento informou \(count) saída(s), mas não respondeu à configuração. Use \"Diagnóstico…\" e me envie o resultado."
+                error = String(localized: "O equipamento informou \(count) saída(s), mas não respondeu à configuração. Use \"Diagnóstico…\" e me envie o resultado.")
             }
         } catch {
             self.error = error.localizedDescription
@@ -89,7 +89,7 @@ final class AlarmOutputModel: ObservableObject {
                 try await client.setConfig(output.name, updated)
                 outputs[index].raw = updated
             }
-            notice = "Saída de alarme aplicada."
+            notice = String(localized: "Saída de alarme aplicada.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -137,15 +137,15 @@ struct AlarmOutputView: View {
                                     .tag(option.value)
                                 }
                             } label: {
-                                FieldLabel("Modo", original: "Modo de alarme")
+                                FieldLabel(String(localized: "Modo"), original: "Modo de alarme")
                             }
                             .pickerStyle(.radioGroup)
                             if output.hasState {
                                 Toggle(isOn: $output.isOn) {
-                                    FieldLabel("Ligada agora", original: "Estado",
+                                    FieldLabel(String(localized: "Ligada agora"), original: "Estado",
                                                detail: output.mode == "MANUAL"
-                                                   ? "Liga ou desliga a saída na hora ao aplicar."
-                                                   : "Estado atual da saída. Para ligar e desligar por aqui, use o modo Manual.")
+                                                   ? String(localized: "Liga ou desliga a saída na hora ao aplicar.")
+                                                   : String(localized: "Estado atual da saída. Para ligar e desligar por aqui, use o modo Manual."))
                                 }
                                 .disabled(output.mode != "MANUAL")
                             }

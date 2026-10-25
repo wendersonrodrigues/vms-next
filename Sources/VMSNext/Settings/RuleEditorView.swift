@@ -68,8 +68,8 @@ struct RuleEditorView: View {
     }
 
     private let shapes: [(sides: Int, icon: String, label: String)] = [
-        (3, "triangle", "Triângulo"), (4, "rectangle", "Retângulo"), (5, "pentagon", "Pentágono"),
-        (6, "hexagon", "Hexágono"), (8, "octagon", "Octógono"),
+        (3, "triangle", String(localized: "Triângulo")), (4, "rectangle", String(localized: "Retângulo")), (5, "pentagon", String(localized: "Pentágono")),
+        (6, "hexagon", String(localized: "Hexágono")), (8, "octagon", String(localized: "Octógono")),
     ]
 
     var body: some View {
@@ -83,7 +83,7 @@ struct RuleEditorView: View {
                 Text("Área de aviso").tag(RuleDraft.Kind.area)
                 Text("Linha de aviso").tag(RuleDraft.Kind.line)
             } label: {
-                FieldLabel("Tipo", original: "alertArea / Cordão")
+                FieldLabel(String(localized: "Tipo"), original: "alertArea / Cordão")
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 420)
@@ -149,8 +149,8 @@ struct RuleEditorView: View {
         return ZStack {
             VideoLayerView(layer: stream.displayLayer)
                 .accessibilityElement()
-                .accessibilityLabel(draft.kind == .area ? "Área de aviso com \(draft.area.count) pontos sobre a imagem"
-                                                        : "Linha de aviso sobre a imagem")
+                .accessibilityLabel(draft.kind == .area ? String(localized: "Área de aviso com \(draft.area.count) pontos sobre a imagem")
+                                                        : String(localized: "Linha de aviso sobre a imagem"))
             GeometryReader { proxy in
                 let frame = proxy.size
                 ZStack {
@@ -183,8 +183,8 @@ struct RuleEditorView: View {
                                     }
                             )
                             .accessibilityElement()
-                            .accessibilityLabel(draft.kind == .area ? "Ponto \(index + 1) de \(handles.count) da área"
-                                                                    : (index == 0 ? "Começo da linha" : "Fim da linha"))
+                            .accessibilityLabel(draft.kind == .area ? String(localized: "Ponto \(index + 1) de \(handles.count) da área")
+                                                                    : (index == 0 ? String(localized: "Começo da linha") : String(localized: "Fim da linha")))
                             .accessibilityValue("\(Int((handles[index].x * 100).rounded()))% da esquerda, \(Int((handles[index].y * 100).rounded()))% do topo")
                             .accessibilityAction(named: "Mover para a esquerda") { nudge(index, dx: -0.05, dy: 0) }
                             .accessibilityAction(named: "Mover para a direita") { nudge(index, dx: 0.05, dy: 0) }

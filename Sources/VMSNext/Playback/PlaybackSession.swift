@@ -311,7 +311,7 @@ final class PlaybackSession: ObservableObject {
     private func finish() {
         pacer?.invalidate()
         pacer = nil
-        status = framesShown > 0 ? .finished : .failed("O equipamento não enviou vídeo para este arquivo.")
+        status = framesShown > 0 ? .finished : .failed(String(localized: "O equipamento não enviou vídeo para este arquivo."))
     }
 
     private func fail(_ message: String, token: Int) {

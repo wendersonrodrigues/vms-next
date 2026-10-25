@@ -7,23 +7,23 @@ import SwiftUI
 @MainActor
 final class DateTimeModel: ObservableObject {
     static let dateFormats: [(value: String, label: String)] = [
-        ("DDMMYY", "Dia/Mês/Ano"), ("MMDDYY", "Mês/Dia/Ano"), ("YYMMDD", "Ano/Mês/Dia"),
+        ("DDMMYY", String(localized: "Dia/Mês/Ano")), ("MMDDYY", String(localized: "Mês/Dia/Ano")), ("YYMMDD", String(localized: "Ano/Mês/Dia")),
     ]
-    static let separators: [(value: String, label: String)] = [("/", "/  (barra)"), ("-", "-  (traço)"), (".", ".  (ponto)")]
-    static let timeFormats: [(value: String, label: String)] = [("24", "24 horas"), ("12", "12 horas (AM/PM)")]
+    static let separators: [(value: String, label: String)] = [("/", "/  (barra)"), ("-", String(localized: "-  (traço)")), (".", ".  (ponto)")]
+    static let timeFormats: [(value: String, label: String)] = [("24", "24 horas"), ("12", String(localized: "12 horas (AM/PM)"))]
     static let languages: [(value: String, label: String)] = [
-        ("Brazilian", "Português (Brasil)"), ("Portugal", "Português (Portugal)"), ("English", "Inglês"),
-        ("Spanish", "Espanhol"), ("SimpChinese", "Chinês simplificado"),
+        ("Brazilian", String(localized: "Português (Brasil)")), ("Portugal", String(localized: "Português (Portugal)")), ("English", String(localized: "Inglês")),
+        ("Spanish", "Espanhol"), ("SimpChinese", String(localized: "Chinês simplificado")),
     ]
     /// Nomes dos idiomas que a câmera informa em MultiLanguage.
     static let languageNames = [
-        "Brazilian": "Português (Brasil)", "Portugal": "Português (Portugal)", "English": "Inglês",
-        "Spanish": "Espanhol", "SimpChinese": "Chinês simplificado", "TradChinese": "Chinês tradicional",
-        "Russian": "Russo", "Japanese": "Japonês", "Turkey": "Turco", "Turkish": "Turco", "French": "Francês",
-        "German": "Alemão", "Italian": "Italiano", "Korean": "Coreano", "Arabic": "Árabe", "Polish": "Polonês",
-        "Vietnamese": "Vietnamita", "Thai": "Tailandês", "Hebrew": "Hebraico", "Czech": "Tcheco",
+        "Brazilian": String(localized: "Português (Brasil)"), "Portugal": String(localized: "Português (Portugal)"), "English": String(localized: "Inglês"),
+        "Spanish": "Espanhol", "SimpChinese": String(localized: "Chinês simplificado"), "TradChinese": String(localized: "Chinês tradicional"),
+        "Russian": "Russo", "Japanese": String(localized: "Japonês"), "Turkey": "Turco", "Turkish": "Turco", "French": String(localized: "Francês"),
+        "German": String(localized: "Alemão"), "Italian": "Italiano", "Korean": "Coreano", "Arabic": String(localized: "Árabe"), "Polish": String(localized: "Polonês"),
+        "Vietnamese": "Vietnamita", "Thai": String(localized: "Tailandês"), "Hebrew": "Hebraico", "Czech": "Tcheco",
     ]
-    static let videoFormats: [(value: String, label: String)] = [("NTSC", "NTSC (Brasil, Américas)"), ("PAL", "PAL (Europa, Ásia)")]
+    static let videoFormats: [(value: String, label: String)] = [("NTSC", String(localized: "NTSC (Brasil, Américas)")), ("PAL", String(localized: "PAL (Europa, Ásia)"))]
     /// Lista de fusos do VMS antigo (tela Config. do sistema), na mesma ordem, em minutos a leste de UTC.
     /// O equipamento guarda em System.TimeZone.timeMin os minutos a OESTE (UTC−03:00 = 180), visto no
     /// CSystemConfig do VMS antigo e no exchangeTable<TimeZone> do libnetsdk.
@@ -34,7 +34,7 @@ final class DateTimeModel: ObservableObject {
     static func timeZoneLabel(_ minutes: Int) -> String {
         let sign = minutes < 0 ? "−" : "+"
         let text = String(format: "UTC%@%02d:%02d", sign, abs(minutes) / 60, abs(minutes) % 60)
-        return minutes == -180 ? text + " · Brasília" : text
+        return minutes == -180 ? text + String(localized: " · Brasília") : text
     }
     /// NetWork.NetNTP.TimeZone não é fuso: o VMS antigo usa 13 = servidor escolhido ("Custom") e
     /// 14 = "Auto Select Server" (CNetNTPConfig::onUpdateConfig / on_radioButton_clicked).
@@ -155,7 +155,7 @@ final class DateTimeModel: ObservableObject {
             let client = try await DeviceSessions.shared.client(for: camera)
             try await client.command(code: 1450, name: "OPTimeSetting", payload: DeviceTime.string(Date()))
             await readClock(client)
-            notice = "Relógio acertado com o horário do Mac."
+            notice = String(localized: "Relógio acertado com o horário do Mac.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -220,7 +220,7 @@ final class DateTimeModel: ObservableObject {
                 loadedTimeZone = minutes
                 await readClock(client)
             }
-            notice = "Configuração aplicada."
+            notice = String(localized: "Configuração aplicada.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -313,7 +313,7 @@ struct DateTimeView: View {
                 Text(model.deviceTime(at: ticker.now)?.formatted(date: .abbreviated, time: .standard) ?? "—")
                     .monospacedDigit()
             } label: {
-                FieldLabel("Horário do equipamento", detail: "É o horário gravado nas gravações e nos alertas.")
+                FieldLabel(String(localized: "Horário do equipamento"), detail: String(localized: "É o horário gravado nas gravações e nos alertas."))
             }
             LabeledContent("Horário do Mac") {
                 Text(ticker.now.formatted(date: .abbreviated, time: .standard)).monospacedDigit()
@@ -330,8 +330,8 @@ struct DateTimeView: View {
                 Picker(selection: Binding(get: { minutes }, set: { model.timeZoneMinutes = $0 })) {
                     ForEach(options, id: \.self) { Text(DateTimeModel.timeZoneLabel($0)).tag($0) }
                 } label: {
-                    FieldLabel("Fuso horário", original: "Fuso horário",
-                               detail: "Define a hora local do equipamento. No Brasil (Brasília) é UTC−03:00.")
+                    FieldLabel(String(localized: "Fuso horário"), original: "Fuso horário",
+                               detail: String(localized: "Define a hora local do equipamento. No Brasil (Brasília) é UTC−03:00."))
                 }
             }
             Button {
@@ -348,14 +348,14 @@ struct DateTimeView: View {
         Section("Equipamento") {
             if model.hostName != nil {
                 TextField(text: Binding(get: { model.hostName ?? "" }, set: { model.hostName = $0 })) {
-                    FieldLabel("Nome do equipamento", original: "Device Name",
-                               detail: "Nome que o equipamento mostra no monitor, no iCSee e nas buscas da rede.")
+                    FieldLabel(String(localized: "Nome do equipamento"), original: "Device Name",
+                               detail: String(localized: "Nome que o equipamento mostra no monitor, no iCSee e nas buscas da rede."))
                 }
             }
             if let logout = model.autoLogout {
                 Stepper(value: Binding(get: { logout }, set: { model.autoLogout = $0 }), in: 0 ... 60) {
-                    FieldLabel(logout == 0 ? "Saída automática: nunca" : "Saída automática: \(logout) min", original: "Auto logoff",
-                               detail: "Tempo sem uso até o menu do monitor ligado ao equipamento pedir a senha de novo. 0 = nunca.")
+                    FieldLabel(logout == 0 ? String(localized: "Saída automática: nunca") : String(localized: "Saída automática: \(logout) min"), original: "Auto logoff",
+                               detail: String(localized: "Tempo sem uso até o menu do monitor ligado ao equipamento pedir a senha de novo. 0 = nunca."))
                 }
             }
         }
@@ -364,26 +364,26 @@ struct DateTimeView: View {
     private var ntpSection: some View {
         Section {
             Toggle(isOn: $model.ntpEnabled) {
-                FieldLabel("Acertar automaticamente pela internet", original: "NTP",
-                           detail: "O equipamento consulta um servidor de horário e corrige o relógio sozinho.")
+                FieldLabel(String(localized: "Acertar automaticamente pela internet"), original: "NTP",
+                           detail: String(localized: "O equipamento consulta um servidor de horário e corrige o relógio sozinho."))
             }
             if let mode = model.ntpServerMode {
                 Picker(selection: Binding(get: { mode }, set: { model.ntpServerMode = $0 })) {
                     Text("Escolher automaticamente").tag(DateTimeModel.ntpAutoServer)
                     Text("Usar o servidor abaixo").tag(DateTimeModel.ntpCustomServer)
                 } label: {
-                    FieldLabel("Servidor", original: "Auto Select Server / Custom",
-                               detail: "No automático o equipamento usa os servidores de horário que já conhece.")
+                    FieldLabel(String(localized: "Servidor"), original: "Auto Select Server / Custom",
+                               detail: String(localized: "No automático o equipamento usa os servidores de horário que já conhece."))
                 }
                 .pickerStyle(.radioGroup)
                 .disabled(!model.ntpEnabled)
             }
             TextField(text: $model.ntpServer) {
-                FieldLabel("Servidor de horário", detail: "Para o Brasil, a.ntp.br ou pool.ntp.org funcionam bem.")
+                FieldLabel(String(localized: "Servidor de horário"), detail: String(localized: "Para o Brasil, a.ntp.br ou pool.ntp.org funcionam bem."))
             }
             .disabled(!model.ntpEnabled || model.ntpServerMode == DateTimeModel.ntpAutoServer)
             Stepper(value: $model.ntpPeriod, in: 1 ... 1440) {
-                FieldLabel("Conferir a cada \(model.ntpPeriod) min", original: "UpdatePeriod")
+                FieldLabel(String(localized: "Conferir a cada \(model.ntpPeriod) min"), original: "UpdatePeriod")
             }
             .disabled(!model.ntpEnabled)
         } header: {
@@ -399,7 +399,7 @@ struct DateTimeView: View {
                     Text(model.dateFormat).tag(model.dateFormat)
                 }
             } label: {
-                FieldLabel("Ordem da data", original: "Formato de data", detail: "Como a data aparece sobre o vídeo e nas telas do equipamento.")
+                FieldLabel(String(localized: "Ordem da data"), original: "Formato de data", detail: String(localized: "Como a data aparece sobre o vídeo e nas telas do equipamento."))
             }
             Picker(selection: $model.separator) {
                 ForEach(DateTimeModel.separators, id: \.value) { Text($0.label).tag($0.value) }
@@ -407,7 +407,7 @@ struct DateTimeView: View {
                     Text(model.separator).tag(model.separator)
                 }
             } label: {
-                FieldLabel("Separador da data", original: "Separador")
+                FieldLabel(String(localized: "Separador da data"), original: "Separador")
             }
             Picker(selection: $model.timeFormat) {
                 ForEach(DateTimeModel.timeFormats, id: \.value) { Text($0.label).tag($0.value) }
@@ -415,12 +415,12 @@ struct DateTimeView: View {
                     Text(model.timeFormat).tag(model.timeFormat)
                 }
             } label: {
-                FieldLabel("Formato da hora", original: "Formato de hora")
+                FieldLabel(String(localized: "Formato da hora"), original: "Formato de hora")
             }
             if model.hasDST {
                 Toggle(isOn: $model.dstOn) {
-                    FieldLabel("Horário de verão", original: "DST",
-                               detail: "O Brasil não usa horário de verão desde 2019; deixe desligado.")
+                    FieldLabel(String(localized: "Horário de verão"), original: "DST",
+                               detail: String(localized: "O Brasil não usa horário de verão desde 2019; deixe desligado."))
                 }
             }
             if let language = model.language {
@@ -430,8 +430,8 @@ struct DateTimeView: View {
                 Picker(selection: Binding(get: { language }, set: { model.language = $0 })) {
                     ForEach(codes, id: \.self) { Text(DateTimeModel.languageNames[$0] ?? $0).tag($0) }
                 } label: {
-                    FieldLabel("Idioma do equipamento", original: "Idioma",
-                               detail: "Idioma do menu no monitor ligado ao equipamento. Não muda o VMS Next.")
+                    FieldLabel(String(localized: "Idioma do equipamento"), original: "Idioma",
+                               detail: String(localized: "Idioma do menu no monitor ligado ao equipamento. Não muda o VMS Next."))
                 }
             }
             if let overwrite = model.overwrite {
@@ -439,8 +439,8 @@ struct DateTimeView: View {
                     Text("Sobrescrever (apaga as gravações mais antigas)").tag(true)
                     Text("Parar de gravar").tag(false)
                 } label: {
-                    FieldLabel("Disco cheio", original: "Hd cheio",
-                               detail: "O que fazer quando o cartão ou o HD enche. Também aparece em Disco.")
+                    FieldLabel(String(localized: "Disco cheio"), original: "Hd cheio",
+                               detail: String(localized: "O que fazer quando o cartão ou o HD enche. Também aparece em Disco."))
                 }
             }
             if let video = model.videoFormat {
@@ -450,8 +450,8 @@ struct DateTimeView: View {
                         Text(video).tag(video)
                     }
                 } label: {
-                    FieldLabel("Padrão de vídeo", original: "Padrão de vídeo",
-                               detail: "Define a taxa de quadros base (NTSC 30 qps, PAL 25 qps). No Brasil use NTSC.")
+                    FieldLabel(String(localized: "Padrão de vídeo"), original: "Padrão de vídeo",
+                               detail: String(localized: "Define a taxa de quadros base (NTSC 30 qps, PAL 25 qps). No Brasil use NTSC."))
                 }
             }
         }
@@ -459,7 +459,7 @@ struct DateTimeView: View {
 
     private static func describe(_ offset: TimeInterval) -> String {
         let seconds = Int(offset.rounded())
-        if abs(seconds) <= 2 { return "Em dia" }
+        if abs(seconds) <= 2 { return String(localized: "Em dia") }
         let ahead = seconds > 0 ? "adiantado" : "atrasado"
         let value = abs(seconds)
         if value < 120 { return "\(value) s \(ahead)" }

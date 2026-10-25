@@ -33,7 +33,7 @@ struct AppCommands: Commands {
                 .keyboardShortcut(.upArrow, modifiers: [.option, .command])
                 .disabled(ui?.mode != .live || ui?.gridSelection == nil)
             Divider()
-            Button(rotation.running ? "Parar o rodízio" : "Começar o rodízio") {
+            Button(rotation.running ? String(localized: "Parar o rodízio") : String(localized: "Começar o rodízio")) {
                 if rotation.steps.isEmpty { ui?.editingRotation = true } else { rotation.toggle() }
             }
             .keyboardShortcut("r", modifiers: [.option, .command])

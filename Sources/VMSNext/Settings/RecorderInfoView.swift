@@ -30,7 +30,7 @@ final class RecorderInfoModel: ObservableObject {
         let extra: String
     }
     static let searchProtocols: [(value: String, label: String)] = [
-        ("TCP", "NETIP (Xiongmai)"), ("ONVIF", "ONVIF (outras marcas)"), ("RTSP", "RTSP"),
+        ("TCP", "NETIP (Xiongmai)"), ("ONVIF", String(localized: "ONVIF (outras marcas)")), ("RTSP", "RTSP"),
     ]
     @Published var searchProtocol = "TCP"
     @Published private(set) var searching = false
@@ -101,10 +101,10 @@ final class RecorderInfoModel: ObservableObject {
 
     var editError: String? {
         guard let edit = editing else { return nil }
-        if edit.name.trimmingCharacters(in: .whitespaces).isEmpty { return "Dê um nome ao canal." }
-        if NetworkModel.ipToHex(edit.ip) == nil { return "Endereço IP inválido." }
-        if !(1 ... 65535).contains(edit.port) { return "Porta inválida." }
-        if edit.user.isEmpty { return "Informe o usuário da câmera." }
+        if edit.name.trimmingCharacters(in: .whitespaces).isEmpty { return String(localized: "Dê um nome ao canal.") }
+        if NetworkModel.ipToHex(edit.ip) == nil { return String(localized: "Endereço IP inválido.") }
+        if !(1 ... 65535).contains(edit.port) { return String(localized: "Porta inválida.") }
+        if edit.user.isEmpty { return String(localized: "Informe o usuário da câmera.") }
         return nil
     }
 
@@ -140,7 +140,7 @@ final class RecorderInfoModel: ObservableObject {
                               device: camera.group ?? camera.host)
             remoteRaw = list
             editing = nil
-            notice = String(format: "Canal D%02d gravado no NVR.", edit.index + 1)
+            notice = String(format: String(localized: "Canal D%02d gravado no NVR."), edit.index + 1)
             readDigital(list, sync: nil)
         } catch {
             self.error = error.localizedDescription
@@ -181,7 +181,7 @@ final class RecorderInfoModel: ObservableObject {
                 readMode(await value(client, "NetWork.ChnMode"))
             }
             if rows.isEmpty && details.isEmpty {
-                error = "O NVR não informou estes dados. Use \"Diagnóstico…\" e me envie o resultado."
+                error = String(localized: "O NVR não informou estes dados. Use \"Diagnóstico…\" e me envie o resultado.")
             }
         } catch {
             self.error = error.localizedDescription
@@ -192,7 +192,7 @@ final class RecorderInfoModel: ObservableObject {
         var text = await ConfigDiagnostics.dump(camera: camera, requests: requests)
         if let lastSearch, let data = try? JSONSerialization.data(withJSONObject: ConfigDiagnostics.redacted(lastSearch),
                                                                 options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]) {
-            text += "\n== OPLocalSearch (\(searchProtocol))\n" + (String(data: data, encoding: .utf8) ?? "")
+            text += String(localized: "\n== OPLocalSearch (\(searchProtocol))\n") + (String(data: data, encoding: .utf8) ?? "")
         }
         return text
     }
@@ -242,7 +242,7 @@ final class RecorderInfoModel: ObservableObject {
     // MARK: - Status do canal
 
     private func readStatus(_ raw: Any?) {
-        columns = ["Canal", "Resolução máxima", "Resolução atual", "Conexão"]
+        columns = [String(localized: "Canal"), String(localized: "Resolução máxima"), String(localized: "Resolução atual"), String(localized: "Conexão")]
         let items = (raw as? [Any]) ?? []
         rows = items.enumerated().compactMap { index, item in
             guard let dict = item as? [String: Any] else { return nil }
@@ -262,7 +262,7 @@ final class RecorderInfoModel: ObservableObject {
     // MARK: - Canal digital
 
     private func readDigital(_ raw: Any?, sync: Any?) {
-        columns = ["Canal", "Ativo", "Câmera", "Tipo", "Endereço IP", "Canal remoto"]
+        columns = [String(localized: "Canal"), String(localized: "Ativo"), String(localized: "Câmera"), String(localized: "Tipo"), String(localized: "Endereço IP"), String(localized: "Canal remoto")]
         let items = (raw as? [Any]) ?? []
         rows = items.enumerated().compactMap { index, item in
             guard let dict = item as? [String: Any] else { return nil }
@@ -272,8 +272,8 @@ final class RecorderInfoModel: ObservableObject {
             let enabled = Self.bool(dict["Enable"])
             return Row(cells: [
                 String(format: "D%02d", index + 1),
-                enabled ? "Sim" : "Não",
-                decoder.flatMap { Self.text(Self.first($0, ["ConfName", "Name"])).nonEmpty } ?? (decoder == nil ? "Não configurado" : "—"),
+                enabled ? "Sim" : String(localized: "Não"),
+                decoder.flatMap { Self.text(Self.first($0, ["ConfName", "Name"])).nonEmpty } ?? (decoder == nil ? String(localized: "Não configurado") : "—"),
                 Self.text(decoder?["DevType"]).nonEmpty ?? "—",
                 decoder.flatMap { Self.text($0["IPAddress"]).nonEmpty ?? NetworkModel.hexToIP($0["Address"]) } ?? "—",
                 decoder.flatMap { ConfigValue.int($0["Channel"]) }.map { String($0 + 1) } ?? "—",
@@ -281,10 +281,10 @@ final class RecorderInfoModel: ObservableObject {
         }
         details = []
         if let first = items.first as? [String: Any], let mode = first["ConnType"] as? String {
-            details.append(("Modo", mode == "SINGLE" ? "Single link (uma câmera por canal)" : mode))
+            details.append((String(localized: "Modo"), mode == "SINGLE" ? String(localized: "Single link (uma câmera por canal)") : mode))
         }
         if let sync {
-            details.append(("Sincronizar horário", Self.syncLabel(sync)))
+            details.append((String(localized: "Sincronizar horário"), Self.syncLabel(sync)))
         }
     }
 
@@ -293,7 +293,7 @@ final class RecorderInfoModel: ObservableObject {
     /// NetWork.ChnMode: TotalChnsMode traz, para cada modo, quantas câmeras de cada resolução o NVR aceita
     /// (DigitalCap5MChn = 10, DigitalCap4K = 4…) e quantas reproduções ao mesmo tempo (DigitalCapPlay).
     private func readMode(_ raw: Any?) {
-        columns = ["Modo", "Câmeras aceitas", "Reproduções ao mesmo tempo", "Em uso"]
+        columns = [String(localized: "Modo"), String(localized: "Câmeras aceitas"), String(localized: "Reproduções ao mesmo tempo"), String(localized: "Em uso")]
         details = []
         guard let config = raw as? [String: Any], let modes = config["TotalChnsMode"] as? [[String: Any]] else {
             rows = []
@@ -313,7 +313,7 @@ final class RecorderInfoModel: ObservableObject {
                 "Modo \(index + 1)",
                 cameras.isEmpty ? "—" : cameras.joined(separator: ", "),
                 ConfigValue.int(mode["DigitalCapPlay"]).map(String.init) ?? "—",
-                inUse ? "Em uso" : "—",
+                inUse ? String(localized: "Em uso") : "—",
             ], good: inUse)
         }
     }
@@ -346,8 +346,8 @@ final class RecorderInfoModel: ObservableObject {
         case true?: return "Conectado"
         case false?:
             let lower = status.lowercased()
-            if lower.contains("config") { return "Não configurado" }
-            return "Desconectado"
+            if lower.contains("config") { return String(localized: "Não configurado") }
+            return String(localized: "Desconectado")
         case nil: return status.nonEmpty ?? "—"
         }
     }
@@ -421,7 +421,7 @@ struct RecorderInfoView: View {
                                 }
                             }
                         } footer: {
-                            Text(model.category == .digitalChannels ? "Para trocar a câmera de um canal, use \"Editar canal\" abaixo." : "Só leitura. Para mudar o modo do NVR, use o VMS antigo: uma troca errada para a gravação de todos os canais.")
+                            Text(model.category == .digitalChannels ? String(localized: "Para trocar a câmera de um canal, use \"Editar canal\" abaixo.") : String(localized: "Só leitura. Para mudar o modo do NVR, use o VMS antigo: uma troca errada para a gravação de todos os canais."))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -483,7 +483,7 @@ extension RecorderInfoView {
         if let edit = model.editing {
             let binding = Binding(get: { model.editing ?? edit }, set: { model.editing = $0 })
             VStack(alignment: .leading, spacing: 12) {
-                Text(String(format: "Canal D%02d do NVR", edit.index + 1)).font(.headline)
+                Text(String(format: String(localized: "Canal D%02d do NVR"), edit.index + 1)).font(.headline)
                 Form {
                     Toggle("Canal ativo (Habilitar)", isOn: binding.enabled)
                     TextField("Nome (Nome cfg)", text: binding.name)
@@ -524,7 +524,7 @@ extension RecorderInfoView {
             }
             .padding(Space.xl)
             .frame(width: 480)
-            .confirmationDialog(String(format: "Gravar o canal D%02d no NVR?", edit.index + 1), isPresented: $model.confirmingSave) {
+            .confirmationDialog(String(format: String(localized: "Gravar o canal D%02d no NVR?"), edit.index + 1), isPresented: $model.confirmingSave) {
                 Button("Gravar") { Task { await model.saveEdit() } }
                 Button("Cancelar", role: .cancel) {}
             } message: {
@@ -553,7 +553,7 @@ extension RecorderInfoView {
                 } else {
                     Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
                         GridRow {
-                            ForEach(["Nome", "MAC", "Endereço IP", "Porta", "Informação"], id: \.self) {
+                            ForEach([String(localized: "Nome"), "MAC", String(localized: "Endereço IP"), String(localized: "Porta"), String(localized: "Informação")], id: \.self) {
                                 Text($0).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                             }
                         }

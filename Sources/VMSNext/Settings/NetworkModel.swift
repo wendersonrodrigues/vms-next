@@ -66,18 +66,18 @@ final class NetworkModel: ObservableObject {
 
     var validationError: String? {
         if !dhcp {
-            for (label, value) in [("IP", ip), ("Máscara", mask), ("Gateway", gateway)] where Self.ipToHex(value) == nil {
-                return "\(label) inválido: \(value)"
+            for (label, value) in [("IP", ip), (String(localized: "Máscara"), mask), ("Gateway", gateway)] where Self.ipToHex(value) == nil {
+                return String(localized: "\(label) inválido: \(value)")
             }
-            if !Self.isValidMask(mask) { return "Máscara inválida: \(mask)" }
-            if !Self.sameSubnet(ip, gateway, mask: mask) { return "O gateway não está na mesma rede do IP." }
+            if !Self.isValidMask(mask) { return String(localized: "Máscara inválida: \(mask)") }
+            if !Self.sameSubnet(ip, gateway, mask: mask) { return String(localized: "O gateway não está na mesma rede do IP.") }
         }
         if hasDNS {
             for value in [dns1, dns2] where !value.isEmpty && Self.ipToHex(value) == nil {
-                return "DNS inválido: \(value)"
+                return String(localized: "DNS inválido: \(value)")
             }
         }
-        if !(1 ... 65535).contains(httpPort) { return "Porta HTTP inválida" }
+        if !(1 ... 65535).contains(httpPort) { return String(localized: "Porta HTTP inválida") }
         return nil
     }
 
@@ -149,12 +149,12 @@ final class NetworkModel: ObservableObject {
                 DeviceSessions.shared.invalidate(account: camera.keychainAccount)
                 if !dhcp, newIP != oldIP {
                     onAddressChanged?(oldIP, newIP)
-                    notice = "Endereço alterado para \(newIP). As câmeras desse IP foram atualizadas no app."
+                    notice = String(localized: "Endereço alterado para \(newIP). As câmeras desse IP foram atualizadas no app.")
                 } else {
-                    notice = "DHCP ativado. A câmera vai receber um IP do roteador; atualize o endereço no app quando souber qual é."
+                    notice = String(localized: "DHCP ativado. A câmera vai receber um IP do roteador; atualize o endereço no app quando souber qual é.")
                 }
             } else {
-                notice = "Configurações de rede aplicadas."
+                notice = String(localized: "Configurações de rede aplicadas.")
             }
             loaded = (dhcp, ip)
         } catch {
@@ -178,7 +178,7 @@ final class NetworkModel: ObservableObject {
 
     private func read() {
         guard let common = commonRaw else {
-            error = "Este equipamento não informou a configuração de rede."
+            error = String(localized: "Este equipamento não informou a configuração de rede.")
             return
         }
         ip = Self.hexToIP(common["HostIP"]) ?? ""
@@ -217,7 +217,7 @@ final class NetworkModel: ObservableObject {
         // Pelo Wi-Fi, mexer no IP do cabo não derruba a conexão atual.
         decodingVerified = ip == camera.host || connectedByWifi
         if !decodingVerified {
-            error = "O IP lido (\(ip.isEmpty ? "vazio" : ip)) não bate com o endereço usado (\(camera.host)). A edição fica bloqueada por segurança; use \"Diagnóstico…\" e me envie o resultado."
+            error = String(localized: "O IP lido (\(ip.isEmpty ? ")vazioString(localized: " : ip)) não bate com o endereço usado (\(camera.host)). A edição fica bloqueada por segurança; use \"Diagnóstico…\" e me envie o resultado.")
         }
     }
 

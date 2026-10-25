@@ -5,7 +5,7 @@ import SwiftUI
 enum ScheduleCodec {
     static let slotsPerDay = 48
     static let minutesPerSlot = 30
-    static let dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
+    static let dayNames = [String(localized: "Domingo"), String(localized: "Segunda"), String(localized: "Terça"), String(localized: "Quarta"), String(localized: "Quinta"), String(localized: "Sexta"), String(localized: "Sábado")]
 
     static func emptyWeek() -> [[Int]] {
         Array(repeating: Array(repeating: 0, count: slotsPerDay), count: 7)
@@ -50,7 +50,7 @@ enum ScheduleCodec {
     /// Mensagem de erro se algum dia tiver mais trechos do que o equipamento aceita.
     static func validate(_ slots: [[Int]], maxSections: Int) -> String? {
         for day in 0 ..< 7 where runs(slots[day]).count > maxSections {
-            return "\(dayNames[day]) tem mais de \(maxSections) trechos diferentes; o equipamento aceita no máximo \(maxSections) por dia."
+            return String(localized: "\(dayNames[day]) tem mais de \(maxSections) trechos diferentes; o equipamento aceita no máximo \(maxSections) por dia.")
         }
         return nil
     }
@@ -102,12 +102,12 @@ struct ScheduleRow {
     /// Gravação e foto: normal, detecção e alarme, nas cores do VMS antigo.
     static let recording = [
         ScheduleRow(bit: 1, label: "Normal", color: green),
-        ScheduleRow(bit: 2, label: "Detecção", color: Color(red: 0.88, green: 0.95, blue: 0.35)),
-        ScheduleRow(bit: 4, label: "Alarme", color: Color(red: 0.95, green: 0.12, blue: 0.12)),
+        ScheduleRow(bit: 2, label: String(localized: "Detecção"), color: Color(red: 0.88, green: 0.95, blue: 0.35)),
+        ScheduleRow(bit: 4, label: String(localized: "Alarme"), color: Color(red: 0.95, green: 0.12, blue: 0.12)),
     ]
 
     /// Período de alarme: uma faixa só.
-    static let period = [ScheduleRow(bit: 1, label: "Ativo", color: green)]
+    static let period = [ScheduleRow(bit: 1, label: String(localized: "Ativo"), color: green)]
 }
 
 struct ScheduleLegend: View {
@@ -206,12 +206,12 @@ struct ScheduleGrid: View {
             let ranges = ScheduleCodec.runs(marked)
             guard !ranges.isEmpty else { return nil }
             if ranges.count == 1, ranges[0].start == 0, ranges[0].end == ScheduleCodec.slotsPerDay {
-                return rows.count > 1 ? "\(row.label) dia inteiro" : "dia inteiro"
+                return rows.count > 1 ? String(localized: "\(row.label) dia inteiro") : String(localized: "dia inteiro")
             }
             let text = ranges.map { "\(Self.clock($0.start))–\(Self.clock($0.end))" }.joined(separator: ", ")
             return rows.count > 1 ? "\(row.label) \(text)" : text
         }
-        return parts.isEmpty ? "nada marcado" : parts.joined(separator: "; ")
+        return parts.isEmpty ? String(localized: "nada marcado") : parts.joined(separator: "; ")
     }
 
     private static func clock(_ slot: Int) -> String {

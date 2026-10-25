@@ -21,13 +21,13 @@ struct NetworkView: View {
                         Section {
                             LabeledContent("Rede (SSID)", value: wifi.ssid.isEmpty ? "—" : wifi.ssid)
                             if let dhcp = wifi.dhcp {
-                                LabeledContent("IP automático (DHCP)", value: dhcp ? "Ligado" : "Desligado")
+                                LabeledContent("IP automático (DHCP)", value: dhcp ? String(localized: "Ligado") : String(localized: "Desligado"))
                             }
                             LabeledContent("Endereço IP", value: wifi.ip.isEmpty ? "—" : wifi.ip)
                             LabeledContent("Máscara de sub-rede", value: wifi.mask.isEmpty ? "—" : wifi.mask)
                             LabeledContent("Gateway", value: wifi.gateway.isEmpty ? "—" : wifi.gateway)
                         } header: {
-                            Text(model.connectedByWifi ? "Wi-Fi (em uso pelo VMS Next)" : "Wi-Fi")
+                            Text(model.connectedByWifi ? String(localized: "Wi-Fi (em uso pelo VMS Next)") : "Wi-Fi")
                         } footer: {
                             Text("Para trocar a rede Wi-Fi, use o iCSee: uma rede ou senha errada desconecta a câmera.")
                                 .foregroundStyle(.secondary)
@@ -36,15 +36,15 @@ struct NetworkView: View {
                     Section {
                         if model.hasDHCP {
                             Toggle(isOn: $model.dhcp) {
-                                FieldLabel("Obter IP automaticamente", original: "DHCP",
-                                           detail: "O roteador escolhe o endereço. Pode mudar sozinho, o que faz o app perder a câmera.")
+                                FieldLabel(String(localized: "Obter IP automaticamente"), original: "DHCP",
+                                           detail: String(localized: "O roteador escolhe o endereço. Pode mudar sozinho, o que faz o app perder a câmera."))
                             }
                         }
-                        field("Endereço IP", text: $model.ip)
-                        field("Máscara de sub-rede", text: $model.mask)
+                        field(String(localized: "Endereço IP"), text: $model.ip)
+                        field(String(localized: "Máscara de sub-rede"), text: $model.mask)
                         field("Gateway", text: $model.gateway)
                     } header: {
-                        Text(model.connectedByWifi ? "Cabo de rede (Interface cabeada, sem uso agora)" : "Endereço")
+                        Text(model.connectedByWifi ? String(localized: "Cabo de rede (Interface cabeada, sem uso agora)") : String(localized: "Endereço"))
                     } footer: {
                         Text("Com DHCP o roteador escolhe o IP e ele pode mudar. Para câmeras de segurança, um IP fixo é mais confiável.")
                             .foregroundStyle(.secondary)
@@ -99,15 +99,15 @@ struct NetworkView: View {
             await model.load()
         }
         .confirmationDialog(
-            "Mudar o endereço da câmera?",
+            String(localized: "Mudar o endereço da câmera?"),
             isPresented: $model.confirmingAddressChange
         ) {
             Button("Mudar endereço", role: .destructive) { Task { await model.apply() } }
             Button("Cancelar", role: .cancel) {}
         } message: {
             Text(model.dhcp
-                ? "A câmera vai pedir um IP ao roteador e sair de \(model.camera.host). Você vai precisar descobrir o novo IP (no roteador ou no iCSee) para voltar a acessá-la."
-                : "A câmera vai passar a responder em \(model.ip). Se o endereço estiver fora da sua rede, ela só volta pelo iCSee ou por reset de fábrica.")
+                ? String(localized: "A câmera vai pedir um IP ao roteador e sair de \(model.camera.host). Você vai precisar descobrir o novo IP (no roteador ou no iCSee) para voltar a acessá-la.")
+                : String(localized: "A câmera vai passar a responder em \(model.ip). Se o endereço estiver fora da sua rede, ela só volta pelo iCSee ou por reset de fábrica."))
         }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")

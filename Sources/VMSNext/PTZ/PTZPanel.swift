@@ -54,16 +54,16 @@ struct PTZPanel: View {
                 row("Preset") {
                     numberPicker($ptz.preset, range: 1 ... 255, label: "Preset")
                     Spacer(minLength: 0)
-                    iconButton("arrow.uturn.forward", "Ir para o preset \(ptz.preset)") { ptz.presetAction(.gotoPreset) }
-                    iconButton("plus", "Salvar a posição atual no preset \(ptz.preset)") { ptz.presetAction(.setPreset) }
-                    iconButton("minus", "Apagar o preset \(ptz.preset)") { ptz.presetAction(.clearPreset) }
+                    iconButton("arrow.uturn.forward", String(localized: "Ir para o preset \(ptz.preset)")) { ptz.presetAction(.gotoPreset) }
+                    iconButton("plus", String(localized: "Salvar a posição atual no preset \(ptz.preset)")) { ptz.presetAction(.setPreset) }
+                    iconButton("minus", String(localized: "Apagar o preset \(ptz.preset)")) { ptz.presetAction(.clearPreset) }
                 }
-                row("Ronda") {
-                    numberPicker($ptz.tour, range: 1 ... 8, label: "Ronda")
+                row(String(localized: "Ronda")) {
+                    numberPicker($ptz.tour, range: 1 ... 8, label: String(localized: "Ronda"))
                     Spacer(minLength: 0)
-                    iconButton("play.fill", "Começar a ronda \(ptz.tour)") { ptz.tourAction(.startTour) }
-                    iconButton("stop.fill", "Parar a ronda") { ptz.tourAction(.stopTour) }
-                    iconButton("square.grid.3x3.fill", "Editar a ronda \(ptz.tour): adicionar, remover ou limpar presets") {
+                    iconButton("play.fill", String(localized: "Começar a ronda \(ptz.tour)")) { ptz.tourAction(.startTour) }
+                    iconButton("stop.fill", String(localized: "Parar a ronda")) { ptz.tourAction(.stopTour) }
+                    iconButton("square.grid.3x3.fill", String(localized: "Editar a ronda \(ptz.tour): adicionar, remover ou limpar presets")) {
                         editingTour.on = true
                     }
                     .popover(isPresented: $editingTour.on, arrowEdge: .trailing) { tourEditor }
@@ -126,7 +126,7 @@ struct PTZPanel: View {
     private var lensControls: some View {
         Grid(horizontalSpacing: Space.xs, verticalSpacing: Space.xs) {
             lensRow("Zoom", minus: ("minus.magnifyingglass", .zoomOut), plus: ("plus.magnifyingglass", .zoomIn))
-            lensRow("Íris", minus: ("circle.dotted", .irisClose), plus: ("circle", .irisOpen))
+            lensRow(String(localized: "Íris"), minus: ("circle.dotted", .irisClose), plus: ("circle", .irisOpen))
             lensRow("Foco", minus: ("minus", .focusNear), plus: ("plus", .focusFar))
         }
     }

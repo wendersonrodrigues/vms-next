@@ -48,7 +48,7 @@ final class RecordingBrowser: ObservableObject {
     func diagnose(camera: Camera) async -> String {
         let start = Calendar.current.startOfDay(for: day)
         let end = start.addingTimeInterval(86_399)
-        var output = "Busca de gravações: \(camera.displayName) · canal \(camera.channel) · \(DeviceTime.string(start).prefix(10))\n"
+        var output = String(localized: "Busca de gravações: \(camera.displayName) · canal \(camera.channel) · \(DeviceTime.string(start).prefix(10))\n")
         do {
             let client = try await DeviceSessions.shared.client(for: camera)
             let anyRet = Set(0 ..< 1000)
@@ -57,13 +57,13 @@ final class RecordingBrowser: ObservableObject {
             if let storage = try? await client.command(code: 1020, name: "StorageInfo", payload: nil, accepted: anyRet) {
                 let value = storage["StorageInfo"] ?? storage
                 let data = try? JSONSerialization.data(withJSONObject: value, options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed])
-                output += data.map { String(decoding: $0, as: UTF8.self) } ?? "(ilegível)"
+                output += data.map { String(decoding: $0, as: UTF8.self) } ?? String(localized: "(ilegível)")
                 output += "\n"
             } else {
-                output += "(sem resposta)\n"
+                output += String(localized: "(sem resposta)\n")
             }
 
-            output += "\n== OPFileQuery (tipo · stream · máscara → código, arquivos)\n"
+            output += String(localized: "\n== OPFileQuery (tipo · stream · máscara → código, arquivos)\n")
             for type in ["h264", "h265"] {
                 for stream in ["0x00000000", "0x00000001"] {
                     for mask in ["0x0000FFFF", "0xFFFFFFFF"] {
@@ -84,7 +84,7 @@ final class RecordingBrowser: ObservableObject {
                 }
             }
         } catch {
-            output += "\nFalha ao conectar: \(error.localizedDescription)\n"
+            output += String(localized: "\nFalha ao conectar: \(error.localizedDescription)\n")
         }
         return output
     }
@@ -111,9 +111,9 @@ final class RecordingBrowser: ObservableObject {
                 }
             }
             if !refusals.isEmpty {
-                message = "O equipamento recusou a busca no canal \(camera.channel) (códigos — \(refusals.joined(separator: ", ")))."
+                message = String(localized: "O equipamento recusou a busca no canal \(camera.channel) (códigos — \(refusals.joined(separator: ", ")).")
             } else if recordings.isEmpty {
-                message = "Nenhuma gravação neste dia."
+                message = String(localized: "Nenhuma gravação neste dia.")
             }
         } catch {
             message = error.localizedDescription
@@ -251,7 +251,7 @@ struct PlaybackView: View {
             let match = browser.recordings.first { $0.begin <= target && target <= $0.end }
                 ?? browser.recordings.first { $0.begin >= target }
             guard let match else {
-                if browser.message == nil { browser.message = "Nenhuma gravação neste momento." }
+                if browser.message == nil { browser.message = String(localized: "Nenhuma gravação neste momento.") }
                 return
             }
             browser.selectWithoutPlaying(match.id)
@@ -269,7 +269,7 @@ struct PlaybackView: View {
         do {
             if let url = try FrameSnapshot.save(from: session.displayLayer.sampleBufferRenderer, name: name,
                                                 zoom: zoomed ? zoom : nil) {
-                browser.photoMessage = "Foto salva: \(url.lastPathComponent)"
+                browser.photoMessage = String(localized: "Foto salva: \(url.lastPathComponent)")
             }
         } catch {
             browser.photoMessage = error.localizedDescription
@@ -314,7 +314,7 @@ struct PlaybackView: View {
                 seekBar
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(session.camera?.displayName ?? "Gravação").font(.headline).lineLimit(1)
+                        Text(session.camera?.displayName ?? String(localized: "Gravação")).font(.headline).lineLimit(1)
                         if let clock = session.clock {
                             Text(clock.formatted(date: .abbreviated, time: .standard))
                                 .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
@@ -323,7 +323,7 @@ struct PlaybackView: View {
                     .frame(minWidth: 150, alignment: .leading)
                     Spacer()
                     let hasRecording = session.recording != nil
-                    BarButton(icon: "gobackward.10", help: "Voltar 10 s (←)") { session.skip(by: -10) }
+                    BarButton(icon: "gobackward.10", help: String(localized: "Voltar 10 s (←)")) { session.skip(by: -10) }
                         .disabled(!hasRecording)
                     Button {
                         if session.status == .finished { session.seek(to: 0) } else { session.togglePause() }
@@ -337,11 +337,11 @@ struct PlaybackView: View {
                     }
                     .buttonStyle(.hover)
                     .disabled(![.playing, .paused, .finished].contains(session.status))
-                    .help(session.status == .playing ? "Pausar (espaço)" : "Reproduzir (espaço)")
+                    .help(session.status == .playing ? String(localized: "Pausar (espaço)") : String(localized: "Reproduzir (espaço)"))
                     .accessibilityLabel(session.status == .playing ? "Pausar" : "Reproduzir")
-                    BarButton(icon: "goforward.10", help: "Avançar 10 s (→)") { session.skip(by: 10) }
+                    BarButton(icon: "goforward.10", help: String(localized: "Avançar 10 s (→)")) { session.skip(by: 10) }
                         .disabled(!hasRecording)
-                    BarButton(icon: "stop.fill", help: "Parar") { session.stop() }
+                    BarButton(icon: "stop.fill", help: String(localized: "Parar")) { session.stop() }
                         .disabled(session.status == .idle)
                     Picker("Velocidade", selection: Binding(get: { session.speed }, set: { session.setSpeed($0) })) {
                         ForEach([0.5, 1, 2, 4, 8], id: \.self) { Text("\($0 == 0.5 ? "½" : String(Int($0)))×").tag($0) }
@@ -356,9 +356,9 @@ struct PlaybackView: View {
                             .font(.system(size: 18))
                             .disabled(session.speed != 1)
                     }
-                    BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)") { takePhoto() }
+                    BarButton(icon: "camera", title: String(localized: "Foto"), help: String(localized: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)")) { takePhoto() }
                         .disabled(!hasRecording)
-                    BarButton(icon: "arrow.down.circle", title: "Baixar", help: "Baixar esta gravação em MP4 (⌘D)") {
+                    BarButton(icon: "arrow.down.circle", title: String(localized: "Baixar"), help: String(localized: "Baixar esta gravação em MP4 (⌘D)")) {
                         if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
                     }
                     .keyboardShortcut("d")

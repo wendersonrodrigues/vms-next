@@ -54,7 +54,7 @@ final class LocalRecorder: ObservableObject {
 
     private func begin(_ camera: Camera, automatic: Bool) {
         guard sessions[camera.id] == nil, let store, let password = store.password(for: camera) else {
-            if store?.password(for: camera) == nil { lastError = "Senha de \(camera.displayName) não definida." }
+            if store?.password(for: camera) == nil { lastError = String(localized: "Senha de \(camera.displayName) não definida.") }
             return
         }
         let key = LiveStreamHub.key(camera, .main)
@@ -98,8 +98,8 @@ final class LocalRecorder: ObservableObject {
     private func openFile(_ session: Session) -> Bool {
         let prefs = AppPreferences.shared
         guard ensureSpace() else {
-            stop(session.camera.id, reason: "Gravação no Mac parada: disco do Mac com pouco espaço (reserva de \(prefs.recordReserveMB) MB)")
-            lastError = "Pouco espaço no Mac: a gravação parou."
+            stop(session.camera.id, reason: String(localized: "Gravação no Mac parada: disco do Mac com pouco espaço (reserva de \(prefs.recordReserveMB) MB)"))
+            lastError = String(localized: "Pouco espaço no Mac: a gravação parou.")
             return false
         }
         let folder = prefs.recordingFolder.appendingPathComponent(session.camera.displayName.replacingOccurrences(of: "/", with: "-"))
@@ -149,7 +149,7 @@ final class LocalRecorder: ObservableObject {
         let inWindow = prefs.autoRecord && Self.isInside(prefs.autoRecordFrom, prefs.autoRecordTo)
         let wanted = Set(store.cameras.filter { prefs.autoRecordAll || prefs.autoRecordCameras.contains($0.id) }.map(\.id))
         for (id, session) in sessions where session.automatic && (!inWindow || !wanted.contains(id)) {
-            stop(id, reason: "Gravação automática parada (fora do horário)")
+            stop(id, reason: String(localized: "Gravação automática parada (fora do horário)"))
         }
         if inWindow {
             for camera in store.cameras where wanted.contains(camera.id) && sessions[camera.id] == nil {

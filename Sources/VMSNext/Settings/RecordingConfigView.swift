@@ -16,14 +16,14 @@ struct ScheduleKind {
     let preUnit: String
 
     static let recording = ScheduleKind(
-        title: "gravação",
+        title: String(localized: "gravação"),
         configNames: { ["Record.[\($0)]"] },
         modeKey: "RecordMode",
-        modes: [("ConfigRecord", "Por agenda"), ("ManualRecord", "Sempre gravando"), ("ClosedRecord", "Desligado")],
+        modes: [("ConfigRecord", String(localized: "Por agenda")), ("ManualRecord", String(localized: "Sempre gravando")), ("ClosedRecord", String(localized: "Desligado"))],
         scheduledMode: "ConfigRecord",
         packetKey: "PacketLength",
         preKey: "PreRecord",
-        preLabel: "Pré-gravação",
+        preLabel: String(localized: "Pré-gravação"),
         preUnit: " s"
     )
 
@@ -31,12 +31,12 @@ struct ScheduleKind {
         title: "foto",
         configNames: { ["Storage.Snapshot.[\($0)]", "Snapshot.[\($0)]"] },
         modeKey: "SnapMode",
-        modes: [("ConfigSnap", "Por agenda"), ("ManualSnap", "Sempre"), ("ClosedSnap", "Desligado")],
+        modes: [("ConfigSnap", String(localized: "Por agenda")), ("ManualSnap", String(localized: "Sempre")), ("ClosedSnap", String(localized: "Desligado"))],
         scheduledMode: "ConfigSnap",
         packetKey: nil,
         preKey: "PreSnap",
-        preLabel: "Pré-captura",
-        preUnit: " foto(s) antes do evento"
+        preLabel: String(localized: "Pré-captura"),
+        preUnit: String(localized: " foto(s) antes do evento")
     )
 }
 
@@ -76,7 +76,7 @@ final class RecordingConfigModel: ObservableObject {
 
     var modeOptions: [(value: String, label: String)] {
         var options = kind.modes
-        if !options.contains(where: { $0.value == mode }) { options.append((mode, "Modo do equipamento (\(mode))")) }
+        if !options.contains(where: { $0.value == mode }) { options.append((mode, String(localized: "Modo do equipamento (\(mode))"))) }
         return options
     }
 
@@ -104,7 +104,7 @@ final class RecordingConfigModel: ObservableObject {
                 }
             }
             guard let record = ConfigValue.object(in: raw) else {
-                error = "Este equipamento não tem configuração de \(kind.title) para o canal \(camera.channel)."
+                error = String(localized: "Este equipamento não tem configuração de \(kind.title) para o canal \(camera.channel).")
                 return
             }
             mode = record[kind.modeKey] as? String ?? kind.scheduledMode
@@ -156,10 +156,10 @@ final class RecordingConfigModel: ObservableObject {
             self.raw = updated
             let check = ConfigValue.object(in: try await client.getConfig(name))
             if let applied = check?[kind.modeKey] as? String, applied != mode {
-                error = "O equipamento aceitou o comando mas manteve o modo \(applied)."
+                error = String(localized: "O equipamento aceitou o comando mas manteve o modo \(applied).")
                 return
             }
-            notice = "Configuração de \(kind.title) aplicada."
+            notice = String(localized: "Configuração de \(kind.title) aplicada.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -195,30 +195,30 @@ struct RecordingConfigView: View {
                             Picker(selection: $model.mode) {
                                 ForEach(model.modeOptions, id: \.value) { Text($0.label).tag($0.value) }
                             } label: {
-                                FieldLabel("Modo", detail: "Por agenda segue o quadro abaixo; Sempre ignora o quadro; Desligado não faz nada.")
+                                FieldLabel(String(localized: "Modo"), detail: String(localized: "Por agenda segue o quadro abaixo; Sempre ignora o quadro; Desligado não faz nada."))
                             }
                             .pickerStyle(.segmented)
                             if model.hasPacket {
                                 Stepper(value: $model.packetMinutes, in: 1 ... 120) {
-                                    FieldLabel("Tamanho de cada arquivo: \(model.packetMinutes) min", original: "Tamanho do pacote",
-                                               detail: "A gravação contínua é dividida em arquivos desta duração.")
+                                    FieldLabel(String(localized: "Tamanho de cada arquivo: \(model.packetMinutes) min"), original: "Tamanho do pacote",
+                                               detail: String(localized: "A gravação contínua é dividida em arquivos desta duração."))
                                 }
                             }
                             Stepper(value: $model.preRecordSeconds, in: 0 ... 30) {
                                 FieldLabel("\(model.kind.preLabel): \(model.preRecordSeconds)\(model.kind.preUnit)",
-                                           detail: "Guarda também o que aconteceu logo antes do alarme.")
+                                           detail: String(localized: "Guarda também o que aconteceu logo antes do alarme."))
                             }
                             if model.hasRedundancy {
                                 Toggle(isOn: $model.redundancy) {
-                                    FieldLabel("Cópia de segurança", original: "Redundância",
-                                               detail: "Grava em dois discos ao mesmo tempo. Só funciona com um disco extra reservado para isso.")
+                                    FieldLabel(String(localized: "Cópia de segurança"), original: "Redundância",
+                                               detail: String(localized: "Grava em dois discos ao mesmo tempo. Só funciona com um disco extra reservado para isso."))
                                 }
                             }
                         }
                         if model.isScheduled {
                             Section {
                                 ScheduleGrid(slots: $model.slots, rows: ScheduleRow.recording,
-                                             presets: [("Dia inteiro: só detecção + alarme", 6)])
+                                             presets: [(String(localized: "Dia inteiro: só detecção + alarme"), 6)])
                             } header: {
                                 HStack {
                                     Text("Agenda semanal")

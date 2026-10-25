@@ -201,7 +201,7 @@ struct ContentView: View {
     private var addToolbar: some ToolbarContent {
         ToolbarItem {
             Menu {
-                Button("Nova câmera…") { ui.editing = Camera(name: "Nova câmera", host: "192.168.0.") }
+                Button("Nova câmera…") { ui.editing = Camera(name: String(localized: "Nova câmera"), host: "192.168.0.") }
                 Button("Procurar câmeras na rede…") { ui.mode = .devices }
                 Divider()
                 Button("Importar câmeras…", action: importCameras)
@@ -261,7 +261,7 @@ struct ContentView: View {
             if let camera = store.cameras.first(where: { $0.id == id }) {
                 Button("Editar…") { ui.editing = camera }
                 Button("Configurações…") { openSettings(settingsTarget(for: camera)) }
-                Button(camera.split == nil ? "Dividir em duas (split virtual)" : "Desfazer divisão") { toggleSplit(camera) }
+                Button(camera.split == nil ? String(localized: "Dividir em duas (split virtual)") : String(localized: "Desfazer divisão")) { toggleSplit(camera) }
                 Button("Remover", role: .destructive) {
                     if ui.selection == item { ui.selection = .all }
                     store.remove(camera)
@@ -291,7 +291,7 @@ struct ContentView: View {
     }
 
     private var settingsTitle: String {
-        guard let target = selectedSettingsTarget else { return "Configurações" }
+        guard let target = selectedSettingsTarget else { return String(localized: "Configurações") }
         switch target.scope {
         case .recorder: return "Configurações do NVR · \(target.title)"
         case .channel: return "Configurações do canal · \(target.title)"
@@ -343,7 +343,7 @@ struct ContentView: View {
 
     private var gridTitle: String {
         if case let .group(name) = ui.selection { return name }
-        return "Câmeras"
+        return String(localized: "Câmeras")
     }
 
     /// Abre ou fecha o PTZ desta câmera no pé da lista; abre a lista se ela estiver escondida.
@@ -372,7 +372,7 @@ struct ContentView: View {
             } actions: {
                 Button("Procurar na rede") { ui.mode = .devices }
                     .buttonStyle(.borderedProminent)
-                Button("Nova câmera…") { ui.editing = Camera(name: "Nova câmera", host: "192.168.0.") }
+                Button("Nova câmera…") { ui.editing = Camera(name: String(localized: "Nova câmera"), host: "192.168.0.") }
                 Button("Importar câmeras…", action: importCameras)
             }
         } else if ui.mode == .home {
@@ -440,7 +440,7 @@ struct ContentView: View {
                            onToggleSplit: { toggleSplit(camera) },
                            onRename: focusedPart == .full ? nil : { rename(camera, part: focusedPart) },
                            single: SingleViewControls(quality: $ui.singleQuality),
-                           onOpen: { backToGrid(from: camera) }, openTitle: "Voltar ao mosaico",
+                           onOpen: { backToGrid(from: camera) }, openTitle: String(localized: "Voltar ao mosaico"),
                            ptzActive: ui.mosaicPTZCamera == camera.id,
                            onTogglePTZ: { togglePTZ(camera) })
                     .id("\(camera.id)-\(focusedPart)-\(ui.singleQuality)-\(camera.hashValue)")
@@ -632,7 +632,7 @@ struct ContentView: View {
             TemplateThumbnail(template: template, selected: ui.templateID == id)
         }
         .buttonStyle(.hover)
-        .help(template.map(Self.templateTitle) ?? "Auto: todas as câmeras, no melhor tamanho")
+        .help(template.map(Self.templateTitle) ?? String(localized: "Auto: todas as câmeras, no melhor tamanho"))
         .accessibilityLabel(template.map(Self.templateTitle) ?? "Auto")
         .accessibilityAddTraits(ui.templateID == id ? .isSelected : [])
     }
@@ -681,7 +681,7 @@ struct ContentView: View {
                         }
                     }
             }
-            .help(alarms.unread > 0 ? "\(alarms.unread) alerta(s) novo(s)" : "Eventos")
+            .help(alarms.unread > 0 ? "\(alarms.unread) alerta(s) novo(s)" : String(localized: "Eventos"))
             .accessibilityLabel("Eventos")
             .accessibilityValue(alarms.unread > 0 ? "\(alarms.unread) \(alarms.unread == 1 ? "alerta novo" : "alertas novos")" : "")
         }
@@ -731,8 +731,8 @@ struct ContentView: View {
             }
             // Voltar à ordem da lista (desfaz as câmeras arrastadas neste modelo).
             if let template = currentTemplate {
-                BarButton(icon: "arrow.uturn.backward", title: "Ordem da lista",
-                          help: "Voltar à ordem da lista: desfaz as câmeras arrastadas neste modelo") {
+                BarButton(icon: "arrow.uturn.backward", title: String(localized: "Ordem da lista"),
+                          help: String(localized: "Voltar à ordem da lista: desfaz as câmeras arrastadas neste modelo")) {
                     layouts.reset(template: template, context: gridContext)
                 }
                 .disabled(!layouts.hasAssignments(template, context: gridContext))
@@ -756,12 +756,12 @@ struct ContentView: View {
             Button {
                 if rotation.steps.isEmpty { ui.editingRotation = true } else { rotation.toggle() }
             } label: {
-                Label(rotation.running ? "Parar rodízio" : "Rodízio de telas",
+                Label(rotation.running ? String(localized: "Parar rodízio") : String(localized: "Rodízio de telas"),
                       systemImage: rotation.running ? "stop.circle" : "arrow.triangle.2.circlepath.circle")
             }
             .buttonStyle(.hover)
-            .help(rotation.running ? "Parar o rodízio de telas" : "Passa sozinho pelas telas escolhidas (Tour do VMS antigo) · ⌥⌘R")
-            BarButton(icon: "slider.horizontal.3", help: "Escolher as telas e o tempo do rodízio") { ui.editingRotation = true }
+            .help(rotation.running ? String(localized: "Parar o rodízio de telas") : String(localized: "Passa sozinho pelas telas escolhidas (Tour do VMS antigo) · ⌥⌘R"))
+            BarButton(icon: "slider.horizontal.3", help: String(localized: "Escolher as telas e o tempo do rodízio")) { ui.editingRotation = true }
         }
         .padding(.horizontal, Space.l)
         .padding(.vertical, Space.s)
@@ -796,10 +796,10 @@ struct ContentView: View {
             let count = try store.importData(Data(contentsOf: url))
             AppLog.shared.add(.file, "Lista de câmeras importada: \(count) nova(s)")
             ui.alertMessage = count == 0
-                ? "Nenhuma câmera nova no arquivo."
-                : "\(count) câmera(s) importada(s). As senhas não vão no arquivo: defina a de cada equipamento (\"Definir senha\" no mosaico)."
+                ? String(localized: "Nenhuma câmera nova no arquivo.")
+                : String(localized: "\(count) câmera(s) importada(s). As senhas não vão no arquivo: defina a de cada equipamento (\"Definir senha\" no mosaico).")
         } catch {
-            ui.alertMessage = "Arquivo inválido: \(error.localizedDescription)"
+            ui.alertMessage = String(localized: "Arquivo inválido: \(error.localizedDescription)")
         }
     }
 }

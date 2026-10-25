@@ -220,7 +220,7 @@ final class AlarmCenter: ObservableObject {
             }
             try await client.subscribeAlarms()
             subscribed[key] = client
-            deviceStatus[camera.group ?? camera.host] = "Recebendo alertas"
+            deviceStatus[camera.group ?? camera.host] = String(localized: "Recebendo alertas")
         } catch {
             deviceStatus[camera.group ?? camera.host] = error.localizedDescription
         }

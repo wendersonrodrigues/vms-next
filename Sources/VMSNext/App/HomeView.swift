@@ -80,9 +80,9 @@ struct HomeView: View {
                         .frame(maxWidth: 560, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 8) {
-                        pill("Código aberto", "chevron.left.forwardslash.chevron.right")
-                        pill("Apple Silicon", "cpu")
-                        pill("Tudo na sua rede, sem nuvem", "lock.shield")
+                        pill(String(localized: "Código aberto"), "chevron.left.forwardslash.chevron.right")
+                        pill(String(localized: "Apple Silicon"), "cpu")
+                        pill(String(localized: "Tudo na sua rede, sem nuvem"), "lock.shield")
                     }
                 }
                 .foregroundStyle(.white)
@@ -172,7 +172,7 @@ struct HomeView: View {
     private var alertsCard: some View {
         card {
             VStack(alignment: .leading, spacing: 8) {
-                cardHeader("Alertas de hoje", icon: "bell.badge.fill")
+                cardHeader(String(localized: "Alertas de hoje"), icon: "bell.badge.fill")
                 Text("\(alertsToday)").font(.system(size: 40, weight: .semibold))
                 if let last = alarms.events.first {
                     Text("Último: \(last.kind == .other ? last.event : last.kind.label) · \(last.cameraName) · \(last.date.formatted(date: .omitted, time: .shortened))")
@@ -191,9 +191,9 @@ struct HomeView: View {
     // MARK: - Status
 
     private var connectedCard: some View {
-        statCard("Equipamentos conectados", icon: "wifi",
+        statCard(String(localized: "Equipamentos conectados"), icon: "wifi",
                  value: model.devices.isEmpty ? "—" : "\(model.onlineCount) de \(model.devices.count)",
-                 detail: model.checking ? "Verificando…" : (model.onlineCount == model.devices.count ? "Todos respondendo" : "Alguns sem conexão"),
+                 detail: model.checking ? "Verificando…" : (model.onlineCount == model.devices.count ? String(localized: "Todos respondendo") : String(localized: "Alguns sem conexão")),
                  tint: model.onlineCount == model.devices.count ? Theme.success : Theme.warning)
     }
 
@@ -201,7 +201,7 @@ struct HomeView: View {
     private var camerasCard: some View {
         card {
             VStack(alignment: .leading, spacing: 8) {
-                cardHeader("Câmeras", icon: "video.fill", tint: .blue)
+                cardHeader(String(localized: "Câmeras"), icon: "video.fill", tint: .blue)
                 Spacer(minLength: 0)
                 Text("\(store.cameras.count)").font(.system(size: 72, weight: .semibold)).monospacedDigit()
                 Text("\(store.standaloneCameras.count) avulsa(s) · \(store.groups.count) NVR(s)")
@@ -216,17 +216,17 @@ struct HomeView: View {
     private var storageCard: some View {
         card {
             VStack(alignment: .leading, spacing: 12) {
-                cardHeader("Armazenamento", icon: "internaldrive.fill")
+                cardHeader(String(localized: "Armazenamento"), icon: "internaldrive.fill")
                 let disks = model.devices.filter { $0.totalMB > 0 }
                 if disks.isEmpty {
-                    Text(model.checking ? "Verificando…" : "Nenhum disco ou cartão encontrado.")
+                    Text(model.checking ? "Verificando…" : String(localized: "Nenhum disco ou cartão encontrado."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
                 ForEach(disks) { device in
                     let used = Double(device.totalMB - device.freeMB) / Double(device.totalMB)
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Label(device.isRecorder ? "\(device.name) · HD do NVR" : "\(device.name) · cartão da câmera",
+                            Label(device.isRecorder ? String(localized: "\(device.name) · HD do NVR") : String(localized: "\(device.name) · cartão da câmera"),
                                   systemImage: device.isRecorder ? "server.rack" : "sdcard")
                                 .font(.callout.weight(.medium))
                             Spacer()
@@ -247,11 +247,11 @@ struct HomeView: View {
     private func recordingMode(_ device: Device, used: Double) -> String {
         switch device.overwrite {
         case .some(true):
-            return used > 0.97 ? "Cheio, mas normal: gravação cíclica apaga as gravações mais antigas e continua gravando."
-                : "Gravação cíclica: quando encher, apaga as gravações mais antigas."
+            return used > 0.97 ? String(localized: "Cheio, mas normal: gravação cíclica apaga as gravações mais antigas e continua gravando.")
+                : String(localized: "Gravação cíclica: quando encher, apaga as gravações mais antigas.")
         case .some(false):
-            return used > 0.97 ? "Cheio e a gravação PAROU: o equipamento está configurado para parar quando enche."
-                : "Para de gravar quando encher (não apaga as antigas)."
+            return used > 0.97 ? String(localized: "Cheio e a gravação PAROU: o equipamento está configurado para parar quando enche.")
+                : String(localized: "Para de gravar quando encher (não apaga as antigas).")
         case .none:
             return "\(Self.size(device.freeMB)) livres"
         }

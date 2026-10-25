@@ -16,7 +16,7 @@ struct SettingPreview: View {
     var flip = false
     /// Compensação de contraluz: com ela, a pessoa na frente do portão claro aparece.
     var backlight: Bool?
-    var caption = "Exemplo ilustrativo"
+    var caption = String(localized: "Exemplo ilustrativo")
 
     var body: some View {
         VStack(spacing: 4) {

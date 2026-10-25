@@ -6,9 +6,9 @@ import SwiftUI
 @MainActor
 final class MaintenanceModel: ObservableObject {
     static let days: [(value: String, label: String)] = [
-        ("Never", "Nunca"), ("Everyday", "Todos os dias"),
-        ("Sunday", "Aos domingos"), ("Monday", "Às segundas"), ("Tuesday", "Às terças"),
-        ("Wednesday", "Às quartas"), ("Thursday", "Às quintas"), ("Friday", "Às sextas"), ("Saturday", "Aos sábados"),
+        ("Never", String(localized: "Nunca")), ("Everyday", String(localized: "Todos os dias")),
+        ("Sunday", String(localized: "Aos domingos")), ("Monday", String(localized: "Às segundas")), ("Tuesday", String(localized: "Às terças")),
+        ("Wednesday", String(localized: "Às quartas")), ("Thursday", String(localized: "Às quintas")), ("Friday", String(localized: "Às sextas")), ("Saturday", String(localized: "Aos sábados")),
     ]
 
     @Published private(set) var loading = false
@@ -77,12 +77,12 @@ final class MaintenanceModel: ObservableObject {
             if let upgrade = ConfigValue.object(in: upgradeRaw) {
                 // Valores vêm como 0/1 (ou true/false). Os "Ignore…" e o servidor ficam como estão.
                 let known: [(key: String, title: String, original: String, detail: String)] = [
-                    ("Enable", "Atualização on-line ligada", "Atualização on-line",
-                     "Desligado, o equipamento não procura atualizações na internet."),
-                    ("AutoUpgradeImp", "Instalar atualizações sozinho", "Atualização automática",
-                     "Baixa e instala sozinho as atualizações importantes do fabricante."),
-                    ("AutoCheck", "Avisar sobre novas versões", "Prompt for latest updates",
-                     "Procura versões novas e avisa, sem instalar."),
+                    ("Enable", String(localized: "Atualização on-line ligada"), String(localized: "Atualização on-line"),
+                     String(localized: "Desligado, o equipamento não procura atualizações na internet.")),
+                    ("AutoUpgradeImp", String(localized: "Instalar atualizações sozinho"), String(localized: "Atualização automática"),
+                     String(localized: "Baixa e instala sozinho as atualizações importantes do fabricante.")),
+                    ("AutoCheck", String(localized: "Avisar sobre novas versões"), String(localized: "Prompt for latest updates"),
+                     String(localized: "Procura versões novas e avisa, sem instalar.")),
                 ]
                 upgradeFlags = known.compactMap { spec in
                     guard let value = upgrade[spec.key] else { return nil }
@@ -121,7 +121,7 @@ final class MaintenanceModel: ObservableObject {
                 try await client.setConfig("NetWork.OnlineUpgrade", updated)
                 upgradeRaw = updated
             }
-            notice = "Manutenção aplicada."
+            notice = String(localized: "Manutenção aplicada.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -139,7 +139,7 @@ final class MaintenanceModel: ObservableObject {
         defer { backupBusy = false }
         do {
             let summary = try await ConfigBackup.export(camera: camera, to: url)
-            notice = "Cópia salva com \(summary.saved) configurações."
+            notice = String(localized: "Cópia salva com \(summary.saved) configurações.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -152,7 +152,7 @@ final class MaintenanceModel: ObservableObject {
             pendingImport = (url, model, configs)
             confirmingImport = true
         } catch {
-            self.error = "Arquivo inválido: não é uma cópia do VMS Next."
+            self.error = String(localized: "Arquivo inválido: não é uma cópia do VMS Next.")
         }
     }
 
@@ -164,9 +164,9 @@ final class MaintenanceModel: ObservableObject {
         defer { backupBusy = false; pendingImport = nil }
         do {
             let result = try await ConfigBackup.restore(camera: camera, configs: pending.configs, includeNetwork: includeNetwork)
-            notice = "\(result.applied) configurações restauradas."
+            notice = String(localized: "\(result.applied) configurações restauradas.")
             if !result.failed.isEmpty {
-                error = "O equipamento recusou: \(result.failed.joined(separator: ", "))."
+                error = String(localized: "O equipamento recusou: \(result.failed.joined(separator: ", ")).")
             }
             await load()
         } catch {
@@ -188,7 +188,7 @@ final class MaintenanceModel: ObservableObject {
                 // O equipamento desligou antes de responder: esperado.
             }
             DeviceSessions.shared.invalidate(account: camera.keychainAccount)
-            notice = "Reiniciando. O equipamento volta em cerca de 1 a 2 minutos; o vídeo reconecta sozinho."
+            notice = String(localized: "Reiniciando. O equipamento volta em cerca de 1 a 2 minutos; o vídeo reconecta sozinho.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -208,7 +208,7 @@ struct MaintenanceView: View {
         _model = StateObject(wrappedValue: MaintenanceModel(camera: camera))
     }
 
-    private var deviceWord: String { isRecorder ? "o NVR" : "a câmera" }
+    private var deviceWord: String { isRecorder ? String(localized: "o NVR") : String(localized: "a câmera") }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -227,7 +227,7 @@ struct MaintenanceView: View {
                             .disabled(model.rebooting)
                         } label: {
                             FieldLabel("Reiniciar \(deviceWord)", original: "Reiniciar",
-                                       detail: "Resolve travamentos. Durante 1 a 2 minutos não há vídeo nem gravação.")
+                                       detail: String(localized: "Resolve travamentos. Durante 1 a 2 minutos não há vídeo nem gravação."))
                         }
                         if model.rebooting {
                             ProgressView().controlSize(.small)
@@ -241,21 +241,21 @@ struct MaintenanceView: View {
                             Picker(selection: $model.rebootDay) {
                                 ForEach(model.dayOptions, id: \.value) { Text($0.label).tag($0.value) }
                             } label: {
-                                FieldLabel("Reiniciar automaticamente", original: "Auto reboot",
-                                           detail: "Um reinício programado evita travamentos depois de muitos dias ligado.")
+                                FieldLabel(String(localized: "Reiniciar automaticamente"), original: "Auto reboot",
+                                           detail: String(localized: "Um reinício programado evita travamentos depois de muitos dias ligado."))
                             }
                             Picker(selection: $model.rebootHour) {
                                 ForEach(0 ..< 24, id: \.self) { Text(String(format: "%02d:00", $0)).tag($0) }
                             } label: {
-                                FieldLabel("Horário", detail: "Escolha um horário de pouco movimento, como de madrugada.")
+                                FieldLabel(String(localized: "Horário"), detail: String(localized: "Escolha um horário de pouco movimento, como de madrugada."))
                             }
                             .disabled(model.rebootDay == "Never")
                             if model.hasAutoDelete {
                                 Stepper(value: $model.deleteDays, in: 0 ... 365) {
-                                    FieldLabel(model.deleteDays == 0 ? "Apagar gravações antigas: nunca"
-                                                                     : "Apagar gravações com mais de \(model.deleteDays) dias",
+                                    FieldLabel(model.deleteDays == 0 ? String(localized: "Apagar gravações antigas: nunca")
+                                                                     : String(localized: "Apagar gravações com mais de \(model.deleteDays) dias"),
                                                original: "Auto delete",
-                                               detail: "Apaga sozinho as gravações mais velhas que esse número de dias. 0 = nunca (o disco cheio já sobrescreve as mais antigas).")
+                                               detail: String(localized: "Apaga sozinho as gravações mais velhas que esse número de dias. 0 = nunca (o disco cheio já sobrescreve as mais antigas)."))
                                 }
                             }
                         } header: {
@@ -289,8 +289,8 @@ struct MaintenanceView: View {
                         }
                         .disabled(model.backupBusy)
                         Toggle(isOn: $model.includeNetwork) {
-                            FieldLabel("Incluir a rede ao importar",
-                                       detail: "Restaura também IP, DNS e DHCP. Deixe desligado ao copiar para outro equipamento, para não repetir o IP.")
+                            FieldLabel(String(localized: "Incluir a rede ao importar"),
+                                       detail: String(localized: "Restaura também IP, DNS e DHCP. Deixe desligado ao copiar para outro equipamento, para não repetir o IP."))
                         }
                     } header: {
                         Text("Cópia das configurações (Importar e exportar configuração)")
@@ -331,8 +331,8 @@ struct MaintenanceView: View {
             Button("Cancelar", role: .cancel) {}
         } message: {
             Text(isRecorder
-                ? "Todas as câmeras do NVR ficam sem gravação e sem vídeo por 1 a 2 minutos."
-                : "A câmera fica sem vídeo e sem gravação por 1 a 2 minutos.")
+                ? String(localized: "Todas as câmeras do NVR ficam sem gravação e sem vídeo por 1 a 2 minutos.")
+                : String(localized: "A câmera fica sem vídeo e sem gravação por 1 a 2 minutos."))
         }
         .confirmationDialog("Restaurar esta cópia em \(deviceWord)?", isPresented: $model.confirmingImport) {
             Button("Restaurar", role: .destructive) { Task { await model.runImport() } }

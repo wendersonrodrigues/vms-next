@@ -24,7 +24,7 @@ struct LoginView: View {
                 AppLogo(size: 52)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("VMS Next").font(.title.weight(.bold))
-                    Text(settingUp ? "Primeiro acesso" : "Entre para ver as suas câmeras")
+                    Text(settingUp ? String(localized: "Primeiro acesso") : String(localized: "Entre para ver as suas câmeras"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -61,7 +61,7 @@ struct LoginView: View {
             HStack {
                 Spacer()
                 Button("Sair") { NSApp.terminate(nil) }
-                Button(settingUp ? "Criar e entrar" : "Entrar", action: submit)
+                Button(settingUp ? String(localized: "Criar e entrar") : String(localized: "Entrar"), action: submit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(form.user.isEmpty || form.password.isEmpty)
             }
@@ -77,8 +77,8 @@ struct LoginView: View {
         form.error = nil
         let user = form.user.trimmingCharacters(in: .whitespaces)
         if settingUp {
-            guard form.password.count >= 4 else { return form.error = "Use pelo menos 4 caracteres." }
-            guard form.password == form.confirmation else { return form.error = "As senhas não conferem." }
+            guard form.password.count >= 4 else { return form.error = String(localized: "Use pelo menos 4 caracteres.") }
+            guard form.password == form.confirmation else { return form.error = String(localized: "As senhas não conferem.") }
             var imported: [String: String] = [:]
             if form.importOld {
                 for account in Set(store.cameras.map(\.keychainAccount)) {
@@ -89,12 +89,12 @@ struct LoginView: View {
                 try vault.setUp(user: user, password: form.password, remember: form.remember, imported: imported)
                 store.vaultDidUnlock()
             } catch {
-                form.error = "Não foi possível criar o cofre: \(error.localizedDescription)"
+                form.error = String(localized: "Não foi possível criar o cofre: \(error.localizedDescription)")
             }
         } else if vault.unlock(user: user, password: form.password, remember: form.remember) {
             store.vaultDidUnlock()
         } else {
-            form.error = "Usuário ou senha incorretos."
+            form.error = String(localized: "Usuário ou senha incorretos.")
             form.password = ""
         }
     }

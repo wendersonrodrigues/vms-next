@@ -18,7 +18,7 @@ struct CameraTile: View {
     var extraMenu: AnyView?
     /// Ação do duplo clique (abrir em tela única ou voltar ao mosaico), oferecida também ao VoiceOver.
     var onOpen: (() -> Void)?
-    var openTitle = "Abrir em tela única"
+    var openTitle = String(localized: "Abrir em tela única")
     /// Mosaico: PTZ deste quadro aberto (azul) e a ação de abrir/fechar. nil = sem botão de PTZ.
     var ptzActive = false
     var onTogglePTZ: (() -> Void)?
@@ -36,7 +36,7 @@ struct CameraTile: View {
     init(camera: Camera, quality: StreamQuality, part: SplitPart = .full, onEdit: @escaping () -> Void,
          onSettings: (() -> Void)? = nil, onToggleSplit: (() -> Void)? = nil, onRename: (() -> Void)? = nil,
          single: SingleViewControls? = nil, extraMenu: AnyView? = nil,
-         onOpen: (() -> Void)? = nil, openTitle: String = "Abrir em tela única",
+         onOpen: (() -> Void)? = nil, openTitle: String = String(localized: "Abrir em tela única"),
          ptzActive: Bool = false, onTogglePTZ: (() -> Void)? = nil) {
         self.ptzActive = ptzActive
         self.onTogglePTZ = onTogglePTZ
@@ -110,7 +110,7 @@ struct CameraTile: View {
                             .fill(ptzActive ? Theme.accent : Color.white.opacity(0.1)))
                 }
                 .buttonStyle(.hover)
-                .help(ptzActive ? "Fechar os controles de PTZ desta câmera" : "Abrir os controles de PTZ desta câmera")
+                .help(ptzActive ? String(localized: "Fechar os controles de PTZ desta câmera") : String(localized: "Abrir os controles de PTZ desta câmera"))
                 .accessibilityLabel("PTZ")
                 .accessibilityAddTraits(ptzActive ? .isSelected : [])
             }
@@ -157,17 +157,17 @@ struct CameraTile: View {
             // HD = vídeo principal (qualidade máxima); SD = vídeo extra, mais leve para rede lenta.
             HStack(spacing: 4) {
                 qualityButton(.main, icon: "hd", title: "HD", single: single,
-                              help: "HD: vídeo principal, na resolução máxima da câmera")
+                              help: String(localized: "HD: vídeo principal, na resolução máxima da câmera"))
                 qualityButton(.sub, icon: "sd", title: "SD", single: single,
-                              help: "SD: vídeo extra, mais leve (rede lenta ou Wi-Fi fraco)")
+                              help: String(localized: "SD: vídeo extra, mais leve (rede lenta ou Wi-Fi fraco)"))
             }
-            BarButton(icon: "camera", title: "Foto", help: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)") { takePhoto() }
+            BarButton(icon: "camera", title: String(localized: "Foto"), help: String(localized: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)")) { takePhoto() }
             Button {
                 recorder.toggle(camera)
             } label: {
                 // Cinza parado; vermelho só enquanto grava, para não parecer que já está gravando.
                 let isRecording = recorder.isRecording(camera)
-                Label(isRecording ? "Gravando · parar" : "Gravar",
+                Label(isRecording ? "Gravando · parar" : String(localized: "Gravar"),
                       systemImage: isRecording ? "stop.circle.fill" : "record.circle")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(isRecording ? Color.white : Color.secondary)
@@ -189,7 +189,7 @@ struct CameraTile: View {
                             .fill(ptzActive ? Theme.accent : Color.primary.opacity(0.08)))
                 }
                 .buttonStyle(.hover)
-                .help(ptzActive ? "Fechar os controles de PTZ" : "Mostrar os controles de PTZ ao lado, embaixo da lista de câmeras")
+                .help(ptzActive ? String(localized: "Fechar os controles de PTZ") : String(localized: "Mostrar os controles de PTZ ao lado, embaixo da lista de câmeras"))
                 .accessibilityLabel("PTZ")
                 .accessibilityAddTraits(ptzActive ? .isSelected : [])
             }
@@ -228,7 +228,7 @@ struct CameraTile: View {
         }
         .buttonStyle(.hover)
         .help(help)
-        .accessibilityLabel(quality == .main ? "Qualidade HD" : "Qualidade SD")
+        .accessibilityLabel(quality == .main ? String(localized: "Qualidade HD") : String(localized: "Qualidade SD"))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -251,7 +251,7 @@ struct CameraTile: View {
         Button("Editar câmera…", action: onEdit)
         if let onSettings { Button("Configurações…", action: onSettings) }
         Button("Reconectar") { start(force: true) }
-        Button(recorder.isRecording(camera) ? "Parar gravação no Mac" : "Gravar no Mac") { recorder.toggle(camera) }
+        Button(recorder.isRecording(camera) ? String(localized: "Parar gravação no Mac") : String(localized: "Gravar no Mac")) { recorder.toggle(camera) }
         if let extraMenu {
             Divider()
             extraMenu
@@ -259,7 +259,7 @@ struct CameraTile: View {
         if onToggleSplit != nil || onRename != nil { Divider() }
         if let onRename { Button("Renomear este quadro…", action: onRename) }
         if let onToggleSplit {
-            Button(camera.split == nil ? "Dividir em duas (split virtual)" : "Desfazer divisão", action: onToggleSplit)
+            Button(camera.split == nil ? String(localized: "Dividir em duas (split virtual)") : String(localized: "Desfazer divisão"), action: onToggleSplit)
         }
     }
 
@@ -277,7 +277,7 @@ struct CameraTile: View {
                 .accessibilityValue(accessibilityStatus)
                 .accessibilityAddTraits(.isImage)
                 .accessibilityAction(named: openTitle) { onOpen?() }
-                .accessibilityAction(named: recorder.isRecording(camera) ? "Parar gravação no Mac" : "Gravar no Mac") {
+                .accessibilityAction(named: recorder.isRecording(camera) ? String(localized: "Parar gravação no Mac") : String(localized: "Gravar no Mac")) {
                     recorder.toggle(camera)
                 }
                 .accessibilityAction(named: "Reconectar") { start(force: true) }
@@ -300,7 +300,7 @@ struct CameraTile: View {
     }
 
     private var accessibilityStatus: String {
-        let recording = recorder.isRecording(camera) ? ", gravando no Mac" : ""
+        let recording = recorder.isRecording(camera) ? String(localized: ", gravando no Mac") : ""
         switch stream.status {
         case .idle, .playing: return "Ao vivo" + recording
         case .connecting: return "Conectando" + recording

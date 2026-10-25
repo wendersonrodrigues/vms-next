@@ -64,7 +64,7 @@ final class Vault: ObservableObject {
               let key = try? Self.derive(password: password, salt: stored.salt, iterations: stored.iterations),
               open(with: key) else { return false }
         try? setRemember(remember)
-        AppLog.record(.login, "Entrada no VMS Next (\(user))")
+        AppLog.record(.login, String(localized: "Entrada no VMS Next (\(user))"))
         return true
     }
 
@@ -76,7 +76,7 @@ final class Vault: ObservableObject {
 
     /// Sai da sessão; com `forget`, apaga a senha lembrada.
     func lock(forget: Bool) {
-        AppLog.record(.login, "Saída da sessão")
+        AppLog.record(.login, String(localized: "Saída da sessão"))
         if forget { try? FileManager.default.removeItem(at: rememberURL) }
         key = nil
         passwords = [:]

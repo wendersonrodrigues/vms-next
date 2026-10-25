@@ -135,7 +135,7 @@ final class DVRIPClient: @unchecked Sendable {
         }
         if code == 1450 {
             let action = (payload as? [String: Any])?["Action"] as? String
-            AppLog.record(.device, name == "OPTimeSetting" ? "Relógio acertado" : action == "Reboot" ? "Reinício pedido" : "\(name) \(action ?? "")",
+            AppLog.record(.device, name == "OPTimeSetting" ? String(localized: "Relógio acertado") : action == "Reboot" ? String(localized: "Reinício pedido") : "\(name) \(action ?? "")",
                           device: host)
         }
         return response
@@ -169,7 +169,7 @@ final class DVRIPClient: @unchecked Sendable {
     @discardableResult
     func setConfig(_ name: String, _ value: Any) async throws -> Int {
         let response = try await command(code: 1040, name: name, payload: value, accepted: [100, 603])
-        AppLog.record(.config, "Configuração alterada: \(name)", device: host)
+        AppLog.record(.config, String(localized: "Configuração alterada: \(name)"), device: host)
         return response["Ret"] as? Int ?? 100
     }
 

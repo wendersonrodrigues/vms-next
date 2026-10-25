@@ -33,8 +33,8 @@ struct CameraEditor: View {
                             Text("Nenhuma").tag(Camera.ID?.none)
                             ForEach(store.standaloneCameras) { Text($0.name).tag(Optional($0.id)) }
                         } label: {
-                            FieldLabel("Mesma câmera que",
-                                       detail: "Câmera avulsa que este canal mostra; junta os alertas repetidos. Também dá para ligar em Eventos.")
+                            FieldLabel(String(localized: "Mesma câmera que"),
+                                       detail: String(localized: "Câmera avulsa que este canal mostra; junta os alertas repetidos. Também dá para ligar em Eventos."))
                         }
                     }
                 }
@@ -53,8 +53,8 @@ struct CameraEditor: View {
                             Image(systemName: form.showPassword ? "eye.slash" : "eye")
                         }
                         .buttonStyle(.borderless)
-                        .help(form.showPassword ? "Esconder a senha" : "Mostrar a senha salva")
-                        .accessibilityLabel(form.showPassword ? "Esconder a senha" : "Mostrar a senha")
+                        .help(form.showPassword ? String(localized: "Esconder a senha") : String(localized: "Mostrar a senha salva"))
+                        .accessibilityLabel(form.showPassword ? String(localized: "Esconder a senha") : String(localized: "Mostrar a senha"))
                     }
                 } header: {
                     Text("Acesso")
@@ -66,7 +66,7 @@ struct CameraEditor: View {
                     Picker(selection: $form.camera.ptz) {
                         ForEach(PTZSupport.allCases, id: \.self) { Text($0.label).tag($0) }
                     } label: {
-                        FieldLabel("PTZ (motor)", detail: "Mostra o botão PTZ no mosaico. No automático, segue o que a câmera informa.")
+                        FieldLabel("PTZ (motor)", detail: String(localized: "Mostra o botão PTZ no mosaico. No automático, segue o que a câmera informa."))
                     }
                     Picker("Vídeo ao vivo", selection: $form.camera.liveSource) {
                         Text("Automático").tag(LiveSource.auto)

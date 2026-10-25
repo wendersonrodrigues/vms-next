@@ -35,7 +35,7 @@ final class RecordingDownload: ObservableObject, Identifiable {
 
     func start() async {
         guard let password = Vault.shared.password(for: camera.keychainAccount) else {
-            state = .failed("Senha da câmera não definida.")
+            state = .failed(String(localized: "Senha da câmera não definida."))
             return
         }
         try? FileManager.default.removeItem(at: url)
@@ -189,7 +189,7 @@ final class MP4FrameWriter: @unchecked Sendable {
     func finish(_ completion: @escaping @Sendable (String?) -> Void) {
         if writer == nil, !bufferedVideo.isEmpty { startWriter() }
         guard !cancelled, let writer, let videoInput else {
-            completion(cancelled ? nil : "O equipamento não enviou vídeo para este arquivo.")
+            completion(cancelled ? nil : String(localized: "O equipamento não enviou vídeo para este arquivo."))
             return
         }
         videoInput.markAsFinished()
@@ -198,7 +198,7 @@ final class MP4FrameWriter: @unchecked Sendable {
         let audioEnd = CMTime(value: audioSampleIndex, timescale: Int32(Self.audioRate))
         writer.endSession(atSourceTime: CMTimeMaximum(videoEnd, audioEnd))
         writer.finishWriting {
-            completion(writer.status == .completed ? nil : (writer.error?.localizedDescription ?? "Falha ao salvar o MP4."))
+            completion(writer.status == .completed ? nil : (writer.error?.localizedDescription ?? String(localized: "Falha ao salvar o MP4.")))
         }
     }
 

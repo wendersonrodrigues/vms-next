@@ -20,22 +20,22 @@ struct HelpView: View {
                     }
                 }
                 Divider()
-                section("Primeiros passos", [
-                    "Dispositivos → Procurar na rede encontra as câmeras e NVRs Xiongmai da sua rede. Clique em Adicionar… e digite o usuário e a senha do equipamento.",
-                    "As senhas ficam num cofre criptografado só deste Mac. Para levar a lista a outro Mac, use + → Exportar câmeras (as senhas não vão junto).",
+                section(String(localized: "Primeiros passos"), [
+                    String(localized: "Dispositivos → Procurar na rede encontra as câmeras e NVRs Xiongmai da sua rede. Clique em Adicionar… e digite o usuário e a senha do equipamento."),
+                    String(localized: "As senhas ficam num cofre criptografado só deste Mac. Para levar a lista a outro Mac, use + → Exportar câmeras (as senhas não vão junto)."),
                 ])
-                section("Ao vivo", [
-                    "Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, HD/SD, zoom digital, Gravar e PTZ.",
-                    "Embaixo do mosaico: modelo de tela (arraste câmeras da lista para os quadros) e rodízio de telas.",
-                    "Câmeras duplas: botão direito → Dividir em duas (split virtual).",
+                section(String(localized: "Ao vivo"), [
+                    String(localized: "Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, HD/SD, zoom digital, Gravar e PTZ."),
+                    String(localized: "Embaixo do mosaico: modelo de tela (arraste câmeras da lista para os quadros) e rodízio de telas."),
+                    String(localized: "Câmeras duplas: botão direito → Dividir em duas (split virtual)."),
                 ])
-                section("Gravações e eventos", [
-                    "Gravações: escolha a câmera na lista e o dia; a busca é automática. Dá para baixar em MP4 e tirar foto do quadro.",
-                    "Eventos: alertas das câmeras (guardados no Mac), com atalhos para o ao vivo e a gravação do momento. Registro mostra o que aconteceu no app e nos equipamentos.",
+                section(String(localized: "Gravações e eventos"), [
+                    String(localized: "Gravações: escolha a câmera na lista e o dia; a busca é automática. Dá para baixar em MP4 e tirar foto do quadro."),
+                    String(localized: "Eventos: alertas das câmeras (guardados no Mac), com atalhos para o ao vivo e a gravação do momento. Registro mostra o que aconteceu no app e nos equipamentos."),
                 ])
-                section("Configurações e preferências", [
-                    "Configurações: ajustes da câmera ou do NVR escolhido na lista, organizados por assunto. Só aparecem as opções que o equipamento tem.",
-                    "Preferências (⌘,): pastas, aparência, gravação no Mac, sons e segundo plano.",
+                section(String(localized: "Configurações e preferências"), [
+                    String(localized: "Configurações: ajustes da câmera ou do NVR escolhido na lista, organizados por assunto. Só aparecem as opções que o equipamento tem."),
+                    String(localized: "Preferências (⌘,): pastas, aparência, gravação no Mac, sons e segundo plano."),
                 ])
                 Text("O VMS Next fala direto com os equipamentos na sua rede, sem nuvem e sem o SDK da fabricante. É um projeto independente, sem ligação com a Xiongmai.")
                     .font(.caption)

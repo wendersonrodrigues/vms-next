@@ -18,7 +18,7 @@ final class DeviceSessions {
             sessions[key] = nil
         }
         guard let password = Vault.shared.password(for: camera.keychainAccount) else {
-            throw DVRIPError.connection("defina a senha da câmera primeiro")
+            throw DVRIPError.connection(String(localized: "defina a senha da câmera primeiro"))
         }
         let task = Task { () throws -> DVRIPClient in
             let client = DVRIPClient(host: camera.host, port: camera.dvripPort)

@@ -14,9 +14,9 @@ struct HandlerState {
     }
 
     static let maskSpecs: [(key: String, title: String, original: String, detail: String)] = [
-        ("RecordMask", "Gravar os canais", "Gravação", "Quais canais gravam quando este alarme dispara."),
-        ("SnapShotMask", "Fotografar os canais", "Tirar foto", "Quais canais tiram foto quando este alarme dispara."),
-        ("TourMask", "Ronda nos canais", "Tour", "Canais mostrados em sequência no monitor do NVR durante o alarme."),
+        ("RecordMask", String(localized: "Gravar os canais"), String(localized: "Gravação"), String(localized: "Quais canais gravam quando este alarme dispara.")),
+        ("SnapShotMask", String(localized: "Fotografar os canais"), String(localized: "Tirar foto"), String(localized: "Quais canais tiram foto quando este alarme dispara.")),
+        ("TourMask", String(localized: "Ronda nos canais"), "Tour", String(localized: "Canais mostrados em sequência no monitor do NVR durante o alarme.")),
     ]
 
     var masks: [ChannelMask] = []
@@ -44,7 +44,7 @@ struct HandlerState {
         } + handler.keys.sorted().compactMap { key in
             guard !knownKeys.contains(key), key.hasSuffix("Enable"), let value = handler[key] as? Bool else { return nil }
             return SmartAlertModel.Action(
-                spec: SmartAlertModel.Spec(key: key, title: key, detail: "Opção do equipamento sem descrição conhecida.", group: .legacy),
+                spec: SmartAlertModel.Spec(key: key, title: key, detail: String(localized: "Opção do equipamento sem descrição conhecida."), group: .legacy),
                 isOn: value)
         }
         delays = SmartAlertModel.delaySpecs.compactMap { spec in
@@ -119,8 +119,8 @@ enum EventScreen {
 
     /// Itens de disco: no VMS antigo aparecem "Timed Alarm" (aviso na tela) e "Notificações".
     private static let storageActions = ["TipEnable", "MailEnable", "MessageEnable", "VoiceEnable", "MsgtoNetEnable"]
-    private static let storageNames = ["MailEnable": "Enviar e-mail",
-                                       "MessageEnable": "Notificações", "VoiceEnable": "Alarm Sound"]
+    private static let storageNames = ["MailEnable": String(localized: "Enviar e-mail"),
+                                       "MessageEnable": String(localized: "Notificações"), "VoiceEnable": String(localized: "Alarm Sound")]
     private static let storageDelays = ["CheckDiskInterval"]
 
     /// Uma só detecção (com ações em seções próprias) ou vários itens curtos na mesma tela.
@@ -129,33 +129,33 @@ enum EventScreen {
     var definitions: [Definition] {
         switch self {
         case .videoLoss:
-            return [Definition(names: { ["Detect.LossDetect.[\($0)]"] }, title: "Perda de vídeo", original: "Video Loss",
-                               detail: "Alarme quando a imagem do canal some: câmera desligada, cabo solto ou fora da rede.")]
+            return [Definition(names: { ["Detect.LossDetect.[\($0)]"] }, title: String(localized: "Perda de vídeo"), original: "Video Loss",
+                               detail: String(localized: "Alarme quando a imagem do canal some: câmera desligada, cabo solto ou fora da rede."))]
         case .blind:
-            return [Definition(names: { ["Detect.BlindDetect.[\($0)]"] }, title: "Câmera bloqueada", original: "Video Blind",
-                               detail: "Alarme quando a lente é coberta, pintada ou a imagem escurece de repente.")]
+            return [Definition(names: { ["Detect.BlindDetect.[\($0)]"] }, title: String(localized: "Câmera bloqueada"), original: "Video Blind",
+                               detail: String(localized: "Alarme quando a lente é coberta, pintada ou a imagem escurece de repente."))]
         case .vehicle:
-            return [Definition(names: { ["Detect.CarShapeDetection.[\($0)]"] }, title: "Detecção de veículos", original: "CarShape Detect",
-                               detail: "Alarme quando a câmera reconhece um carro ou moto. Só funciona em câmeras com essa função.")]
+            return [Definition(names: { ["Detect.CarShapeDetection.[\($0)]"] }, title: String(localized: "Detecção de veículos"), original: "CarShape Detect",
+                               detail: String(localized: "Alarme quando a câmera reconhece um carro ou moto. Só funciona em câmeras com essa função."))]
         case .abnormality:
             return [
-                Definition(names: { _ in ["Storage.StorageNotExist", "Alarm.StorageNotExist"] }, title: "Sem disco ou cartão", original: "Nenhum disco",
-                           detail: "Avisa quando o equipamento não encontra onde gravar.",
+                Definition(names: { _ in ["Storage.StorageNotExist", "Alarm.StorageNotExist"] }, title: String(localized: "Sem disco ou cartão"), original: "Nenhum disco",
+                           detail: String(localized: "Avisa quando o equipamento não encontra onde gravar."),
                            allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays,
                            requires: "AlarmFunction.StorageNotExist"),
-                Definition(names: { _ in ["Storage.StorageFailure", "Alarm.StorageFailure"] }, title: "Erro no disco", original: "Falha de armazenamento",
-                           detail: "Avisa quando o disco ou cartão falha ao ler ou gravar.",
+                Definition(names: { _ in ["Storage.StorageFailure", "Alarm.StorageFailure"] }, title: String(localized: "Erro no disco"), original: "Falha de armazenamento",
+                           detail: String(localized: "Avisa quando o disco ou cartão falha ao ler ou gravar."),
                            allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays,
                            requires: "AlarmFunction.StorageFailure"),
-                Definition(names: { _ in ["Storage.StorageLowSpace", "Alarm.StorageLowSpace"] }, title: "Disco quase cheio", original: "Espaço de armazenamento",
-                           detail: "Avisa quando o espaço livre cai abaixo do limite escolhido.",
+                Definition(names: { _ in ["Storage.StorageLowSpace", "Alarm.StorageLowSpace"] }, title: String(localized: "Disco quase cheio"), original: "Espaço de armazenamento",
+                           detail: String(localized: "Avisa quando o espaço livre cai abaixo do limite escolhido."),
                            allowedActions: Self.storageActions, originalNames: Self.storageNames, allowedDelays: Self.storageDelays,
                            requires: "AlarmFunction.StorageLowSpace"),
-                Definition(names: { _ in ["Alarm.NetAbort"] }, title: "Rede desconectada", original: "Internet desconectada",
-                           detail: "Avisa quando o equipamento perde a conexão com a rede.", allowedActions: [],
+                Definition(names: { _ in ["Alarm.NetAbort"] }, title: String(localized: "Rede desconectada"), original: "Internet desconectada",
+                           detail: String(localized: "Avisa quando o equipamento perde a conexão com a rede."), allowedActions: [],
                            requires: "AlarmFunction.NetAbort"),
-                Definition(names: { _ in ["Alarm.NetIPConflict"] }, title: "Conflito de IP", original: "Conflito de IP",
-                           detail: "Avisa quando outro aparelho da rede usa o mesmo endereço IP.", allowedActions: [],
+                Definition(names: { _ in ["Alarm.NetIPConflict"] }, title: String(localized: "Conflito de IP"), original: "Conflito de IP",
+                           detail: String(localized: "Avisa quando outro aparelho da rede usa o mesmo endereço IP."), allowedActions: [],
                            requires: "AlarmFunction.NetIpConflict"),
             ]
         }
@@ -271,7 +271,7 @@ final class EventConfigModel: ObservableObject {
             }
             entries = result
             if entries.isEmpty {
-                error = "Este equipamento não informou essas configurações. Use \"Diagnóstico…\" e me envie o resultado."
+                error = String(localized: "Este equipamento não informou essas configurações. Use \"Diagnóstico…\" e me envie o resultado.")
             }
         } catch {
             self.error = error.localizedDescription
@@ -299,7 +299,7 @@ final class EventConfigModel: ObservableObject {
                 try await client.setConfig(entry.name, updated)
                 entries[index].raw = updated
             }
-            notice = "Configuração aplicada."
+            notice = String(localized: "Configuração aplicada.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -332,7 +332,7 @@ final class EventConfigModel: ObservableObject {
             entries = [entry]
         } else {
             entries = []
-            error = "O NVR não informou essa configuração. Use \"Diagnóstico…\" e me envie o resultado."
+            error = String(localized: "O NVR não informou essa configuração. Use \"Diagnóstico…\" e me envie o resultado.")
         }
     }
 
@@ -365,7 +365,7 @@ final class EventConfigModel: ObservableObject {
             perChannel[channel] = saved
         }
         edited = []
-        notice = selectedChannel == nil ? "Aplicado em todos os canais." : "Configuração aplicada."
+        notice = selectedChannel == nil ? String(localized: "Aplicado em todos os canais.") : String(localized: "Configuração aplicada.")
     }
 
     /// Lê o estado de conexão de cada canal. Aceita os formatos mais comuns (lista de objetos com um campo de
@@ -505,10 +505,10 @@ struct EventConfigView: View {
     private var channelPicker: some View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
-                FieldLabel("Canal", original: "Canal / ChannelNo",
-                           detail: "Em \"Todos\", o que você ajustar aqui vale para todos os canais ao aplicar.")
+                FieldLabel(String(localized: "Canal"), original: "Canal / ChannelNo",
+                           detail: String(localized: "Em \"Todos\", o que você ajustar aqui vale para todos os canais ao aplicar."))
                 HStack(spacing: 6) {
-                    channelButton(title: "Todos", channel: nil, color: Theme.accent)
+                    channelButton(title: String(localized: "Todos"), channel: nil, color: Theme.accent)
                     ForEach(0 ..< model.channelCount, id: \.self) { channel in
                         let status = channelStatus(channel)
                         channelButton(title: "\(channel + 1)", channel: channel, color: status.color)
@@ -517,9 +517,9 @@ struct EventConfigView: View {
                     }
                 }
                 HStack(spacing: 14) {
-                    legend(.green, "Tem a função")
-                    legend(.red, "A câmera não tem")
-                    legend(.gray, "Sem câmera conectada")
+                    legend(.green, String(localized: "Tem a função"))
+                    legend(.red, String(localized: "A câmera não tem"))
+                    legend(.gray, String(localized: "Sem câmera conectada"))
                 }
                 .font(.caption)
                 if let channel = model.selectedChannel {
@@ -537,8 +537,8 @@ struct EventConfigView: View {
     }
 
     private func channelStatus(_ channel: Int) -> (color: Color, text: String) {
-        if !connectedChannels.contains(channel) { return (.gray, "sem câmera conectada") }
-        return model.isSupported(channel) ? (.green, "tem a função") : (.red, "a câmera não tem a função")
+        if !connectedChannels.contains(channel) { return (.gray, String(localized: "sem câmera conectada")) }
+        return model.isSupported(channel) ? (.green, String(localized: "tem a função")) : (.red, String(localized: "a câmera não tem a função"))
     }
 
     private func channelButton(title: String, channel: Int?, color: Color) -> some View {
@@ -670,7 +670,7 @@ struct EventConfigView: View {
             enableToggle(entry)
             if let limit = entry.wrappedValue.lowerLimit {
                 Stepper(value: Binding(get: { limit }, set: { entry.wrappedValue.lowerLimit = $0 }), in: 1 ... 99) {
-                    FieldLabel("Avisar com menos de \(limit)% livre", original: "Limite inferior")
+                    FieldLabel(String(localized: "Avisar com menos de \(limit)% livre"), original: "Limite inferior")
                 }
             }
             // As opções avançadas (informação na imagem, filtro de oscilação) não valem para problemas no equipamento.
@@ -691,13 +691,13 @@ struct EventConfigView: View {
         let definition = entry.wrappedValue.definition
         Toggle(isOn: entry.enabled) {
             FieldLabel("Ativar", original: definition.original,
-                       detail: entry.wrappedValue.supported ? definition.detail : "Este canal não tem essa função (a câmera não oferece).")
+                       detail: entry.wrappedValue.supported ? definition.detail : String(localized: "Este canal não tem essa função (a câmera não oferece)."))
         }
         .disabled(!entry.wrappedValue.supported)
         if let loiter = entry.wrappedValue.loiter {
             Stepper(value: Binding(get: { loiter }, set: { entry.wrappedValue.loiter = $0 }), in: 0 ... 600) {
-                FieldLabel("Tempo de permanência: \(loiter) s", original: "LoiterLatch",
-                           detail: "Só avisa se o veículo continuar na imagem por esse tempo; 0 avisa na hora.")
+                FieldLabel(String(localized: "Tempo de permanência: \(loiter) s"), original: "LoiterLatch",
+                           detail: String(localized: "Só avisa se o veículo continuar na imagem por esse tempo; 0 avisa na hora."))
             }
         }
     }
@@ -707,10 +707,10 @@ struct EventConfigView: View {
         if let level = entry.wrappedValue.level {
             Picker(selection: Binding(get: { level }, set: { entry.wrappedValue.level = $0 })) {
                 ForEach(Array(Set(Array(1 ... 6) + [level])).sorted(), id: \.self) {
-                    Text(SmartAlertModel.levelNames[$0] ?? "Nível \($0)").tag($0)
+                    Text(SmartAlertModel.levelNames[$0] ?? String(localized: "Nível \($0)")).tag($0)
                 }
             } label: {
-                FieldLabel("Sensibilidade", detail: "Mais alta dispara com bloqueios menores, mas pode dar alarme falso à noite.")
+                FieldLabel("Sensibilidade", detail: String(localized: "Mais alta dispara com bloqueios menores, mas pode dar alarme falso à noite."))
             }
         }
     }

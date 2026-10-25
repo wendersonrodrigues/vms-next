@@ -15,35 +15,35 @@ final class CameraParamsModel: ObservableObject {
     }
     static let knownDayNightModes: [DayNightMode] = [
         // Nomes de 0 a 2 conforme a tradução do próprio VMS antigo (tela IPC Param e English.qm).
-        DayNightMode(value: 0, label: "Visão noturna infravermelha", original: "Star IR",
-                     detail: "À noite liga o infravermelho; imagem em preto e branco.", needsDoubleLight: false),
-        DayNightMode(value: 1, label: "Colorida (luz das estrelas)", original: "Full Color",
-                     detail: "Fica colorido também à noite, usando a luz do local ou a luz branca.", needsDoubleLight: false),
-        DayNightMode(value: 2, label: "Alerta de luz dupla", original: "BlackAndWhiteMode",
-                     detail: "Infravermelho em preto e branco; ao detectar alguém, a luz acende e fica colorido.", needsDoubleLight: false),
-        DayNightMode(value: 3, label: "Luz ao detectar movimento", original: "IntellMotionDetect",
-                     detail: "Infravermelho à noite; ao detectar movimento, a luz acende e a imagem fica colorida.", needsDoubleLight: true),
-        DayNightMode(value: 4, label: "Luz quente", original: "WarmLight",
-                     detail: "Usa a luz quente da câmera para a imagem ficar colorida à noite.", needsDoubleLight: true),
-        DayNightMode(value: 5, label: "Infravermelho inteligente", original: "IntelligentInfrared",
-                     detail: "Infravermelho que se ajusta para não estourar quem está perto da câmera.", needsDoubleLight: true),
+        DayNightMode(value: 0, label: String(localized: "Visão noturna infravermelha"), original: "Star IR",
+                     detail: String(localized: "À noite liga o infravermelho; imagem em preto e branco."), needsDoubleLight: false),
+        DayNightMode(value: 1, label: String(localized: "Colorida (luz das estrelas)"), original: "Full Color",
+                     detail: String(localized: "Fica colorido também à noite, usando a luz do local ou a luz branca."), needsDoubleLight: false),
+        DayNightMode(value: 2, label: String(localized: "Alerta de luz dupla"), original: "BlackAndWhiteMode",
+                     detail: String(localized: "Infravermelho em preto e branco; ao detectar alguém, a luz acende e fica colorido."), needsDoubleLight: false),
+        DayNightMode(value: 3, label: String(localized: "Luz ao detectar movimento"), original: "IntellMotionDetect",
+                     detail: String(localized: "Infravermelho à noite; ao detectar movimento, a luz acende e a imagem fica colorida."), needsDoubleLight: true),
+        DayNightMode(value: 4, label: String(localized: "Luz quente"), original: "WarmLight",
+                     detail: String(localized: "Usa a luz quente da câmera para a imagem ficar colorida à noite."), needsDoubleLight: true),
+        DayNightMode(value: 5, label: String(localized: "Infravermelho inteligente"), original: "IntelligentInfrared",
+                     detail: String(localized: "Infravermelho que se ajusta para não estourar quem está perto da câmera."), needsDoubleLight: true),
         // Só com OtherFunction.SupportPlateDetect, como no VMS antigo.
-        DayNightMode(value: 6, label: "Leitura de placas", original: "LicensePlateMode",
-                     detail: "Ajusta a imagem noturna para ler placas de carro.", needsDoubleLight: false),
+        DayNightMode(value: 6, label: String(localized: "Leitura de placas"), original: "LicensePlateMode",
+                     detail: String(localized: "Ajusta a imagem noturna para ler placas de carro."), needsDoubleLight: false),
     ]
     static let autoDayNightMode = 0
 
     /// Câmeras de luz dupla (IR + LED branco) controlam a visão noturna por Camera.WhiteLight.WorkMode,
     /// com os mesmos três modos do app iCSee.
     static let nightModes: [(value: String, label: String, detail: String)] = [
-        ("Auto", "Visão noturna colorida",
-         "Com pouca luz, a luz branca liga automaticamente; imagem colorida."),
-        ("Close", "Visão noturna infravermelha",
-         "Com pouca luz, o infravermelho liga automaticamente; imagem em preto e branco."),
-        ("Intelligent", "Alerta de luz dupla",
-         "Infravermelho em preto e branco; ao detectar pessoas, a luz branca acende e a imagem fica colorida."),
+        ("Auto", String(localized: "Visão noturna colorida"),
+         String(localized: "Com pouca luz, a luz branca liga automaticamente; imagem colorida.")),
+        ("Close", String(localized: "Visão noturna infravermelha"),
+         String(localized: "Com pouca luz, o infravermelho liga automaticamente; imagem em preto e branco.")),
+        ("Intelligent", String(localized: "Alerta de luz dupla"),
+         String(localized: "Infravermelho em preto e branco; ao detectar pessoas, a luz branca acende e a imagem fica colorida.")),
     ]
-    static let triggerLevels: [(value: Int, label: String)] = [(1, "Baixa"), (3, "Média"), (5, "Alta")]
+    static let triggerLevels: [(value: Int, label: String)] = [(1, String(localized: "Baixa")), (3, String(localized: "Média")), (5, String(localized: "Alta"))]
     /// O VMS antigo (CCameraWhiteLightWidget) limita a duração a 120 s nas câmeras de luz dupla.
     static let triggerDurations = [10, 30, 60, 90, 120]
 
@@ -80,7 +80,7 @@ final class CameraParamsModel: ObservableObject {
     var dayNightOptions: [DayNightMode] {
         var options = Self.knownDayNightModes
         if let device = deviceDayNight, !options.contains(where: { $0.value == device }) {
-            options.append(DayNightMode(value: device, label: "Modo do equipamento (\(device))", original: "",
+            options.append(DayNightMode(value: device, label: String(localized: "Modo do equipamento (\(device))"), original: "",
                                         detail: "", needsDoubleLight: false))
         }
         return options
@@ -120,15 +120,15 @@ final class CameraParamsModel: ObservableObject {
     var nightModeOptions: [(value: String, label: String, detail: String)] {
         var options = Self.nightModes
         if !options.contains(where: { $0.value == nightMode }) {
-            options.append((nightMode, "Modo do equipamento (\(nightMode))", ""))
+            options.append((nightMode, String(localized: "Modo do equipamento (\(nightMode))"), ""))
         }
         return options
     }
     /// Como no VMS antigo: Baixa/Média/Alta (1/3/5) no modo inteligente; nos outros, níveis de 1 a 5.
     var triggerLevelOptions: [(value: Int, label: String)] {
-        var options = nightMode == "Intelligent" ? Self.triggerLevels : (1 ... 5).map { ($0, "Nível \($0)") }
+        var options = nightMode == "Intelligent" ? Self.triggerLevels : (1 ... 5).map { ($0, String(localized: "Nível \($0)")) }
         if !options.contains(where: { $0.value == triggerLevel }) {
-            options.append((triggerLevel, "Nível \(triggerLevel)"))
+            options.append((triggerLevel, String(localized: "Nível \(triggerLevel)")))
             options.sort { $0.value < $1.value }
         }
         return options
@@ -171,7 +171,7 @@ final class CameraParamsModel: ObservableObject {
             readWhiteLight()
             readParamEx()
             if !hasImageParams && !hasColor && !hasWhiteLight {
-                error = "Este equipamento não informou parâmetros de imagem para o canal \(camera.channel)."
+                error = String(localized: "Este equipamento não informou parâmetros de imagem para o canal \(camera.channel).")
             }
         } catch {
             self.error = error.localizedDescription
@@ -233,7 +233,7 @@ final class CameraParamsModel: ObservableObject {
 
                 let check = try await optionalConfig(client, whiteLightName) as? [String: Any]
                 if let applied = check?["WorkMode"] as? String, applied != nightMode {
-                    error = "A câmera aceitou o comando mas manteve a visão noturna anterior (\(applied))."
+                    error = String(localized: "A câmera aceitou o comando mas manteve a visão noturna anterior (\(applied)).")
                     return
                 }
             }
@@ -243,18 +243,18 @@ final class CameraParamsModel: ObservableObject {
                 let check = ConfigValue.object(in: try await optionalConfig(client, paramName))
                 let applied = ConfigValue.int(check?["DayNightColor"])
                 if applied == nil {
-                    error = "Este modelo não tem o campo DayNightColor; o modo dia/noite fica em outra configuração. Use \"Diagnóstico…\" e me envie o resultado."
+                    error = String(localized: "Este modelo não tem o campo DayNightColor; o modo dia/noite fica em outra configuração. Use \"Diagnóstico…\" e me envie o resultado.")
                     return
                 } else if let applied, applied != dayNight {
                     let name = dayNightOptions.first { $0.value == applied }?.label ?? "\(applied)"
                     dayNight = applied
                     dayNightChanged = false
-                    error = "Esta câmera não deixa trocar o modo dia/noite pelo computador (o VMS antigo também não consegue) e continua em \"\(name)\". As outras configurações foram aplicadas. Para trocar o modo, use o app iCSee."
+                    error = String(localized: "Esta câmera não deixa trocar o modo dia/noite pelo computador (o VMS antigo também não consegue) e continua em \"\(name)\". As outras configurações foram aplicadas. Para trocar o modo, use o app iCSee.")
                     return
                 }
             }
             dayNightChanged = false
-            notice = "Configurações aplicadas."
+            notice = String(localized: "Configurações aplicadas.")
         } catch {
             self.error = error.localizedDescription
         }

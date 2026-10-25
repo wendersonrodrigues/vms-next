@@ -41,7 +41,7 @@ struct VMSNextApp: App {
             CommandGroup(replacing: .appInfo) {
                 Button("Sobre o VMS Next") {
                     NSApp.orderFrontStandardAboutPanel(options: [
-                        .credits: NSAttributedString(string: "Criado por Wenderson Rodrigues\nCódigo aberto, licença MIT\ngithub.com/wendersonrodrigues/vms-next"),
+                        .credits: NSAttributedString(string: String(localized: "Criado por Wenderson Rodrigues\nCódigo aberto, licença MIT\ngithub.com/wendersonrodrigues/vms-next")),
                     ])
                 }
             }

@@ -48,11 +48,11 @@ final class BackgroundSettings: ObservableObject {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            loginError = "O macOS não aceitou: \(error.localizedDescription). Coloque o VMS Next na pasta Aplicativos e tente de novo."
+            loginError = String(localized: "O macOS não aceitou: \(error.localizedDescription). Coloque o VMS Next na pasta Aplicativos e tente de novo.")
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
         if SMAppService.mainApp.status == .requiresApproval {
-            loginError = "Autorize o VMS Next em Ajustes do Sistema → Geral → Itens de Início."
+            loginError = String(localized: "Autorize o VMS Next em Ajustes do Sistema → Geral → Itens de Início.")
         }
     }
 }
@@ -96,7 +96,7 @@ struct MenuBarPanel: View {
     @Environment(\.openWindow) private var openWindow
 
     private var connectedDevices: Int {
-        alarms.deviceStatus.values.filter { $0 == "Recebendo alertas" }.count
+        alarms.deviceStatus.values.filter { $0 == String(localized: "Recebendo alertas") }.count
     }
 
     var body: some View {
@@ -176,8 +176,8 @@ struct MenuBarPanel: View {
     }
 
     private var statusText: String {
-        guard vault.isUnlocked else { return "Sessão fechada" }
-        guard alarms.enabled else { return "Alertas desligados" }
+        guard vault.isUnlocked else { return String(localized: "Sessão fechada") }
+        guard alarms.enabled else { return String(localized: "Alertas desligados") }
         return connectedDevices == 1 ? "1 equipamento" : "\(connectedDevices) equipamentos"
     }
 }

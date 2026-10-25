@@ -1,0 +1,5 @@
+/* App name in English */
+"CFBundleName" = "VMS Next";
+"CFBundleDisplayName" = "VMS Next";
+"NSHumanReadableCopyright" = "© 2026 Wenderson Rodrigues · Open source (MIT license)";
+"NSLocalNetworkUsageDescription" = "VMS Next connects to the cameras on your local network.";

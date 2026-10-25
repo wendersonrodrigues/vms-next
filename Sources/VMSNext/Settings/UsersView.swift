@@ -22,13 +22,13 @@ final class UsersModel: ObservableObject {
 
     /// Permissões em português; "Monitor_03" vira "Ao vivo" do canal 3 e assim por diante.
     static let authorityNames: [String: String] = [
-        "ShutDown": "Desligar e reiniciar", "ChannelTitle": "Nome dos canais", "RecordConfig": "Config. de gravação",
-        "Backup": "Copiar gravações", "StorageManager": "Gerenciar disco", "Account": "Contas e senhas",
-        "SysInfo": "Informações do sistema", "QueryLog": "Ver registro", "DelLog": "Apagar registro",
-        "SysUpgrade": "Atualizar firmware", "AutoMaintain": "Manutenção automática", "TourConfig": "Ronda",
-        "TVadjustConfig": "Ajuste da TV", "GeneralConfig": "Config. geral", "EncodeConfig": "Qualidade do vídeo",
-        "NetConfig": "Rede", "AlarmConfig": "Alarmes", "VideoConfig": "Imagem", "PTZControl": "Controle PTZ",
-        "DefaultConfig": "Restaurar padrão", "DigitalManager": "Câmeras do NVR", "ImExport": "Importar/exportar",
+        "ShutDown": String(localized: "Desligar e reiniciar"), "ChannelTitle": String(localized: "Nome dos canais"), "RecordConfig": String(localized: "Config. de gravação"),
+        "Backup": String(localized: "Copiar gravações"), "StorageManager": String(localized: "Gerenciar disco"), "Account": String(localized: "Contas e senhas"),
+        "SysInfo": String(localized: "Informações do sistema"), "QueryLog": String(localized: "Ver registro"), "DelLog": String(localized: "Apagar registro"),
+        "SysUpgrade": String(localized: "Atualizar firmware"), "AutoMaintain": String(localized: "Manutenção automática"), "TourConfig": String(localized: "Ronda"),
+        "TVadjustConfig": String(localized: "Ajuste da TV"), "GeneralConfig": "Config. geral", "EncodeConfig": String(localized: "Qualidade do vídeo"),
+        "NetConfig": String(localized: "Rede"), "AlarmConfig": String(localized: "Alarmes"), "VideoConfig": String(localized: "Imagem"), "PTZControl": String(localized: "Controle PTZ"),
+        "DefaultConfig": String(localized: "Restaurar padrão"), "DigitalManager": String(localized: "Câmeras do NVR"), "ImExport": "Importar/exportar",
     ]
 
     /// Resume a lista de permissões: nomes claros e os canais de "Ao vivo"/"Gravações"/"Áudio" agrupados.
@@ -43,7 +43,7 @@ final class UsersModel: ObservableObject {
                 plain.append(authorityNames[item] ?? item)
             }
         }
-        let labels = ["Monitor": "Ver ao vivo", "Replay": "Ver gravações", "Talk": "Áudio bidirecional"]
+        let labels = ["Monitor": String(localized: "Ver ao vivo"), "Replay": String(localized: "Ver gravações"), "Talk": String(localized: "Áudio bidirecional")]
         let grouped = channels.keys.sorted().map { key -> String in
             let numbers = channels[key]!.sorted()
             let range = numbers.count > 1 && numbers.last! - numbers.first! == numbers.count - 1
@@ -113,7 +113,7 @@ final class UsersModel: ObservableObject {
                           authorities: group["AuthorityList"] as? [String] ?? [])
                 }
             }
-            if accounts.isEmpty { error = "O equipamento não informou as contas. Use \"Diagnóstico…\" e me envie o resultado." }
+            if accounts.isEmpty { error = String(localized: "O equipamento não informou as contas. Use \"Diagnóstico…\" e me envie o resultado.") }
         } catch {
             self.error = error.localizedDescription
         }
@@ -130,11 +130,11 @@ final class UsersModel: ObservableObject {
     func changePassword() async -> Bool {
         guard let account = editing else { return false }
         guard newPassword == confirmation else {
-            formError = "As senhas novas não conferem."
+            formError = String(localized: "As senhas novas não conferem.")
             return false
         }
         guard newPassword.count >= 6 else {
-            formError = "Use pelo menos 6 caracteres."
+            formError = String(localized: "Use pelo menos 6 caracteres.")
             return false
         }
         saving = true
@@ -153,11 +153,11 @@ final class UsersModel: ObservableObject {
                 Vault.shared.setPassword(newPassword, for: camera.keychainAccount)
                 DeviceSessions.shared.invalidate(account: camera.keychainAccount)
             }
-            notice = "Senha de \(account.name) alterada."
+            notice = String(localized: "Senha de \(account.name) alterada.")
             editing = nil
             return true
         } catch DVRIPError.device(let code) where code == 203 || code == 106 || code == 214 {
-            formError = "A senha atual está errada."
+            formError = String(localized: "A senha atual está errada.")
             return false
         } catch {
             formError = error.localizedDescription
@@ -180,19 +180,19 @@ final class UsersModel: ObservableObject {
     func addUser() async -> Bool {
         let name = newName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty, name.range(of: "^[A-Za-z0-9_.-]+$", options: .regularExpression) != nil else {
-            formError = "Use só letras sem acento, números, ponto, traço ou sublinhado no nome."
+            formError = String(localized: "Use só letras sem acento, números, ponto, traço ou sublinhado no nome.")
             return false
         }
         guard !accounts.contains(where: { $0.name.lowercased() == name.lowercased() }) else {
-            formError = "Já existe uma conta com esse nome."
+            formError = String(localized: "Já existe uma conta com esse nome.")
             return false
         }
         guard newUserPassword == newUserConfirmation else {
-            formError = "As senhas não conferem."
+            formError = String(localized: "As senhas não conferem.")
             return false
         }
         guard newUserPassword.count >= 6 else {
-            formError = "Use pelo menos 6 caracteres na senha."
+            formError = String(localized: "Use pelo menos 6 caracteres na senha.")
             return false
         }
         saving = true
@@ -217,10 +217,10 @@ final class UsersModel: ObservableObject {
 
     /// Motivo para não deixar apagar a conta (nil = pode apagar).
     func deleteBlocker(_ account: Account) -> String? {
-        if account.reserved { return "Conta reservada do equipamento." }
-        if account.name == appAccount { return "É a conta que o VMS Next usa." }
+        if account.reserved { return String(localized: "Conta reservada do equipamento.") }
+        if account.name == appAccount { return String(localized: "É a conta que o VMS Next usa.") }
         let admins = accounts.filter { $0.group.lowercased() == "admin" }
-        if account.group.lowercased() == "admin", admins.count <= 1 { return "É o único administrador." }
+        if account.group.lowercased() == "admin", admins.count <= 1 { return String(localized: "É o único administrador.") }
         return nil
     }
 
@@ -251,11 +251,11 @@ final class UsersModel: ObservableObject {
     func addGroup() async {
         let name = newGroupName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty, name.range(of: "^[A-Za-z0-9_.-]+$", options: .regularExpression) != nil else {
-            formError = "Use só letras sem acento, números, ponto, traço ou sublinhado no nome."
+            formError = String(localized: "Use só letras sem acento, números, ponto, traço ou sublinhado no nome.")
             return
         }
         guard !groups.contains(where: { $0.name.lowercased() == name.lowercased() }) else {
-            formError = "Já existe um grupo com esse nome."
+            formError = String(localized: "Já existe um grupo com esse nome.")
             return
         }
         saving = true
@@ -277,8 +277,8 @@ final class UsersModel: ObservableObject {
 
     /// Motivo para não deixar apagar o grupo (nil = pode apagar).
     func deleteBlocker(_ group: Group) -> String? {
-        if ["admin", "user"].contains(group.name.lowercased()) { return "Grupo padrão do equipamento." }
-        if accounts.contains(where: { $0.group == group.name }) { return "Há contas neste grupo." }
+        if ["admin", "user"].contains(group.name.lowercased()) { return String(localized: "Grupo padrão do equipamento.") }
+        if accounts.contains(where: { $0.group == group.name }) { return String(localized: "Há contas neste grupo.") }
         return nil
     }
 
@@ -348,7 +348,7 @@ struct UsersView: View {
                                 }
                                 .buttonStyle(.borderless)
                                 .disabled(model.deleteBlocker(account) != nil)
-                                .help(model.deleteBlocker(account).map { "Não pode apagar: \($0)" } ?? "Apagar conta")
+                                .help(model.deleteBlocker(account).map { String(localized: "Não pode apagar: \($0)") } ?? String(localized: "Apagar conta"))
                                 .accessibilityLabel("Apagar a conta \(account.name)")
                             }
                             .padding(.vertical, Space.xxs)
@@ -387,7 +387,7 @@ struct UsersView: View {
                                         }
                                         .buttonStyle(.borderless)
                                         .disabled(model.deleteBlocker(group) != nil)
-                                        .help(model.deleteBlocker(group).map { "Não pode apagar: \($0)" } ?? "Apagar grupo")
+                                        .help(model.deleteBlocker(group).map { String(localized: "Não pode apagar: \($0)") } ?? String(localized: "Apagar grupo"))
                                         .accessibilityLabel("Apagar o grupo \(group.name)")
                                     }
                                 }
@@ -473,7 +473,7 @@ struct UsersView: View {
                 Picker(selection: $model.newGroup) {
                     ForEach(model.groups) { Text(groupLabel($0.name)).tag($0.name) }
                 } label: {
-                    FieldLabel("Grupo", detail: "Usuário comum só vê ao vivo e gravações; administrador pode mudar tudo.")
+                    FieldLabel(String(localized: "Grupo"), detail: String(localized: "Usuário comum só vê ao vivo e gravações; administrador pode mudar tudo."))
                 }
                 TextField("Descrição (opcional)", text: $model.newMemo)
             }
@@ -502,7 +502,7 @@ struct UsersView: View {
                 Picker(selection: $model.groupTemplate) {
                     ForEach(model.groups) { Text(groupLabel($0.name)).tag($0.name) }
                 } label: {
-                    FieldLabel("Começar com as permissões de", detail: "O grupo novo recebe as mesmas permissões deste grupo.")
+                    FieldLabel(String(localized: "Começar com as permissões de"), detail: String(localized: "O grupo novo recebe as mesmas permissões deste grupo."))
                 }
                 TextField("Descrição (opcional)", text: $model.newGroupMemo)
             }

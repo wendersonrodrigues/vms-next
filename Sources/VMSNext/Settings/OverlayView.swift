@@ -87,7 +87,7 @@ final class OverlayModel: ObservableObject {
                 if let widget = first["OSDInfoWidget"] { extraTitle = Self.title(widget) ?? extraTitle }
             }
             if channelTitle == nil && timeTitle == nil && channelName == nil {
-                error = "Este equipamento não informou o texto sobre a imagem. Use \"Diagnóstico…\" e me envie o resultado."
+                error = String(localized: "Este equipamento não informou o texto sobre a imagem. Use \"Diagnóstico…\" e me envie o resultado.")
             }
         } catch {
             self.error = error.localizedDescription
@@ -156,7 +156,7 @@ final class OverlayModel: ObservableObject {
                 try await client.setConfig("fVideo.OSDInfo", updated)
                 osdRaw = updated
             }
-            notice = "Texto na imagem aplicado."
+            notice = String(localized: "Texto na imagem aplicado.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -262,7 +262,7 @@ struct OverlayView: View {
                             if model.channelName != nil {
                                 TextField(text: Binding(get: { model.channelName ?? "" }, set: { model.channelName = $0 })) {
                                     FieldLabel("Texto", original: "Nome do canal",
-                                               detail: "Nome escrito sobre a imagem.")
+                                               detail: String(localized: "Nome escrito sobre a imagem."))
                                 }
                             }
                             if model.channelTitle != nil {
@@ -317,7 +317,7 @@ struct OverlayView: View {
                         maskView(index, frame: frame)
                     }
                     if let title = model.channelTitle {
-                        tag(model.channelName ?? "Canal", key: "channel", origin: title.position, frame: frame) { model.channelTitle?.position = $0 }
+                        tag(model.channelName ?? String(localized: "Canal"), key: "channel", origin: title.position, frame: frame) { model.channelTitle?.position = $0 }
                     }
                     if let title = model.timeTitle {
                         tag(Date().formatted(date: .numeric, time: .standard), key: "time", origin: title.position, frame: frame) { model.timeTitle?.position = $0 }
@@ -412,10 +412,10 @@ struct OverlayView: View {
     @ViewBuilder
     private func visibility(_ title: Binding<OverlayModel.Title>, original: String) -> some View {
         Toggle(isOn: title.live) {
-            FieldLabel("Mostrar no ao vivo", original: original, detail: "Aparece no vídeo ao vivo (VMS Next, iCSee e monitor).")
+            FieldLabel(String(localized: "Mostrar no ao vivo"), original: original, detail: String(localized: "Aparece no vídeo ao vivo (VMS Next, iCSee e monitor)."))
         }
         Toggle(isOn: title.recorded) {
-            FieldLabel("Gravar junto no vídeo", detail: "Fica marcado nas gravações e nos downloads; útil como prova.")
+            FieldLabel(String(localized: "Gravar junto no vídeo"), detail: String(localized: "Fica marcado nas gravações e nos downloads; útil como prova."))
         }
     }
 

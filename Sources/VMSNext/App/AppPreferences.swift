@@ -76,7 +76,7 @@ final class AppPreferences: ObservableObject {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.directoryURL = current
-        panel.prompt = "Escolher"
+        panel.prompt = String(localized: "Escolher")
         return panel.runModal() == .OK ? panel.url : nil
     }
 
@@ -130,7 +130,7 @@ final class AutoSnapshot {
     }
 
     private func captureAll() {
-        let base = AppPreferences.shared.photoFolder.appendingPathComponent("Captura automática")
+        let base = AppPreferences.shared.photoFolder.appendingPathComponent(String(localized: "Captura automática"))
         let stamp = AppPreferences.stamp(Date())
         for (name, stream) in LiveStreamHub.shared.active where stream.status == .playing {
             let folder = base.appendingPathComponent(name.replacingOccurrences(of: "/", with: "-"))

@@ -80,7 +80,7 @@ final class HomeModel: ObservableObject {
         var device = device
         guard store.password(for: device.camera) != nil else {
             device.online = false
-            device.error = "Senha não definida"
+            device.error = String(localized: "Senha não definida")
             return device
         }
         do {
@@ -117,7 +117,7 @@ final class HomeModel: ObservableObject {
             let (placeData, _) = try await URLSession.shared.data(from: search.url!)
             guard let place = (try JSONSerialization.jsonObject(with: placeData) as? [String: Any])?["results"] as? [[String: Any]],
                   let first = place.first, let lat = first["latitude"] as? Double, let lon = first["longitude"] as? Double else {
-                weatherError = "Cidade não encontrada."
+                weatherError = String(localized: "Cidade não encontrada.")
                 return
             }
             var forecast = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
@@ -126,13 +126,13 @@ final class HomeModel: ObservableObject {
             let (data, _) = try await URLSession.shared.data(from: forecast.url!)
             guard let current = (try JSONSerialization.jsonObject(with: data) as? [String: Any])?["current"] as? [String: Any],
                   let temperature = current["temperature_2m"] as? Double else {
-                weatherError = "Clima indisponível agora."
+                weatherError = String(localized: "Clima indisponível agora.")
                 return
             }
             weather = Weather(city: first["name"] as? String ?? name, temperature: temperature,
                               code: current["weather_code"] as? Int ?? 0, isDay: (current["is_day"] as? Int ?? 1) == 1)
         } catch {
-            weatherError = "Sem internet para buscar o clima."
+            weatherError = String(localized: "Sem internet para buscar o clima.")
         }
     }
 

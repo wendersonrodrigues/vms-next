@@ -37,58 +37,58 @@ final class SmartAlertModel: ObservableObject {
 
     /// Ações do EventHandler, com nomes claros e o que cada uma faz.
     nonisolated static let actionSpecs: [Spec] = [
-        Spec(key: "RecordEnable", title: "Gravar vídeo", original: "Gravação",
-             detail: "Grava este canal enquanto o alarme estiver ativo.", group: .record),
-        Spec(key: "SnapEnable", title: "Tirar foto", original: "Tirar foto",
-             detail: "Salva uma foto do momento em que o alarme disparou.", group: .record),
-        Spec(key: "MsgtoNetEnable", title: "Avisar programas no computador", original: "MsgtoNet",
-             detail: "Envia o alerta para programas conectados pela rede, como o VMS Next. Deixe ligado para os alertas chegarem aqui.", group: .notify),
-        Spec(key: "MessageEnable", title: "Notificação no celular", original: "Notificações",
-             detail: "Envia o alerta para o app do celular (iCSee/XMEye).", group: .notify),
-        Spec(key: "MailEnable", title: "Enviar e-mail", original: "Enviar e-mail",
-             detail: "Manda um e-mail a cada alarme. Precisa de e-mail configurado no equipamento.", group: .notify),
-        Spec(key: "FTPEnable", title: "Enviar para servidor FTP", original: "FTP",
-             detail: "Envia fotos/vídeos do alarme para um servidor FTP configurado no equipamento.", group: .notify),
-        Spec(key: "LogEnable", title: "Registrar no histórico", original: "Escrever log",
-             detail: "Anota o alarme no registro de eventos do próprio equipamento.", group: .notify),
-        Spec(key: "SaveSerEnable", title: "Opção interna do NVR", original: "SaveSer",
-             detail: "Função do equipamento sem documentação. Mantenha como está.", group: .legacy),
-        Spec(key: "TipEnable", title: "Aviso na tela do gravador", original: "Tip",
-             detail: "Mostra um aviso no monitor ligado ao NVR/câmera.", group: .notify),
-        Spec(key: "BeepEnable", title: "Bipe no gravador", original: "Buzzer",
-             detail: "Faz o NVR apitar quando o alarme dispara.", group: .notify),
-        Spec(key: "VoiceEnable", title: "Aviso sonoro na câmera", original: "Voice",
-             detail: "Toca um som pelo alto-falante da câmera, se ela tiver.", group: .notify),
-        Spec(key: "AlarmOutEnable", title: "Acionar saída de alarme", original: "Saída de alarme",
-             detail: "Liga uma sirene ou relé conectado à saída de alarme do equipamento.", group: .external),
-        Spec(key: "PtzEnable", title: "Mover câmera PTZ", original: "Ativação de PTZ",
-             detail: "Leva uma câmera PTZ para um preset quando o alarme dispara.", group: .external),
-        Spec(key: "TourEnable", title: "Iniciar ronda PTZ", original: "Tour",
-             detail: "Faz a câmera PTZ percorrer os presets da ronda.", group: .external),
+        Spec(key: "RecordEnable", title: String(localized: "Gravar vídeo"), original: "Gravação",
+             detail: String(localized: "Grava este canal enquanto o alarme estiver ativo."), group: .record),
+        Spec(key: "SnapEnable", title: String(localized: "Tirar foto"), original: "Tirar foto",
+             detail: String(localized: "Salva uma foto do momento em que o alarme disparou."), group: .record),
+        Spec(key: "MsgtoNetEnable", title: String(localized: "Avisar programas no computador"), original: "MsgtoNet",
+             detail: String(localized: "Envia o alerta para programas conectados pela rede, como o VMS Next. Deixe ligado para os alertas chegarem aqui."), group: .notify),
+        Spec(key: "MessageEnable", title: String(localized: "Notificação no celular"), original: "Notificações",
+             detail: String(localized: "Envia o alerta para o app do celular (iCSee/XMEye)."), group: .notify),
+        Spec(key: "MailEnable", title: String(localized: "Enviar e-mail"), original: "Enviar e-mail",
+             detail: String(localized: "Manda um e-mail a cada alarme. Precisa de e-mail configurado no equipamento."), group: .notify),
+        Spec(key: "FTPEnable", title: String(localized: "Enviar para servidor FTP"), original: "FTP",
+             detail: String(localized: "Envia fotos/vídeos do alarme para um servidor FTP configurado no equipamento."), group: .notify),
+        Spec(key: "LogEnable", title: String(localized: "Registrar no histórico"), original: "Escrever log",
+             detail: String(localized: "Anota o alarme no registro de eventos do próprio equipamento."), group: .notify),
+        Spec(key: "SaveSerEnable", title: String(localized: "Opção interna do NVR"), original: "SaveSer",
+             detail: String(localized: "Função do equipamento sem documentação. Mantenha como está."), group: .legacy),
+        Spec(key: "TipEnable", title: String(localized: "Aviso na tela do gravador"), original: "Tip",
+             detail: String(localized: "Mostra um aviso no monitor ligado ao NVR/câmera."), group: .notify),
+        Spec(key: "BeepEnable", title: String(localized: "Bipe no gravador"), original: "Buzzer",
+             detail: String(localized: "Faz o NVR apitar quando o alarme dispara."), group: .notify),
+        Spec(key: "VoiceEnable", title: String(localized: "Aviso sonoro na câmera"), original: "Voice",
+             detail: String(localized: "Toca um som pelo alto-falante da câmera, se ela tiver."), group: .notify),
+        Spec(key: "AlarmOutEnable", title: String(localized: "Acionar saída de alarme"), original: "Saída de alarme",
+             detail: String(localized: "Liga uma sirene ou relé conectado à saída de alarme do equipamento."), group: .external),
+        Spec(key: "PtzEnable", title: String(localized: "Mover câmera PTZ"), original: "Ativação de PTZ",
+             detail: String(localized: "Leva uma câmera PTZ para um preset quando o alarme dispara."), group: .external),
+        Spec(key: "TourEnable", title: String(localized: "Iniciar ronda PTZ"), original: "Tour",
+             detail: String(localized: "Faz a câmera PTZ percorrer os presets da ronda."), group: .external),
         Spec(key: "ShortMsgEnable", title: "SMS", original: "ShortMsg",
-             detail: "Envio por SMS; só funciona em equipamentos com chip de celular.", group: .legacy),
+             detail: String(localized: "Envio por SMS; só funciona em equipamentos com chip de celular."), group: .legacy),
         Spec(key: "MMSEnable", title: "MMS", original: "MMS",
-             detail: "Envio por MMS; só funciona em equipamentos com chip de celular.", group: .legacy),
-        Spec(key: "MultimediaMsgEnable", title: "Mensagem multimídia", original: "MultimediaMsg",
-             detail: "Recurso antigo de envio de mídia; normalmente sem uso.", group: .legacy),
-        Spec(key: "MatrixEnable", title: "Matriz de vídeo", original: "Matrix",
-             detail: "Troca a imagem de uma matriz de monitores; normalmente sem uso.", group: .legacy),
-        Spec(key: "ShowInfo", title: "Mostrar informação na imagem", original: "ShowInfo",
-             detail: "Escreve o tipo de alarme sobre o vídeo.", group: .legacy),
+             detail: String(localized: "Envio por MMS; só funciona em equipamentos com chip de celular."), group: .legacy),
+        Spec(key: "MultimediaMsgEnable", title: String(localized: "Mensagem multimídia"), original: "MultimediaMsg",
+             detail: String(localized: "Recurso antigo de envio de mídia; normalmente sem uso."), group: .legacy),
+        Spec(key: "MatrixEnable", title: String(localized: "Matriz de vídeo"), original: "Matrix",
+             detail: String(localized: "Troca a imagem de uma matriz de monitores; normalmente sem uso."), group: .legacy),
+        Spec(key: "ShowInfo", title: String(localized: "Mostrar informação na imagem"), original: "ShowInfo",
+             detail: String(localized: "Escreve o tipo de alarme sobre o vídeo."), group: .legacy),
     ]
 
     nonisolated static let delaySpecs: [Spec] = [
-        Spec(key: "EventLatch", title: "Intervalo entre alarmes", original: "Intervalo",
-             detail: "Tempo mínimo entre dois alarmes seguidos. Evita uma enxurrada de avisos.", group: .notify),
-        Spec(key: "RecordLatch", title: "Continuar gravando por", original: "Record Delay",
-             detail: "Segundos de gravação depois que o movimento termina (de 10 a 300).", group: .record,
+        Spec(key: "EventLatch", title: String(localized: "Intervalo entre alarmes"), original: "Intervalo",
+             detail: String(localized: "Tempo mínimo entre dois alarmes seguidos. Evita uma enxurrada de avisos."), group: .notify),
+        Spec(key: "RecordLatch", title: String(localized: "Continuar gravando por"), original: "Record Delay",
+             detail: String(localized: "Segundos de gravação depois que o movimento termina (de 10 a 300)."), group: .record,
              range: 10 ... 300),
-        Spec(key: "AlarmOutLatch", title: "Manter a saída ligada por", original: "Atraso",
-             detail: "Segundos que a sirene/relé fica ligada depois do alarme.", group: .external),
-        Spec(key: "Dejitter", title: "Filtro de oscilação", original: "Dejitter",
-             detail: "Ignora disparos muito curtos. 0 = desligado.", group: .legacy, range: 0 ... 60),
-        Spec(key: "CheckDiskInterval", title: "Repetir o aviso a cada", original: "Timed Alarm",
-             detail: "Enquanto o problema continuar, o equipamento volta a avisar nesse intervalo.", group: .legacy),
+        Spec(key: "AlarmOutLatch", title: String(localized: "Manter a saída ligada por"), original: "Atraso",
+             detail: String(localized: "Segundos que a sirene/relé fica ligada depois do alarme."), group: .external),
+        Spec(key: "Dejitter", title: String(localized: "Filtro de oscilação"), original: "Dejitter",
+             detail: String(localized: "Ignora disparos muito curtos. 0 = desligado."), group: .legacy, range: 0 ... 60),
+        Spec(key: "CheckDiskInterval", title: String(localized: "Repetir o aviso a cada"), original: "Timed Alarm",
+             detail: String(localized: "Enquanto o problema continuar, o equipamento volta a avisar nesse intervalo."), group: .legacy),
     ]
 
     /// "Ativação de PTZ" do VMS antigo: EventHandler.PtzLink tem, para cada canal, [tipo, número].
@@ -97,7 +97,7 @@ final class SmartAlertModel: ObservableObject {
         var number: Int
     }
     nonisolated static let ptzLinkTypes: [(value: String, label: String)] = [
-        ("None", "Nenhum"), ("Preset", "Predefinido (preset)"), ("Tour", "Ronda"), ("Pattern", "Padrão"),
+        ("None", String(localized: "Nenhum")), ("Preset", String(localized: "Predefinido (preset)")), ("Tour", String(localized: "Ronda")), ("Pattern", String(localized: "Padrão")),
     ]
 
     nonisolated static func readPTZLink(_ handler: [String: Any], index: Int) -> PTZLink? {
@@ -113,7 +113,7 @@ final class SmartAlertModel: ObservableObject {
     }
 
     /// Mesmos nomes da Sensibilidade do VMS antigo.
-    nonisolated static let levelNames = [1: "Muito baixa", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito alta", 6: "Ultra alta"]
+    nonisolated static let levelNames = [1: String(localized: "Muito baixa"), 2: String(localized: "Baixa"), 3: String(localized: "Média"), 4: String(localized: "Alta"), 5: String(localized: "Muito alta"), 6: String(localized: "Ultra alta")]
 
     /// Como no VMS antigo, só aparecem as ações que o equipamento tem: bipe e aviso na tela somem com
     /// TipShow.NoBeepTipShow, o aviso sonoro exige SupportAlarmVoiceTips, a saída de alarme exige
@@ -205,7 +205,7 @@ final class SmartAlertModel: ObservableObject {
             readMotion()
             readHuman()
             if !hasMotion && !hasHuman {
-                error = "Este equipamento não informou detecção de movimento nem de pessoas para o canal \(camera.channel). Use \"Diagnóstico…\" e me envie o resultado."
+                error = String(localized: "Este equipamento não informou detecção de movimento nem de pessoas para o canal \(camera.channel). Use \"Diagnóstico…\" e me envie o resultado.")
             }
         } catch {
             self.error = error.localizedDescription
@@ -250,7 +250,7 @@ final class SmartAlertModel: ObservableObject {
                 try await client.setConfig(humanName, updated)
                 humanRaw = updated
             }
-            notice = "Detecção inteligente aplicada."
+            notice = String(localized: "Detecção inteligente aplicada.")
         } catch {
             self.error = error.localizedDescription
         }
@@ -281,7 +281,7 @@ final class SmartAlertModel: ObservableObject {
             (handler[spec.key] as? Bool).map { Action(spec: spec, isOn: $0) }
         } + handler.keys.sorted().compactMap { key in
             guard !knownKeys.contains(key), key.hasSuffix("Enable"), let value = handler[key] as? Bool else { return nil }
-            return Action(spec: Spec(key: key, title: key, detail: "Opção do equipamento sem descrição conhecida.", group: .legacy), isOn: value)
+            return Action(spec: Spec(key: key, title: key, detail: String(localized: "Opção do equipamento sem descrição conhecida."), group: .legacy), isOn: value)
         }
         delays = Self.delaySpecs.compactMap { spec in
             ConfigValue.int(handler[spec.key]).map { Delay(spec: spec, seconds: $0) }
@@ -318,9 +318,9 @@ final class SmartAlertModel: ObservableObject {
             let areas = active.filter { ConfigValue.int($0["RuleType"]) == 1 }.count
             let lines = active.count - areas
             var parts: [String] = []
-            if areas > 0 { parts.append("\(areas) área(s)") }
+            if areas > 0 { parts.append(String(localized: "\(areas) área(s)")) }
             if lines > 0 { parts.append("\(lines) linha(s)") }
-            ruleSummary = parts.isEmpty ? "Nenhuma — detecta na imagem toda" : parts.joined(separator: " e ")
+            ruleSummary = parts.isEmpty ? String(localized: "Nenhuma — detecta na imagem toda") : parts.joined(separator: " e ")
         }
     }
 
@@ -352,7 +352,7 @@ final class SmartAlertModel: ObservableObject {
     func saveRule(_ draft: RuleDraft) async -> String? {
         guard let raw = humanRaw, var human = ConfigValue.object(in: raw),
               var rules = human["PedRule"] as? [[String: Any]], rules.indices.contains(draft.index) else {
-            return "Regra não encontrada no equipamento."
+            return String(localized: "Regra não encontrada no equipamento.")
         }
         var rule = rules[draft.index]
         rule["Enable"] = true
@@ -380,10 +380,10 @@ final class SmartAlertModel: ObservableObject {
             humanRaw = try await client.getConfig(humanName)
             let saved = (ConfigValue.object(in: humanRaw)?["PedRule"] as? [[String: Any]])?[draft.index]
             if ConfigValue.int(saved?["RuleType"]) != draft.kind.rawValue {
-                return "O equipamento aceitou o comando mas manteve o tipo anterior."
+                return String(localized: "O equipamento aceitou o comando mas manteve o tipo anterior.")
             }
             readHuman()
-            notice = "Área de aviso salva na câmera."
+            notice = String(localized: "Área de aviso salva na câmera.")
             return nil
         } catch {
             return error.localizedDescription
@@ -453,28 +453,28 @@ struct SmartAlertView: View {
     private var humanSection: some View {
         Section("Detecção de pessoas") {
             Toggle(isOn: $model.humanEnabled) {
-                FieldLabel("Detectar pessoas", original: "HumanoidDetect",
-                           detail: "Só dispara quando reconhece o formato de uma pessoa. Gera bem menos alarmes falsos que a detecção de movimento.")
+                FieldLabel(String(localized: "Detectar pessoas"), original: "HumanoidDetect",
+                           detail: String(localized: "Só dispara quando reconhece o formato de uma pessoa. Gera bem menos alarmes falsos que a detecção de movimento."))
             }
             if model.hasHumanSensitivity {
                 Picker(selection: $model.humanSensitivity) {
                     ForEach(model.humanSensitivityOptions, id: \.self) { value in
-                        Text([1: "Baixa", 2: "Média", 3: "Alta"][value] ?? "Nível \(value)").tag(value)
+                        Text([1: String(localized: "Baixa"), 2: String(localized: "Média"), 3: String(localized: "Alta")][value] ?? String(localized: "Nível \(value)")).tag(value)
                     }
                 } label: {
-                    FieldLabel("Sensibilidade", detail: "Mais alta reconhece pessoas mais longe ou parcialmente escondidas, mas erra mais.")
+                    FieldLabel("Sensibilidade", detail: String(localized: "Mais alta reconhece pessoas mais longe ou parcialmente escondidas, mas erra mais."))
                 }
             }
             if model.hasShowTrack {
                 Toggle(isOn: $model.showTrack) {
-                    FieldLabel("Mostrar rastro", original: "Mostrar traços",
-                               detail: "Desenha uma moldura e o caminho da pessoa no vídeo ao vivo.")
+                    FieldLabel(String(localized: "Mostrar rastro"), original: "Mostrar traços",
+                               detail: String(localized: "Desenha uma moldura e o caminho da pessoa no vídeo ao vivo."))
                 }
             }
             if model.hasShowRule {
                 Toggle(isOn: $model.showRule) {
-                    FieldLabel("Mostrar área/linha no vídeo", original: "ShowRule",
-                               detail: "Exibe a área ou linha de aviso desenhada sobre a imagem.")
+                    FieldLabel(String(localized: "Mostrar área/linha no vídeo"), original: "ShowRule",
+                               detail: String(localized: "Exibe a área ou linha de aviso desenhada sobre a imagem."))
                 }
             }
             if let summary = model.ruleSummary {
@@ -484,8 +484,8 @@ struct SmartAlertView: View {
                         Button("Desenhar…") { model.beginRuleEditing() }
                     }
                 } label: {
-                    FieldLabel("Área ou linha de aviso", original: "Rule",
-                               detail: "Limita o alerta a uma região da imagem ou a quem cruzar uma linha.")
+                    FieldLabel(String(localized: "Área ou linha de aviso"), original: "Rule",
+                               detail: String(localized: "Limita o alerta a uma região da imagem ou a quem cruzar uma linha."))
                 }
             }
         }
@@ -494,13 +494,13 @@ struct SmartAlertView: View {
     private var motionSection: some View {
         Section("Detecção de movimento") {
             Toggle(isOn: $model.motionEnabled) {
-                FieldLabel("Detectar movimento", original: "Habilitar",
-                           detail: "Dispara com qualquer mudança na imagem (pessoas, carros, animais, sombras, chuva). Precisa estar ligado para as ações abaixo funcionarem.")
+                FieldLabel(String(localized: "Detectar movimento"), original: "Habilitar",
+                           detail: String(localized: "Dispara com qualquer mudança na imagem (pessoas, carros, animais, sombras, chuva). Precisa estar ligado para as ações abaixo funcionarem."))
             }
             Picker(selection: $model.motionLevel) {
-                ForEach(model.levelOptions, id: \.self) { Text(SmartAlertModel.levelNames[$0] ?? "Nível \($0)").tag($0) }
+                ForEach(model.levelOptions, id: \.self) { Text(SmartAlertModel.levelNames[$0] ?? String(localized: "Nível \($0)")).tag($0) }
             } label: {
-                FieldLabel("Sensibilidade", detail: "Mais alta dispara com movimentos menores, mas aumenta os alarmes falsos.")
+                FieldLabel("Sensibilidade", detail: String(localized: "Mais alta dispara com movimentos menores, mas aumenta os alarmes falsos."))
             }
         }
     }
@@ -574,12 +574,12 @@ struct PTZLinkRow: View {
                 Text(link.type).tag(link.type)
             }
         } label: {
-            FieldLabel("Ação da PTZ", original: "Ativação de PTZ",
-                       detail: "O que a câmera PTZ faz quando o alarme dispara.")
+            FieldLabel(String(localized: "Ação da PTZ"), original: "Ativação de PTZ",
+                       detail: String(localized: "O que a câmera PTZ faz quando o alarme dispara."))
         }
         if link.type != "None" {
             Stepper(value: $link.number, in: 0 ... 255) {
-                FieldLabel(link.type == "Preset" ? "Número do preset: \(link.number)" : "Número: \(link.number)")
+                FieldLabel(link.type == "Preset" ? String(localized: "Número do preset: \(link.number)") : String(localized: "Número: \(link.number)"))
             }
         }
     }

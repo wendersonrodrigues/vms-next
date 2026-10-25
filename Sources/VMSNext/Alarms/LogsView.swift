@@ -19,7 +19,7 @@ struct LogsView: View {
                 .labelsHidden()
                 .fixedSize()
                 DatePicker("De", selection: $model.from)
-                DatePicker("até", selection: $model.to)
+                DatePicker(String(localized: "até"), selection: $model.to)
                 Spacer()
             }
             .padding(Space.m)
@@ -65,11 +65,11 @@ struct LogsView: View {
                 Text(message).font(.callout).foregroundStyle(.secondary).padding(Space.s)
             }
             Table(rows) {
-                TableColumn("Horário") { Text($0.time).monospacedDigit() }
+                TableColumn(String(localized: "Horário")) { Text($0.time).monospacedDigit() }
                     .width(min: 140, ideal: 160)
-                TableColumn("Usuário", value: \.user).width(min: 80, ideal: 110)
-                TableColumn("Tipo", value: \.type).width(min: 110, ideal: 150)
-                TableColumn("Equipamento", value: \.device).width(min: 100, ideal: 150)
+                TableColumn(String(localized: "Usuário"), value: \.user).width(min: 80, ideal: 110)
+                TableColumn(String(localized: "Tipo"), value: \.type).width(min: 110, ideal: 150)
+                TableColumn(String(localized: "Equipamento"), value: \.device).width(min: 100, ideal: 150)
                 TableColumn("Nota") { Text($0.note).textSelection(.enabled) }
             }
             Divider()
@@ -114,7 +114,7 @@ struct LogsView: View {
         let name = "Registro \(model.tab == .client ? "cliente" : "dispositivo") \(AppPreferences.stamp(Date()))"
         guard let url = prefs.destination(named: name, in: prefs.downloadFolder, type: .commaSeparatedText) else { return }
         let escape: (String) -> String = { "\"" + $0.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
-        let lines = ["Horário,Usuário,Tipo,Equipamento,Nota"]
+        let lines = [String(localized: "Horário,Usuário,Tipo,Equipamento,Nota")]
             + rows.map { [$0.time, $0.user, $0.type, $0.device, $0.note].map(escape).joined(separator: ",") }
         try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
         NSWorkspace.shared.activateFileViewerSelecting([url])
@@ -135,8 +135,8 @@ final class DeviceLogModel: ObservableObject {
     enum Tab { case client, device }
 
     static let types: [(value: String, label: String)] = [
-        ("LogAll", "Todos"), ("System", "Sistema"), ("Config", "Configuração"), ("Storage", "Armazenamento"),
-        ("Alarm", "Alarmes"), ("Record", "Gravação"), ("Account", "Contas e acessos"), ("File", "Arquivos"),
+        ("LogAll", String(localized: "Todos")), ("System", String(localized: "Sistema")), ("Config", String(localized: "Configuração")), ("Storage", String(localized: "Armazenamento")),
+        ("Alarm", String(localized: "Alarmes")), ("Record", String(localized: "Gravação")), ("Account", String(localized: "Contas e acessos")), ("File", String(localized: "Arquivos")),
     ]
 
     @Published var tab: Tab = .client
@@ -168,13 +168,13 @@ final class DeviceLogModel: ObservableObject {
                 result += page.map { entry in
                     LogRow(time: entry["Time"] as? String ?? "", user: entry["User"] as? String ?? "",
                            type: Self.label(entry["Type"] as? String ?? ""), device: camera.name,
-                           note: entry["Data"] as? String ?? "")
+                           note: entry[String(localized: "Data")] as? String ?? "")
                 }
                 guard page.count >= 128, let last = ConfigValue.int(page.last?["Position"]) else { break }
                 position = last + 1
             }
             rows = result
-            if result.isEmpty { message = "Nenhum registro neste período." }
+            if result.isEmpty { message = String(localized: "Nenhum registro neste período.") }
         } catch {
             message = error.localizedDescription
         }
@@ -183,12 +183,12 @@ final class DeviceLogModel: ObservableObject {
     /// Tipos que o equipamento envia, em português; os desconhecidos aparecem como vieram.
     static func label(_ type: String) -> String {
         let names: [String: String] = [
-            "LogIn": "Entrada", "LogOut": "Saída", "SaveConfig": "Configuração salva", "SetTime": "Hora alterada",
-            "Reboot": "Reinício", "ShutDown": "Desligamento", "Upgrade": "Atualização",
-            "EventStart": "Alarme (início)", "EventStop": "Alarme (fim)", "StorageDeviceError": "Erro no disco",
-            "DiskChanged": "Disco trocado", "RecordStart": "Gravação iniciada", "RecordStop": "Gravação parada",
-            "FileAccess": "Acesso a arquivo", "ClearLog": "Registro apagado", "AddUser": "Conta criada",
-            "DeleteUser": "Conta apagada", "ModifyPassword": "Senha alterada",
+            "LogIn": "Entrada", "LogOut": String(localized: "Saída"), "SaveConfig": String(localized: "Configuração salva"), "SetTime": String(localized: "Hora alterada"),
+            "Reboot": String(localized: "Reinício"), "ShutDown": "Desligamento", "Upgrade": String(localized: "Atualização"),
+            "EventStart": String(localized: "Alarme (início)"), "EventStop": String(localized: "Alarme (fim)"), "StorageDeviceError": String(localized: "Erro no disco"),
+            "DiskChanged": String(localized: "Disco trocado"), "RecordStart": String(localized: "Gravação iniciada"), "RecordStop": String(localized: "Gravação parada"),
+            "FileAccess": String(localized: "Acesso a arquivo"), "ClearLog": String(localized: "Registro apagado"), "AddUser": String(localized: "Conta criada"),
+            "DeleteUser": String(localized: "Conta apagada"), "ModifyPassword": String(localized: "Senha alterada"),
         ]
         return names[type] ?? type
     }

@@ -49,7 +49,7 @@ struct RecorderChannelView<Content: View>: View {
                         Text(name(channel)).tag(channel)
                     }
                 } label: {
-                    FieldLabel("Canal", original: "ChannelNo")
+                    FieldLabel(String(localized: "Canal"), original: "ChannelNo")
                 }
                 .frame(maxWidth: 420)
                 .disabled(count == 1)

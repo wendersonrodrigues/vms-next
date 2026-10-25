@@ -137,6 +137,7 @@ Interface revista pelas regras da Apple para o macOS ([docs/REVISAO-INTERFACE-MA
 - Atalhos: **⌘,** Preferências · **⌘1–⌘6** telas · **⌥⌘← ⌥⌘→** páginas do mosaico · **⌥⌘↑** voltar ao mosaico · **⌥⌘R** rodízio · nas Gravações **espaço**, **← →** e **⌘D** · **⌘R** recarregar as configurações.
 
 ### Preferências
+- **Idioma**: português ou inglês (ou igual ao Mac); o app reinicia no idioma escolhido.
 - Tema claro, escuro ou igual ao Mac.
 - Pastas de fotos, downloads e gravações, e se pergunta onde salvar.
 - Voltar para onde parei, lembrar login, acertar o relógio das câmeras, qualidade ao abrir uma câmera.
@@ -168,6 +169,13 @@ O que está nos planos (ideias e pedidos são bem-vindos nas *Issues*):
 - **macOS 14** ou mais novo (foto do quadro: macOS 14.4).
 - Para compilar: Swift 6 (Command Line Tools ou Xcode).
 - NVRs com **Criptografia de rede** em "Login de rede precisa de criptografia" recusam o app; use "Login remoto precisa de criptografia".
+
+## Traduções
+
+O português é o idioma original: os textos do código são as chaves. O inglês fica em
+`Resources/en.lproj/Localizable.strings`. Texto novo na tela precisa passar pela tradução: literal direto em
+`Text`, `Button`, `Label`, `.help` e parecidos, ou `String(localized: "...")` quando vai para uma variável. Para
+listar os textos, compile com `-Xswiftc -emit-localized-strings -Xswiftc -emit-localized-strings-path -Xswiftc <pasta>`.
 
 ## Compilar a partir do código
 

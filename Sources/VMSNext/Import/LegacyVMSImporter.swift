@@ -12,19 +12,19 @@ enum LegacyVMSImporter {
 
     static func load(path: String = defaultPath) throws -> [Camera] {
         guard FileManager.default.fileExists(atPath: path) else {
-            throw ImportError(errorDescription: "Banco do VMS não encontrado em \(path)")
+            throw ImportError(errorDescription: String(localized: "Banco do VMS não encontrado em \(path)"))
         }
         var db: OpaquePointer?
         guard sqlite3_open_v2(path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
             sqlite3_close(db)
-            throw ImportError(errorDescription: "Não foi possível abrir o banco do VMS")
+            throw ImportError(errorDescription: String(localized: "Não foi possível abrir o banco do VMS"))
         }
         defer { sqlite3_close(db) }
 
         var statement: OpaquePointer?
         let sql = "SELECT Name, Address, UserName, AnalogChan, DigitalChan, DeviceType FROM Devices ORDER BY ID"
         guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-            throw ImportError(errorDescription: "Formato do banco do VMS não reconhecido")
+            throw ImportError(errorDescription: String(localized: "Formato do banco do VMS não reconhecido"))
         }
         defer { sqlite3_finalize(statement) }
 

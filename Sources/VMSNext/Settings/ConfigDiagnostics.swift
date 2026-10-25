@@ -5,7 +5,7 @@ enum ConfigDiagnostics {
     /// (código, nome): 1042 = CONFIG_GET, 1360 = ABILITY_GET
     @MainActor
     static func dump(camera: Camera, requests: [(UInt16, String)]) async -> String {
-        var output = "Câmera: \(camera.displayName) · canal \(camera.channel)\n"
+        var output = String(localized: "Câmera: \(camera.displayName) · canal \(camera.channel)\n")
         do {
             let client = try await DeviceSessions.shared.client(for: camera)
             for (code, name) in requests {
@@ -16,11 +16,11 @@ enum ConfigDiagnostics {
                     let data = try JSONSerialization.data(withJSONObject: redacted(value), options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed])
                     output += String(decoding: data, as: UTF8.self) + "\n"
                 } catch {
-                    output += "(não suportado: \(error.localizedDescription))\n"
+                    output += String(localized: "(não suportado: \(error.localizedDescription))\n")
                 }
             }
         } catch {
-            output += "\nFalha ao conectar: \(error.localizedDescription)\n"
+            output += String(localized: "\nFalha ao conectar: \(error.localizedDescription)\n")
         }
         return output
     }

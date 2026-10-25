@@ -15,13 +15,13 @@ struct DevicesView: View {
                     Button {
                         Task { await model.search() }
                     } label: {
-                        Label(model.searching ? "Procurando…" : "Procurar na rede", systemImage: "magnifyingglass")
+                        Label(model.searching ? "Procurando…" : String(localized: "Procurar na rede"), systemImage: "magnifyingglass")
                     }
                     .disabled(model.searching)
                     if model.searching { ProgressView().controlSize(.small) }
                     Spacer()
                     Button {
-                        onEdit(Camera(name: "Nova câmera", host: "192.168.0."))
+                        onEdit(Camera(name: String(localized: "Nova câmera"), host: "192.168.0."))
                     } label: {
                         Label("Adicionar manualmente", systemImage: "plus")
                     }
@@ -89,14 +89,14 @@ struct DevicesView: View {
     private var rows: [Row] {
         var result = store.standaloneCameras.map { camera in
             Row(id: camera.id.uuidString, title: camera.name,
-                subtitle: "\(camera.host):\(camera.dvripPort) · usuário \(camera.username)"
+                subtitle: String(localized: "\(camera.host):\(camera.dvripPort) · usuário \(camera.username)")
                     + (camera.cloudID.map { " · CloudID \($0)" } ?? ""),
                 camera: camera, isRecorder: false)
         }
         for group in store.groups {
             guard let first = store.channels(in: group).first else { continue }
             result.append(Row(id: "group-\(group)", title: group,
-                              subtitle: "\(first.host):\(first.dvripPort) · \(store.channels(in: group).count) canais · usuário \(first.username)",
+                              subtitle: String(localized: "\(first.host):\(first.dvripPort) · \(store.channels(in: group).count) canais · usuário \(first.username)"),
                               camera: first, isRecorder: true))
         }
         return result
@@ -115,12 +115,12 @@ final class DevicesModel: ObservableObject {
         found = await DeviceDiscovery.search()
         searching = false
         if found.isEmpty {
-            message = "Nenhum equipamento respondeu. Confira se o Mac está na mesma rede e se o VMS Next tem permissão de Rede Local (Ajustes do Sistema → Privacidade e Segurança → Rede Local)."
+            message = String(localized: "Nenhum equipamento respondeu. Confira se o Mac está na mesma rede e se o VMS Next tem permissão de Rede Local (Ajustes do Sistema → Privacidade e Segurança → Rede Local).")
         }
     }
 
     func camera(for device: DeviceDiscovery.Found) -> Camera {
-        var camera = Camera(name: device.name.isEmpty || device.name == "LocalHost" ? "Câmera \(device.ip)" : device.name,
+        var camera = Camera(name: device.name.isEmpty || device.name == "LocalHost" ? String(localized: "Câmera \(device.ip)") : device.name,
                             host: device.ip)
         camera.dvripPort = device.port
         camera.cloudID = device.serial.isEmpty ? nil : device.serial

@@ -126,7 +126,7 @@ final class TemplateDraft: ObservableObject {
     init(template: ViewTemplate?) {
         let base = template ?? ViewTemplate.grid("custom-\(UUID().uuidString)", 3)
         id = template?.id ?? base.id
-        name = template?.name ?? "Meu modelo"
+        name = template?.name ?? String(localized: "Meu modelo")
         columns = base.columns
         rows = base.rows
         cells = base.cells
@@ -140,7 +140,7 @@ final class TemplateDraft: ObservableObject {
     func load(_ template: ViewTemplate?) {
         let base = template ?? ViewTemplate.grid("custom-\(UUID().uuidString)", 3)
         id = base.id
-        name = template?.name ?? "Meu modelo"
+        name = template?.name ?? String(localized: "Meu modelo")
         columns = base.columns
         rows = base.rows
         cells = base.cells

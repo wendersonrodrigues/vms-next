@@ -55,15 +55,15 @@ struct EventsView: View {
         Form {
             Section {
                 Toggle(isOn: $center.enabled) {
-                    FieldLabel("Receber alertas das câmeras",
-                               detail: "O VMS Next precisa estar aberto (pode ficar minimizado) para receber os alertas.")
+                    FieldLabel(String(localized: "Receber alertas das câmeras"),
+                               detail: String(localized: "O VMS Next precisa estar aberto (pode ficar minimizado) para receber os alertas."))
                 }
                 notificationPermission
             }
             Section {
                 Toggle(isOn: $center.mergeDuplicates) {
-                    FieldLabel("Juntar alertas repetidos",
-                               detail: "Quando a mesma câmera avisa por ela e pelo NVR, mostra um alerta só, com o nome da câmera.")
+                    FieldLabel(String(localized: "Juntar alertas repetidos"),
+                               detail: String(localized: "Quando a mesma câmera avisa por ela e pelo NVR, mostra um alerta só, com o nome da câmera."))
                 }
             }
             .disabled(!center.enabled)
@@ -145,7 +145,7 @@ struct EventsView: View {
                         LabeledContent(name) {
                             Text(center.deviceStatus[name] ?? "")
                                 .font(.caption)
-                                .foregroundStyle(center.deviceStatus[name] == "Recebendo alertas" ? Theme.success : Theme.warning)
+                                .foregroundStyle(center.deviceStatus[name] == String(localized: "Recebendo alertas") ? Theme.success : Theme.warning)
                         }
                     }
                 }
@@ -254,7 +254,7 @@ private struct EventRow: View {
                 HStack(spacing: 6) {
                     Text(event.kind == .other ? event.event : event.kind.label)
                         .fontWeight(event.isStart ? .semibold : .regular)
-                    Text(event.isStart ? "início" : "fim")
+                    Text(event.isStart ? String(localized: "início") : "fim")
                         .font(.caption2)
                         .padding(.horizontal, Space.xs)
                         .padding(.vertical, Space.xxs)
