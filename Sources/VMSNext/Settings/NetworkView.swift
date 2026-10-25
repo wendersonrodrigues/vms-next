@@ -73,7 +73,7 @@ struct NetworkView: View {
                     if let message = model.error ?? (editable ? model.validationError : nil) {
                         Section {
                             Label(message, systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -83,7 +83,7 @@ struct NetworkView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                         .lineLimit(2)
                 }
                 Spacer()
@@ -101,7 +101,7 @@ struct NetworkView: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(!editable || model.loading || model.validationError != nil)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task {
             let store = store

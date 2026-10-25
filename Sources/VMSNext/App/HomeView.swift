@@ -38,7 +38,7 @@ struct HomeView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 devicesSection
             }
-            .padding(22)
+            .padding(Space.xxl)
             .frame(maxWidth: 1300)
             .frame(maxWidth: .infinity)
         }
@@ -66,7 +66,7 @@ struct HomeView: View {
                 LinearGradient(colors: [Color.black.opacity(0.75), Color.black.opacity(0.35), .clear],
                                startPoint: .leading, endPoint: .trailing)
             } else {
-                LinearGradient(colors: [Color.accentColor, Color.indigo.opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                LinearGradient(colors: [Theme.accent, Color.indigo.opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing)
             }
             HStack(spacing: 20) {
                 AppLogo(size: 136)
@@ -87,7 +87,7 @@ struct HomeView: View {
                 }
                 .foregroundStyle(.white)
             }
-            .padding(26)
+            .padding(Space.xxl)
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Criado por Wenderson Rodrigues").font(.caption.weight(.semibold))
                 Link(destination: NavigationRail.githubURL) {
@@ -98,11 +98,11 @@ struct HomeView: View {
                     .opacity(0.8)
             }
             .foregroundStyle(.white)
-            .padding(18)
+            .padding(Space.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
         .frame(height: 210)
-        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     private static let bannerImage: NSImage? = Bundle.main.resourceURL
@@ -111,8 +111,8 @@ struct HomeView: View {
     private func pill(_ text: String, _ icon: String) -> some View {
         Label(text, systemImage: icon)
             .font(.caption.weight(.medium))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.horizontal, Space.m)
+            .padding(.vertical, Space.xs)
             .background(Capsule().fill(.white.opacity(0.18)))
     }
 
@@ -193,7 +193,7 @@ struct HomeView: View {
         statCard("Equipamentos conectados", icon: "wifi",
                  value: model.devices.isEmpty ? "—" : "\(model.onlineCount) de \(model.devices.count)",
                  detail: model.checking ? "Verificando…" : (model.onlineCount == model.devices.count ? "Todos respondendo" : "Alguns sem conexão"),
-                 tint: model.onlineCount == model.devices.count ? .green : .orange)
+                 tint: model.onlineCount == model.devices.count ? Theme.success : Theme.warning)
     }
 
     /// Acompanha a altura do armazenamento: o número cresce para ocupar o card.
@@ -233,7 +233,7 @@ struct HomeView: View {
                                 .font(.callout).monospacedDigit()
                         }
                         ProgressView(value: used)
-                            .tint(used > 0.97 && device.overwrite != true ? .red : .accentColor)
+                            .tint(used > 0.97 && device.overwrite != true ? .red : Theme.accent)
                         Text(recordingMode(device, used: used))
                             .font(.caption)
                             .foregroundStyle(device.overwrite == false && used > 0.97 ? Color.red : .secondary)
@@ -292,7 +292,7 @@ struct HomeView: View {
                             Image(systemName: device.isRecorder ? "server.rack" : "video.fill")
                                 .font(.title3)
                                 .frame(width: 40, height: 40)
-                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.07)))
+                                .background(RoundedRectangle(cornerRadius: Radius.control).fill(Color.primary.opacity(0.07)))
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(device.name).font(.headline).lineLimit(1)
                                 Text(device.isRecorder ? "\(device.address) · \(device.channels) canais" : device.address)
@@ -375,17 +375,17 @@ struct HomeView: View {
 
     private func card<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
-            .padding(16)
+            .padding(Space.l)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .themedCard()
     }
 
-    private func cardHeader(_ title: String, icon: String, tint: Color = .accentColor) -> some View {
+    private func cardHeader(_ title: String, icon: String, tint: Color = Theme.accent) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .foregroundStyle(tint)
                 .frame(width: 28, height: 28)
-                .background(RoundedRectangle(cornerRadius: 8).fill(tint.opacity(0.15)))
+                .background(RoundedRectangle(cornerRadius: Radius.small).fill(tint.opacity(0.15)))
             Text(title).font(.headline)
         }
     }

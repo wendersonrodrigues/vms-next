@@ -334,18 +334,18 @@ struct SettingsPane: View {
                             Spacer()
                             // Sempre à vista: qual equipamento está sendo configurado.
                             HStack(spacing: 8) {
-                                Image(systemName: target.icon).foregroundStyle(Color.accentColor)
+                                Image(systemName: target.icon).foregroundStyle(Theme.accent)
                                 VStack(alignment: .trailing, spacing: 0) {
                                     Text(target.kindLabel).font(.caption).foregroundStyle(.secondary)
                                     Text(target.title).font(.headline)
                                 }
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.accentColor.opacity(0.12)))
+                            .padding(.horizontal, Space.m)
+                            .padding(.vertical, Space.xs)
+                            .background(RoundedRectangle(cornerRadius: Radius.small).fill(Theme.accent.opacity(0.12)))
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, Space.l)
+                        .padding(.vertical, Space.s)
                         Divider()
                         HStack(spacing: 0) {
                             quickList
@@ -410,7 +410,7 @@ struct SettingsMenu: View {
                         .font(.system(size: 24, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 52, height: 52)
-                        .background(RoundedRectangle(cornerRadius: 13).fill(Color.accentColor.gradient))
+                        .background(RoundedRectangle(cornerRadius: Radius.control).fill(Theme.accent.gradient))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(target.kindLabel).font(.callout).foregroundStyle(.secondary)
                         Text(target.title).font(.title.weight(.bold))
@@ -430,12 +430,12 @@ struct SettingsMenu: View {
                                 }
                             }
                         }
-                        .padding(14)
-                        .themedCard(radius: 18)
+                        .padding(Space.l)
+                        .themedCard(radius: Radius.card)
                     }
                 }
             }
-            .padding(20)
+            .padding(Space.xl)
         }
     }
 
@@ -448,7 +448,7 @@ struct SettingsMenu: View {
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(.white)
                     .frame(width: 52, height: 52)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(color.gradient))
+                    .background(RoundedRectangle(cornerRadius: Radius.control).fill(color.gradient))
                 Text(category.title)
                     .font(.callout.weight(.medium))
                     .multilineTextAlignment(.center)
@@ -459,9 +459,9 @@ struct SettingsMenu: View {
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, minHeight: 120)
-            .padding(8)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Theme.surfaceHigh))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.stroke))
+            .padding(Space.s)
+            .background(RoundedRectangle(cornerRadius: Radius.card).fill(Theme.surfaceHigh))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(Theme.stroke))
             .contentShape(Rectangle())
         }
         .buttonStyle(.hover)

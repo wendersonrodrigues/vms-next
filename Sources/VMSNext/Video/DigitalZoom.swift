@@ -86,14 +86,14 @@ struct ZoomControls: View {
         .buttonStyle(.plain)
         .font(.system(size: 26, weight: .semibold))
         .foregroundStyle(.white)
-        .padding(.vertical, 8)
+        .padding(.vertical, Space.s)
         .background(.black.opacity(hover.on ? 0.6 : 0.2), in: Capsule())
         .overlay(Capsule().strokeBorder(.white.opacity(hover.on ? 0.35 : 0.1)))
         .opacity(hover.on ? 1 : 0.35)
         .contentShape(Capsule())
         .onHover { hover.on = $0 }
         .animation(.easeOut(duration: 0.15), value: hover.on)
-        .padding(.trailing, 12)
+        .padding(.trailing, Space.m)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
     }
 }

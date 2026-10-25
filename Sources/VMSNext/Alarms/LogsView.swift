@@ -22,7 +22,7 @@ struct LogsView: View {
                 DatePicker("até", selection: $model.to)
                 Spacer()
             }
-            .padding(12)
+            .padding(Space.m)
             HStack(spacing: 12) {
                 if model.tab == .device {
                     Picker("Equipamento", selection: $model.deviceID) {
@@ -58,11 +58,11 @@ struct LogsView: View {
                         .disabled(appLog.entries.isEmpty)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 10)
+            .padding(.horizontal, Space.m)
+            .padding(.bottom, Space.m)
             Divider()
             if let message = model.message, model.tab == .device {
-                Text(message).font(.callout).foregroundStyle(.secondary).padding(8)
+                Text(message).font(.callout).foregroundStyle(.secondary).padding(Space.s)
             }
             Table(rows) {
                 TableColumn("Horário") { Text($0.time).monospacedDigit() }
@@ -77,7 +77,7 @@ struct LogsView: View {
                 Text("\(rows.count) registro(s)").font(.caption).foregroundStyle(.secondary)
                 Spacer()
             }
-            .padding(8)
+            .padding(Space.s)
         }
         .onAppear {
             if model.deviceID == nil { model.deviceID = devices.first?.id }

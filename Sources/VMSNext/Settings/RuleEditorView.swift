@@ -113,7 +113,7 @@ struct RuleEditorView: View {
             }
 
             if let error = state.error {
-                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
             }
 
             HStack {
@@ -132,7 +132,7 @@ struct RuleEditorView: View {
                 .disabled(state.saving)
             }
         }
-        .padding(20)
+        .padding(Space.xl)
         .frame(width: 860)
         .onAppear {
             stream.displayLayer.videoGravity = .resize
@@ -176,7 +176,7 @@ struct RuleEditorView: View {
         }
         .aspectRatio(size, contentMode: .fit)
         .background(Color.black)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.small))
     }
 
     private var handles: [CGPoint] { draft.kind == .area ? draft.area : draft.line }

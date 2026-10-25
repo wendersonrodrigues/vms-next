@@ -279,7 +279,7 @@ struct OverlayView: View {
                     if model.hasExtraText { extraTextSection }
                     if let error = model.error {
                         Section {
-                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -289,7 +289,7 @@ struct OverlayView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -300,7 +300,7 @@ struct OverlayView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.loading || model.saving || (model.channelTitle == nil && model.timeTitle == nil && model.channelName == nil))
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .onAppear {
@@ -346,7 +346,7 @@ struct OverlayView: View {
         .aspectRatio(size, contentMode: .fit)
         .frame(maxHeight: 360)
         .background(Color.black)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.small))
         .frame(maxWidth: .infinity)
     }
 
@@ -354,7 +354,7 @@ struct OverlayView: View {
         Text(text)
             .font(.system(size: max(10, frame.height * 0.035), weight: .semibold, design: .monospaced))
             .foregroundStyle(.white)
-            .padding(.horizontal, 4)
+            .padding(.horizontal, Space.xs)
             .background(Color.black.opacity(0.45))
             .overlay(Rectangle().stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
             .offset(x: origin.x * frame.width, y: origin.y * frame.height)

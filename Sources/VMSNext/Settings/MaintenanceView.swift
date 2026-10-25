@@ -301,7 +301,7 @@ struct MaintenanceView: View {
 
                     if let error = model.error {
                         Section {
-                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -311,7 +311,7 @@ struct MaintenanceView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green).lineLimit(2)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success).lineLimit(2)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -322,7 +322,7 @@ struct MaintenanceView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.loading || model.saving || (!model.hasAutoMaintain && model.upgradeFlags.isEmpty))
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .confirmationDialog("Reiniciar \(deviceWord) agora?", isPresented: $model.confirmingReboot) {

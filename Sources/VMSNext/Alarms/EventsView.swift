@@ -144,7 +144,7 @@ struct EventsView: View {
                         LabeledContent(name) {
                             Text(center.deviceStatus[name] ?? "")
                                 .font(.caption)
-                                .foregroundStyle(center.deviceStatus[name] == "Recebendo alertas" ? .green : .orange)
+                                .foregroundStyle(center.deviceStatus[name] == "Recebendo alertas" ? Theme.success : Theme.warning)
                         }
                     }
                 }
@@ -172,11 +172,11 @@ struct EventsView: View {
         switch center.notificationsAllowed {
         case .some(true):
             Label("Notificações do macOS permitidas", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.success)
         case .some(false):
             VStack(alignment: .leading, spacing: 6) {
                 Label("Notificações do macOS bloqueadas", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
                 Text("Os alertas continuam aparecendo aqui e no sino. Para receber os avisos do macOS, libere o VMS Next nos Ajustes de Notificações.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -222,7 +222,7 @@ struct EventsView: View {
                 Button("Limpar") { center.clear() }
                     .disabled(center.events.isEmpty)
             }
-            .padding(10)
+            .padding(Space.m)
         }
     }
 }
@@ -248,15 +248,15 @@ private struct EventRow: View {
                 .frame(width: 70, alignment: .leading)
             Image(systemName: event.kind.icon)
                 .frame(width: 20)
-                .foregroundStyle(event.isStart ? Color.accentColor : .secondary)
+                .foregroundStyle(event.isStart ? Theme.accent : .secondary)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(event.kind == .other ? event.event : event.kind.label)
                         .fontWeight(event.isStart ? .semibold : .regular)
                     Text(event.isStart ? "início" : "fim")
                         .font(.caption2)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, Space.xs)
+                        .padding(.vertical, Space.xxs)
                         .background(Capsule().fill(Color.primary.opacity(0.08)))
                         .foregroundStyle(.secondary)
                 }

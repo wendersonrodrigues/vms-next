@@ -444,7 +444,7 @@ struct ConfigFormView: View {
                     }
                     if let message = model.error {
                         Section {
-                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     } else if sections.isEmpty {
                         Section {
@@ -458,7 +458,7 @@ struct ConfigFormView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -475,7 +475,7 @@ struct ConfigFormView: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(model.loading || model.saving || !model.hasChanges)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .confirmationDialog("Aplicar as mudanças?", isPresented: $model.confirming) {

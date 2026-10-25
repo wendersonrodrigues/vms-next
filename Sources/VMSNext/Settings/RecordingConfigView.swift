@@ -233,7 +233,7 @@ struct RecordingConfigView: View {
                     }
                     if let message = model.error ?? model.validationError {
                         Section {
-                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -243,7 +243,7 @@ struct RecordingConfigView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -254,7 +254,7 @@ struct RecordingConfigView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(!model.loaded || model.loading || model.saving || model.validationError != nil)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {

@@ -42,7 +42,7 @@ struct DevicesView: View {
                         Spacer()
                         if added {
                             Label("Já adicionado", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(Theme.success)
                                 .font(.callout)
                         } else {
                             Button("Adicionar…") { onEdit(model.camera(for: device)) }

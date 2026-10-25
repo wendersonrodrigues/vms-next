@@ -47,8 +47,8 @@ struct NavigationRail: View {
         VStack(spacing: 6) {
             // Logo do app (maior que os ícones do menu).
             AppLogo(size: 66)
-                .padding(.top, 2)
-                .padding(.bottom, 8)
+                .padding(.top, Space.xxs)
+                .padding(.bottom, Space.s)
                 .help("VMS Next")
             item(.home)
             item(.live)
@@ -60,14 +60,14 @@ struct NavigationRail: View {
             item(.preferences)
             credits
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, Space.m)
         .frame(width: 92)
         .frame(maxHeight: .infinity)
         // Coluna flutuante com cantos arredondados, como nos painéis de referência.
-        .background(RoundedRectangle(cornerRadius: 28).fill(Theme.cardFill))
-        .overlay(RoundedRectangle(cornerRadius: 28).stroke(Theme.stroke))
+        .background(RoundedRectangle(cornerRadius: Radius.large).fill(Theme.cardFill))
+        .overlay(RoundedRectangle(cornerRadius: Radius.large).stroke(Theme.stroke))
         .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
-        .padding(8)
+        .padding(Space.s)
         .background(Theme.background)
     }
 
@@ -78,11 +78,11 @@ struct NavigationRail: View {
     /// Créditos: nome do app, versão, autor e link para o GitHub.
     private var credits: some View {
         VStack(spacing: 3) {
-            Divider().padding(.horizontal, 10)
+            Divider().padding(.horizontal, Space.m)
             Text("VMS Next").font(.system(size: 10, weight: .semibold))
             Text("versão \(version)").font(.system(size: 9)).monospacedDigit()
                 // Beta em laranja: versão de testes, ainda com erros conhecidos.
-                .foregroundStyle(AppInfo.isBeta ? Color.orange : Color.primary)
+                .foregroundStyle(AppInfo.isBeta ? Theme.warning : Color.primary)
             Text("criado por\nWenderson Rodrigues")
                 .font(.system(size: 8))
                 .multilineTextAlignment(.center)
@@ -94,7 +94,7 @@ struct NavigationRail: View {
             .help("Abrir o projeto no GitHub")
         }
         .foregroundStyle(.secondary)
-        .padding(.top, 4)
+        .padding(.top, Space.xs)
         .frame(width: 80)
     }
 
@@ -114,8 +114,8 @@ struct NavigationRail: View {
                             Text(badge > 99 ? "99+" : "\(badge)")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(.white)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
+                                .padding(.horizontal, Space.xs)
+                                .padding(.vertical, Space.xxs)
                                 .background(Capsule().fill(Color.red))
                                 .offset(x: 12, y: -6)
                         }
@@ -128,9 +128,9 @@ struct NavigationRail: View {
             .frame(width: 76, height: 66)
             .foregroundStyle(selected ? Color.primary : Color.secondary)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: Radius.card)
                     .fill(selected ? Theme.accent.opacity(0.16) : .clear)
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(selected ? Theme.accent.opacity(0.45) : .clear))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(selected ? Theme.accent.opacity(0.45) : .clear))
             )
             .contentShape(Rectangle())
         }
@@ -160,7 +160,7 @@ struct PreferencesView: View {
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, Space.xs)
             }
             Section("Aparência") {
                 Picker(selection: $appearance.mode) {
@@ -224,7 +224,7 @@ struct PreferencesView: View {
                     }
                 }
                 if let error = recorder.lastError {
-                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                 }
             } header: {
                 Text("Gravação no Mac (Config. de gravação)")
@@ -289,7 +289,7 @@ struct PreferencesView: View {
                     FieldLabel("Esconder do Dock com a janela fechada", detail: "Continua acessível pelo ícone na barra de menus.")
                 }
                 if let error = background.loginError {
-                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                 }
             }
         }

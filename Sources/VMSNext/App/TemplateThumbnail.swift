@@ -32,14 +32,14 @@ struct TemplateThumbnail: View {
             }
         }
         .frame(width: 34, height: 22)
-        .padding(5)
-        .background(RoundedRectangle(cornerRadius: 8).fill(selected ? Theme.accent.opacity(0.22) : Color.primary.opacity(0.06)))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(selected ? Theme.accent.opacity(0.8) : Theme.stroke))
+        .padding(Space.xs)
+        .background(RoundedRectangle(cornerRadius: Radius.small).fill(selected ? Theme.accent.opacity(0.22) : Color.primary.opacity(0.06)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.small).stroke(selected ? Theme.accent.opacity(0.8) : Theme.stroke))
         .shadow(color: selected ? Theme.accent.opacity(0.6) : .clear, radius: 6)
     }
 
     private var cellShape: some View {
-        RoundedRectangle(cornerRadius: 2)
+        RoundedRectangle(cornerRadius: Radius.small)
             .fill(selected ? AnyShapeStyle(Theme.accentGradient) : AnyShapeStyle(Color.secondary.opacity(0.55)))
     }
 }

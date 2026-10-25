@@ -115,7 +115,7 @@ struct MenuBarPanel: View {
                 Text("Nenhum alerta nesta sessão.")
                     .font(.callout).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, Space.s)
             } else {
                 VStack(spacing: 0) {
                     ForEach(alarms.events.prefix(6)) { event in
@@ -126,7 +126,7 @@ struct MenuBarPanel: View {
                             HStack(spacing: 8) {
                                 Image(systemName: event.kind.icon)
                                     .frame(width: 18)
-                                    .foregroundStyle(event.isStart ? Color.accentColor : .secondary)
+                                    .foregroundStyle(event.isStart ? Theme.accent : .secondary)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(event.kind == .other ? event.event : event.kind.label).lineLimit(1)
                                     Text(event.cameraName).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -136,7 +136,7 @@ struct MenuBarPanel: View {
                                     .font(.caption).monospacedDigit().foregroundStyle(.secondary)
                             }
                             .contentShape(Rectangle())
-                            .padding(.vertical, 4)
+                            .padding(.vertical, Space.xs)
                         }
                         .buttonStyle(.plain)
                         .opacity(event.isStart ? 1 : 0.6)
@@ -163,14 +163,14 @@ struct MenuBarPanel: View {
             ))
             Toggle("Esconder do Dock com a janela fechada", isOn: $background.hideDockWhenClosed)
             if let error = background.loginError {
-                Text(error).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                Text(error).font(.caption).foregroundStyle(Theme.warning).fixedSize(horizontal: false, vertical: true)
             }
 
             Divider()
             Button("Sair do VMS Next") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
         }
-        .padding(14)
+        .padding(Space.l)
         .frame(width: 320)
         .onAppear { alarms.markAllRead() }
     }

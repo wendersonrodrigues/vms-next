@@ -55,8 +55,8 @@ struct RecorderChannelView<Content: View>: View {
                 .disabled(count == 1)
                 Spacer()
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.horizontal, Space.xl)
+            .padding(.vertical, Space.m)
             Divider()
         }
     }

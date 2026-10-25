@@ -22,8 +22,8 @@ struct SettingPreview: View {
         VStack(spacing: 4) {
             scene
                 .frame(width: 240, height: 135)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.15)))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).stroke(Color.primary.opacity(0.15)))
             Text(caption).font(.caption2).foregroundStyle(.secondary)
         }
     }
@@ -122,7 +122,7 @@ struct SettingPreview: View {
         let person = CGRect(x: gate.midX - w * 0.025, y: gate.minY + h * 0.04, width: w * 0.05, height: h * 0.2)
         context.fill(Path(ellipseIn: CGRect(x: person.minX + person.width * 0.15, y: person.minY - h * 0.07, width: person.width * 0.7, height: h * 0.07)),
                      with: .color(backlight == false ? .black : (ir ? .gray : Color(red: 0.9, green: 0.7, blue: 0.55))))
-        context.fill(Path(roundedRect: person, cornerRadius: 4), with: .color(personColor))
+        context.fill(Path(roundedRect: person, cornerRadius: Radius.small), with: .color(personColor))
         // Luz branca da câmera (visão noturna colorida e luz dupla).
         if night == .color || night == .dualLight {
             context.fill(Path(ellipseIn: CGRect(x: gate.midX - w * 0.2, y: h * 0.45, width: w * 0.4, height: h * 0.45)),

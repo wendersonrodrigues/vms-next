@@ -616,8 +616,8 @@ struct ContentView: View {
                             Text(alarms.unread > 99 ? "99+" : "\(alarms.unread)")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(.white)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
+                                .padding(.horizontal, Space.xs)
+                                .padding(.vertical, Space.xxs)
                                 .background(Capsule().fill(Color.red))
                                 .offset(x: 9, y: -7)
                         }
@@ -661,9 +661,9 @@ struct ContentView: View {
                     Image(systemName: "plus.rectangle.on.rectangle")
                         .font(.system(size: 15, weight: .semibold))
                         .frame(width: 34, height: 22)
-                        .padding(5)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke))
+                        .padding(Space.xs)
+                        .background(RoundedRectangle(cornerRadius: Radius.small).fill(Color.primary.opacity(0.06)))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.small).stroke(Theme.stroke))
                 }
                 .buttonStyle(.hover)
                 .help("Criar ou editar um modelo personalizado (o \"25\" do VMS antigo)")
@@ -698,8 +698,8 @@ struct ContentView: View {
             .help(rotation.running ? "Parar o rodízio de telas" : "Passa sozinho pelas telas escolhidas (Tour do VMS antigo)")
             BarButton(icon: "slider.horizontal.3", help: "Escolher as telas e o tempo do rodízio") { ui.editingRotation = true }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.s)
         .background(Theme.surface)
     }
 

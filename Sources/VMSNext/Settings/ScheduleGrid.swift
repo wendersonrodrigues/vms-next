@@ -117,7 +117,7 @@ struct ScheduleLegend: View {
         HStack(spacing: 12) {
             ForEach(rows, id: \.bit) { row in
                 HStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 2).fill(row.color).frame(width: 12, height: 12)
+                    RoundedRectangle(cornerRadius: Radius.small).fill(row.color).frame(width: 12, height: 12)
                     Text(row.label)
                 }
             }

@@ -480,7 +480,7 @@ struct EventConfigView: View {
                     }
                     if let message = model.error ?? model.validationError {
                         Section {
-                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -490,7 +490,7 @@ struct EventConfigView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -501,7 +501,7 @@ struct EventConfigView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.loading || model.saving || model.entries.isEmpty || model.validationError != nil)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
@@ -518,7 +518,7 @@ struct EventConfigView: View {
                 FieldLabel("Canal", original: "Canal / ChannelNo",
                            detail: "Em \"Todos\", o que você ajustar aqui vale para todos os canais ao aplicar.")
                 HStack(spacing: 6) {
-                    channelButton(title: "Todos", channel: nil, color: .accentColor)
+                    channelButton(title: "Todos", channel: nil, color: Theme.accent)
                     ForEach(0 ..< model.channelCount, id: \.self) { channel in
                         let status = channelStatus(channel)
                         channelButton(title: "\(channel + 1)", channel: channel, color: status.color)
@@ -560,15 +560,15 @@ struct EventConfigView: View {
                 .font(.callout.weight(.semibold).monospacedDigit())
                 .frame(minWidth: title.count > 2 ? 56 : 30, minHeight: 26)
                 .foregroundStyle(.white)
-                .background(color.opacity(selected ? 1 : 0.75), in: RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary, lineWidth: selected ? 2 : 0))
+                .background(color.opacity(selected ? 1 : 0.75), in: RoundedRectangle(cornerRadius: Radius.small))
+                .overlay(RoundedRectangle(cornerRadius: Radius.small).stroke(Color.primary, lineWidth: selected ? 2 : 0))
         }
         .buttonStyle(.plain)
     }
 
     private func legend(_ color: Color, _ text: String) -> some View {
         HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 12, height: 12)
+            RoundedRectangle(cornerRadius: Radius.small).fill(color).frame(width: 12, height: 12)
             Text(text).foregroundStyle(.secondary)
         }
     }

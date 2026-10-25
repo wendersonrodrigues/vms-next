@@ -116,7 +116,7 @@ struct CameraParamsView: View {
                     if let error = model.error {
                         Section {
                             Label(error, systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -126,7 +126,7 @@ struct CameraParamsView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -137,7 +137,7 @@ struct CameraParamsView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.loading || model.saving || (!model.hasImageParams && !model.hasColor))
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
@@ -222,9 +222,9 @@ struct DiagnosticSheet: View {
                     .font(.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
+                    .padding(Space.s)
             }
-            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 6))
+            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Radius.small))
             HStack {
                 Spacer()
                 Button("Copiar") {

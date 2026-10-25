@@ -98,7 +98,7 @@ struct VersionView: View {
                     if let error = model.error {
                         Section {
                             Label(error, systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -120,7 +120,7 @@ struct VersionView: View {
                 Button("Recarregar") { Task { await model.load() } }
                     .disabled(model.loading)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .sheet(isPresented: Binding(get: { capabilitiesText != nil }, set: { if !$0 { capabilitiesText = nil } })) {

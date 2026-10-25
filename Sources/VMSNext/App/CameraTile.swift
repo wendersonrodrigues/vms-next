@@ -94,9 +94,9 @@ struct CameraTile: View {
                       systemImage: isRecording ? "stop.circle.fill" : "record.circle")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(isRecording ? Color.white : Color.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(RoundedRectangle(cornerRadius: 7).fill(isRecording ? Color.red : Color.primary.opacity(0.08)))
+                    .padding(.horizontal, Space.m)
+                    .padding(.vertical, Space.xs)
+                    .background(RoundedRectangle(cornerRadius: Radius.small).fill(isRecording ? Color.red : Color.primary.opacity(0.08)))
             }
             .buttonStyle(.hover)
             .help("Gravar esta câmera no disco do Mac (vídeo principal), na pasta das Preferências")
@@ -105,16 +105,16 @@ struct CameraTile: View {
             } label: {
                 Label("PTZ", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(RoundedRectangle(cornerRadius: 7)
-                        .fill(single.showPTZ.wrappedValue ? Color.accentColor.opacity(0.25) : Color.primary.opacity(0.08)))
+                    .padding(.horizontal, Space.m)
+                    .padding(.vertical, Space.xs)
+                    .background(RoundedRectangle(cornerRadius: Radius.small)
+                        .fill(single.showPTZ.wrappedValue ? Theme.accent.opacity(0.25) : Color.primary.opacity(0.08)))
             }
             .buttonStyle(.hover)
             .help("Mostrar os controles de movimento (PTZ), zoom óptico, foco e presets")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.m)
         .background(Theme.surface)
     }
 
@@ -141,9 +141,9 @@ struct CameraTile: View {
                     Text(title).font(.system(size: 13, weight: .bold)).frame(width: 40, height: 28)
                 }
             }
+            // Ícones chapados no estilo do macOS: o escolhido em cor cheia, o outro apagado, sem brilho.
             .opacity(selected ? 1 : 0.35)
             .saturation(selected ? 1 : 0)
-            .shadow(color: selected ? Theme.accent.opacity(0.7) : .clear, radius: 6)
         }
         .buttonStyle(.hover)
         .help(help)
@@ -192,10 +192,10 @@ struct CameraTile: View {
                 Label("REC", systemImage: "record.circle.fill")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, Space.s)
+                    .padding(.vertical, Space.xs)
                     .background(Capsule().fill(Color.red))
-                    .padding(8)
+                    .padding(Space.s)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .help("Gravando no Mac")
             }
@@ -216,21 +216,21 @@ struct CameraTile: View {
                                 .foregroundStyle(.white.opacity(0.7))
                         }
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(.horizontal, Space.s)
+                    .padding(.vertical, Space.xs)
+                    .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: Radius.small))
                     .foregroundStyle(.white)
                     Spacer()
                     if stream.hasAudio, part != .bottom {
                         SpeakerButton(id: stream.audioID, setAudio: stream.setAudio)
                             .buttonStyle(.hover)
                             .font(.caption)
-                            .padding(5)
-                            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
+                            .padding(Space.xs)
+                            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: Radius.small))
                             .foregroundStyle(.white)
                     }
                 }
-                .padding(6)
+                .padding(Space.s)
             }
     }
 

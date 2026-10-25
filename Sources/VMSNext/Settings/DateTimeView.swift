@@ -281,7 +281,7 @@ struct DateTimeView: View {
                     if model.hasLocation { formatSection }
                     if let error = model.error {
                         Section {
-                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -291,7 +291,7 @@ struct DateTimeView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -302,7 +302,7 @@ struct DateTimeView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.loading || model.saving || (!model.hasNTP && !model.hasLocation && !model.hasGeneral && model.timeZoneMinutes == nil))
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .confirmationDialog("Trocar o fuso horário para \(DateTimeModel.timeZoneLabel(model.timeZoneMinutes ?? 0))?",
@@ -331,7 +331,7 @@ struct DateTimeView: View {
             if let offset = model.offset {
                 LabeledContent("Diferença") {
                     Text(Self.describe(offset))
-                        .foregroundStyle(abs(offset) > 60 ? .orange : .green)
+                        .foregroundStyle(abs(offset) > 60 ? Theme.warning : Theme.success)
                 }
             }
             if let minutes = model.timeZoneMinutes {

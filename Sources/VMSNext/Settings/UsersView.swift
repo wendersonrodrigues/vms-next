@@ -322,15 +322,15 @@ struct UsersView: View {
                         ForEach(model.accounts) { account in
                             HStack(spacing: 10) {
                                 Image(systemName: account.group.lowercased() == "admin" ? "person.badge.key.fill" : "person.fill")
-                                    .foregroundStyle(account.group.lowercased() == "admin" ? Color.accentColor : .secondary)
+                                    .foregroundStyle(account.group.lowercased() == "admin" ? Theme.accent : .secondary)
                                     .frame(width: 22)
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 6) {
                                         Text(account.name).fontWeight(.medium)
                                         if account.name == model.appAccount {
                                             Text("usada pelo VMS Next").font(.caption2)
-                                                .padding(.horizontal, 5).padding(.vertical, 1)
-                                                .background(Color.accentColor.opacity(0.15), in: Capsule())
+                                                .padding(.horizontal, Space.xs).padding(.vertical, Space.xxs)
+                                                .background(Theme.accent.opacity(0.15), in: Capsule())
                                         }
                                         if account.reserved {
                                             Text("reservada").font(.caption2).foregroundStyle(.secondary)
@@ -350,7 +350,7 @@ struct UsersView: View {
                                 .disabled(model.deleteBlocker(account) != nil)
                                 .help(model.deleteBlocker(account).map { "Não pode apagar: \($0)" } ?? "Apagar conta")
                             }
-                            .padding(.vertical, 2)
+                            .padding(.vertical, Space.xxs)
                         }
                         Button {
                             model.beginAdding()
@@ -404,7 +404,7 @@ struct UsersView: View {
                     }
                     if let error = model.error {
                         Section {
-                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -414,7 +414,7 @@ struct UsersView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -422,7 +422,7 @@ struct UsersView: View {
                 Button("Recarregar") { Task { await model.load() } }
                     .disabled(model.loading || model.saving)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .sheet(item: $model.editing) { account in
@@ -476,7 +476,7 @@ struct UsersView: View {
             }
             .formStyle(.grouped)
             if let error = model.formError {
-                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
             }
             HStack {
                 Spacer()
@@ -487,7 +487,7 @@ struct UsersView: View {
                     .disabled(model.saving || model.newName.isEmpty || model.newUserPassword.isEmpty)
             }
         }
-        .padding(20)
+        .padding(Space.xl)
         .frame(width: 460)
     }
 
@@ -505,7 +505,7 @@ struct UsersView: View {
             }
             .formStyle(.grouped)
             if let error = model.formError {
-                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
             }
             HStack {
                 Spacer()
@@ -516,7 +516,7 @@ struct UsersView: View {
                     .disabled(model.saving || model.newGroupName.isEmpty)
             }
         }
-        .padding(20)
+        .padding(Space.xl)
         .frame(width: 460)
     }
 
@@ -537,7 +537,7 @@ struct UsersView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let error = model.formError {
-                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
             }
             HStack {
                 Spacer()
@@ -552,7 +552,7 @@ struct UsersView: View {
                 .disabled(model.saving || model.newPassword.isEmpty)
             }
         }
-        .padding(20)
+        .padding(Space.xl)
         .frame(width: 440)
     }
 }

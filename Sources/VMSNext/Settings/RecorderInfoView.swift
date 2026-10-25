@@ -431,7 +431,7 @@ struct RecorderInfoView: View {
                     }
                     if let error = model.error {
                         Section {
-                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -440,7 +440,7 @@ struct RecorderInfoView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -448,7 +448,7 @@ struct RecorderInfoView: View {
                 Button("Recarregar") { Task { await model.load() } }
                     .disabled(model.loading)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .sheet(item: $model.editing) { _ in editSheet }
@@ -510,7 +510,7 @@ extension RecorderInfoView {
                 }
                 .formStyle(.grouped)
                 if let error = model.editError {
-                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                 }
                 HStack {
                     Spacer()
@@ -521,7 +521,7 @@ extension RecorderInfoView {
                         .disabled(model.editError != nil || model.saving)
                 }
             }
-            .padding(20)
+            .padding(Space.xl)
             .frame(width: 480)
             .confirmationDialog(String(format: "Gravar o canal D%02d no NVR?", edit.index + 1), isPresented: $model.confirmingSave) {
                 Button("Gravar") { Task { await model.saveEdit() } }
@@ -570,7 +570,7 @@ extension RecorderInfoView {
                 }
             }
             if let error = model.searchError {
-                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
             }
         } header: {
             Text("Procurar câmeras na rede do NVR (Procurar)")

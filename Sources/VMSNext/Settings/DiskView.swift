@@ -171,7 +171,7 @@ struct DiskView: View {
                         Section(part.title) {
                             VStack(alignment: .leading, spacing: 6) {
                                 ProgressView(value: part.usedFraction)
-                                    .tint(part.usedFraction > 0.95 ? .orange : .accentColor)
+                                    .tint(part.usedFraction > 0.95 ? .orange : Theme.accent)
                                 Text("\(Self.size(part.totalMB - part.freeMB)) usados de \(Self.size(part.totalMB)) · \(Self.size(part.freeMB)) livres")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
@@ -226,7 +226,7 @@ struct DiskView: View {
                     }
                     if let error = model.error {
                         Section {
-                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -236,7 +236,7 @@ struct DiskView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -247,7 +247,7 @@ struct DiskView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(!model.hasOverwrite || model.loading || model.saving)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .confirmationDialog(model.pendingAction?.title ?? "", isPresented: Binding(

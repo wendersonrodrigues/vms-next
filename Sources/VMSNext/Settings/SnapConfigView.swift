@@ -292,7 +292,7 @@ private struct SnapConfigForm: View {
 
                     if let message = model.error ?? model.validationError {
                         Section {
-                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                         }
                     }
                 }
@@ -302,7 +302,7 @@ private struct SnapConfigForm: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -313,7 +313,7 @@ private struct SnapConfigForm: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.loading || model.saving || model.validationError != nil)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")

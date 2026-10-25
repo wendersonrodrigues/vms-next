@@ -56,7 +56,7 @@ struct RotationEditor: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(20)
+        .padding(Space.xl)
         .frame(width: 620, height: 520)
     }
 

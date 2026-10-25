@@ -41,7 +41,7 @@ struct HelpView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(24)
+            .padding(Space.xxl)
         }
         .frame(minWidth: 560, minHeight: 520)
     }

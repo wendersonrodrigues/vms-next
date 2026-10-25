@@ -58,7 +58,7 @@ struct PTZPanel: View {
             if let message = ptz.message {
                 Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -94,7 +94,7 @@ struct PTZBar: View {
             if let message = ptz.message {
                 Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
                     .frame(maxWidth: 200, alignment: .leading)
             }
 
@@ -165,8 +165,8 @@ struct PTZBar: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.m)
         .frame(maxWidth: .infinity)
         .background(Theme.surfaceHigh)
         .onDisappear { ptz.end() }
@@ -193,8 +193,8 @@ private struct HoldButton: View {
             .font(.system(size: size * 0.4, weight: .semibold))
             .frame(width: size, height: size)
             .background(
-                ptz.active == command ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.08),
-                in: RoundedRectangle(cornerRadius: 8)
+                ptz.active == command ? Theme.accent.opacity(0.7) : Color.primary.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: Radius.small)
             )
             .contentShape(Rectangle())
             .gesture(

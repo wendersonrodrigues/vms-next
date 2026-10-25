@@ -154,7 +154,7 @@ struct AlarmOutputView: View {
                     if let message = model.error {
                         Section {
                             Label(message, systemImage: model.outputCount == 0 ? "info.circle" : "exclamationmark.triangle.fill")
-                                .foregroundStyle(model.outputCount == 0 ? Color.secondary : Color.orange)
+                                .foregroundStyle(model.outputCount == 0 ? Color.secondary : Theme.warning)
                         }
                     }
                 }
@@ -164,7 +164,7 @@ struct AlarmOutputView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
@@ -175,7 +175,7 @@ struct AlarmOutputView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.loading || model.saving || model.outputs.isEmpty)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .task { await model.load() }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {

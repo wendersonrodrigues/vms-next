@@ -25,7 +25,7 @@ struct LoginView: View {
                     .foregroundStyle(.white)
                 Spacer()
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, Space.xxxl)
             .frame(height: 72)
             .background(LinearGradient(colors: [Color(white: 0.28), Color(white: 0.14)], startPoint: .top, endPoint: .bottom))
 
@@ -46,7 +46,7 @@ struct LoginView: View {
                         .help("Lê as senhas guardadas no Keychain pelas versões anteriores. O macOS pode pedir a senha do Mac uma última vez.")
                 }
                 if let error = form.error {
-                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                 }
             }
             .formStyle(.grouped)
@@ -59,7 +59,7 @@ struct LoginView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(form.user.isEmpty || form.password.isEmpty)
             }
-            .padding([.horizontal, .bottom], 20)
+            .padding([.horizontal, .bottom], Space.xl)
         }
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)

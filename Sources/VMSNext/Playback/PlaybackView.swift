@@ -225,7 +225,7 @@ struct PlaybackView: View {
                 }
             }
         }
-        .padding(12)
+        .padding(Space.m)
     }
 
     private func play(_ recording: Recording) {
@@ -345,8 +345,8 @@ struct PlaybackView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, Space.l)
+            .padding(.vertical, Space.m)
             .background(Theme.surface)
         }
     }
@@ -397,13 +397,13 @@ struct PlaybackView: View {
             ProgressView("Abrindo gravação…").tint(.white).foregroundStyle(.white)
         case .finished:
             Label("Fim da gravação", systemImage: "checkmark.circle")
-                .padding(8)
-                .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
+                .padding(Space.s)
+                .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.small))
                 .foregroundStyle(.white)
         case let .failed(message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
-                .padding(8)
-                .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
+                .padding(Space.s)
+                .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.small))
                 .foregroundStyle(.yellow)
         case .playing, .paused:
             EmptyView()
@@ -425,7 +425,7 @@ private struct RecordingRow: View {
             Spacer()
             Text(recording.kind.label)
                 .font(.caption2.weight(.medium))
-                .padding(.horizontal, 6).padding(.vertical, 2)
+                .padding(.horizontal, Space.s).padding(.vertical, Space.xxs)
                 .background(color.opacity(0.2), in: Capsule())
                 .foregroundStyle(color)
         }
@@ -467,11 +467,11 @@ private struct DownloadRow: View {
             case .running:
                 ProgressView(value: job.progress).controlSize(.small)
             case .finished:
-                Text("Concluído").font(.caption2).foregroundStyle(.green)
+                Text("Concluído").font(.caption2).foregroundStyle(Theme.success)
             case .cancelled:
                 Text("Cancelado").font(.caption2).foregroundStyle(.secondary)
             case let .failed(message):
-                Text(message).font(.caption2).foregroundStyle(.orange).lineLimit(2)
+                Text(message).font(.caption2).foregroundStyle(Theme.warning).lineLimit(2)
             }
         }
     }

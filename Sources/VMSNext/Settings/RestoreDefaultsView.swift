@@ -123,14 +123,14 @@ struct RestoreDefaultsView: View {
                     }
                 } header: {
                     Label("Cuidado: o app perde o acesso", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 } footer: {
                     Text("Depois de restaurar a rede, descubra o novo IP pelo roteador ou pelo iCSee. Depois de restaurar as contas, a senha volta a ser a de fábrica (normalmente vazia) e precisa ser definida de novo.")
                         .foregroundStyle(.secondary)
                 }
                 if let error = model.error {
                     Section {
-                        Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
                     }
                 }
             }
@@ -139,14 +139,14 @@ struct RestoreDefaultsView: View {
             Divider()
             HStack {
                 if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(.green).lineLimit(2)
+                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success).lineLimit(2)
                 }
                 Spacer()
                 if model.running { ProgressView().controlSize(.small) }
                 Button("Restaurar…", role: .destructive) { model.confirming = true }
                     .disabled(model.selected.isEmpty || model.running)
             }
-            .padding(12)
+            .padding(Space.m)
         }
         .confirmationDialog("Restaurar o padrão de fábrica?", isPresented: $model.confirming) {
             Button("Restaurar", role: .destructive) { Task { await model.restore() } }
