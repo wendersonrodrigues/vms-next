@@ -642,6 +642,7 @@ struct EventConfigView: View {
                 .disabled(off)
             }
         }
+        advancedSection(entry).disabled(off)
         if entry.wrappedValue.handler.hasPeriod {
             Section {
                 ScheduleGrid(slots: entry.handler.period, rows: ScheduleRow.period)
@@ -651,6 +652,24 @@ struct EventConfigView: View {
                 Text("Fora dos horários marcados, o alarme não dispara.").foregroundStyle(.secondary)
             }
             .disabled(off)
+        }
+    }
+
+    /// "Opções avançadas", igual à Detecção inteligente: só as antigas que valem a pena (SmartAlertModel.advancedKeys).
+    @ViewBuilder
+    private func advancedSection(_ entry: Binding<EventConfigModel.Entry>) -> some View {
+        let actions = actionIndices(entry.wrappedValue, group: .legacy)
+        let delays = entry.wrappedValue.handler.delays.indices.filter {
+            entry.wrappedValue.handler.delays[$0].spec.group == .legacy
+                && SmartAlertModel.isShown(entry.wrappedValue.handler.delays[$0].spec, profile: model.profile)
+        }
+        if !actions.isEmpty || !delays.isEmpty {
+            Section {
+                DisclosureGroup("Opções avançadas") {
+                    actionToggles(entry, indices: actions)
+                    delaySteppers(entry, indices: delays)
+                }
+            }
         }
     }
 
@@ -664,7 +683,10 @@ struct EventConfigView: View {
                     FieldLabel("Avisar com menos de \(limit)% livre", original: "Limite inferior")
                 }
             }
-            actionToggles(entry, indices: actionIndices(entry.wrappedValue, group: nil))
+            // As opções avançadas (informação na imagem, filtro de oscilação) não valem para problemas no equipamento.
+            actionToggles(entry, indices: actionIndices(entry.wrappedValue, group: nil).filter {
+                entry.wrappedValue.handler.actions[$0].spec.group != .legacy
+            })
             let allowedDelays = entry.wrappedValue.definition.allowedDelays ?? []
             delaySteppers(entry, indices: entry.wrappedValue.handler.delays.indices.filter {
                 allowedDelays.contains(entry.wrappedValue.handler.delays[$0].spec.key)

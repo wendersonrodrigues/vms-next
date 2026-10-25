@@ -86,7 +86,7 @@ final class SmartAlertModel: ObservableObject {
         Spec(key: "AlarmOutLatch", title: "Manter a saída ligada por", original: "Atraso",
              detail: "Segundos que a sirene/relé fica ligada depois do alarme.", group: .external),
         Spec(key: "Dejitter", title: "Filtro de oscilação", original: "Dejitter",
-             detail: "Ignora disparos muito curtos. 0 = desligado.", group: .legacy),
+             detail: "Ignora disparos muito curtos. 0 = desligado.", group: .legacy, range: 0 ... 60),
         Spec(key: "CheckDiskInterval", title: "Repetir o aviso a cada", original: "Timed Alarm",
              detail: "Enquanto o problema continuar, o equipamento volta a avisar nesse intervalo.", group: .legacy),
     ]
@@ -118,8 +118,12 @@ final class SmartAlertModel: ObservableObject {
     /// Como no VMS antigo, só aparecem as ações que o equipamento tem: bipe e aviso na tela somem com
     /// TipShow.NoBeepTipShow, o aviso sonoro exige SupportAlarmVoiceTips, a saída de alarme exige
     /// sirene/relé e as opções antigas (SMS, MMS, matriz…) não aparecem. Escondidas, ficam como estão.
+    /// Das antigas, só "Mostrar informação na imagem" e "Filtro de oscilação" aparecem, em "Opções avançadas"
+    /// (não existem no VMS antigo; ficam a pedido do usuário).
+    nonisolated static let advancedKeys: Set<String> = ["ShowInfo", "Dejitter"]
+
     nonisolated static func isShown(_ spec: Spec, profile: DeviceCapabilities.Profile) -> Bool {
-        if spec.group == .legacy { return false }
+        if spec.group == .legacy { return advancedKeys.contains(spec.key) }
         switch spec.key {
         case "TipEnable", "BeepEnable": return !profile.has("TipShow.NoBeepTipShow")
         case "VoiceEnable": return profile.functions == nil || profile.has("OtherFunction.SupportAlarmVoiceTips")
@@ -552,14 +556,14 @@ struct SmartAlertView: View {
         let delays = model.delays(in: .legacy)
         if !actions.isEmpty || !delays.isEmpty {
             Section {
-                DisclosureGroup("Opções antigas (pouco usadas)") {
+                DisclosureGroup("Opções avançadas") {
                     ForEach(actions, id: \.wrappedValue.id) { $action in
                         Toggle(isOn: $action.isOn) {
                             FieldLabel(action.spec.title, original: action.spec.original, detail: action.spec.detail)
                         }
                     }
                     ForEach(delays, id: \.wrappedValue.id) { $delay in
-                        Stepper(value: $delay.seconds, in: 0 ... 60) {
+                        Stepper(value: $delay.seconds, in: delay.spec.range) {
                             FieldLabel("\(delay.spec.title): \(delay.seconds) s", original: delay.spec.original, detail: delay.spec.detail)
                         }
                     }

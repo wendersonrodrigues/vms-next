@@ -294,8 +294,9 @@ enum ConfigFormSpecs {
                                 enabledWhen: ConfigCondition(source: 2, path: ["Enable"], values: ["1"])),
                     ConfigField(source: 1, path: ["PreventOverExpo"], kind: .toggle,
                                 title: "Evitar rosto estourado", original: "NoRedFaceExposure",
-                                detail: "À noite, segura o infravermelho para quem chega perto da câmera não ficar branco.",
-                                requires: "Camera.SupportPreventOverExpo"),
+                                // O VMS antigo exige Camera.SupportPreventOverExpo; aqui aparece sempre que o campo
+                                // existir, a pedido do usuário (funciona nas câmeras testadas).
+                                detail: "À noite, segura o infravermelho para quem chega perto da câmera não ficar branco."),
                 ]),
                 // Só nas câmeras que informam a função, como no VMS antigo.
                 ConfigSection(title: "Orientação e lente", fields: [

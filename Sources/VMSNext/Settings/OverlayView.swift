@@ -79,13 +79,11 @@ final class OverlayModel: ObservableObject {
                 originalName = channelName
             }
             osdRaw = try? await client.getConfig("fVideo.OSDInfo")
-            // Como no VMS antigo, o texto extra só aparece em câmeras com SupportOSDInfo; se já houver texto
-            // escrito, a seção continua visível para dar para apagar.
-            let profile = await DeviceCapabilities.profile(for: camera)
+            // O VMS antigo só mostra o texto extra com SupportOSDInfo, mas ele funciona nas câmeras testadas
+            // sem essa capacidade; o VMS Next mostra sempre que a câmera tiver o fVideo.OSDInfo.
             if let osd = ConfigValue.object(in: osdRaw), let first = (osd["OSDInfo"] as? [[String: Any]])?.first {
                 extraLines = (first["Info"] as? [String]) ?? []
-                hasExtraText = profile.functions == nil || profile.has("OtherFunction.SupportOSDInfo")
-                    || extraLines.contains { !$0.isEmpty }
+                hasExtraText = true
                 if let widget = first["OSDInfoWidget"] { extraTitle = Self.title(widget) ?? extraTitle }
             }
             if channelTitle == nil && timeTitle == nil && channelName == nil {
@@ -460,7 +458,7 @@ struct OverlayView: View {
 
     private var extraTextSection: some View {
         Section {
-            ForEach(0 ..< 6, id: \.self) { line in
+            ForEach(0 ..< max(6, model.extraLines.count), id: \.self) { line in
                 TextField("Linha \(line + 1)", text: Binding(
                     get: { model.extraLines.indices.contains(line) ? model.extraLines[line] : "" },
                     set: { value in
@@ -473,7 +471,7 @@ struct OverlayView: View {
         } header: {
             Text("Texto extra (OSD)")
         } footer: {
-            Text("Até 6 linhas de texto livre sobre a imagem, como endereço ou telefone.")
+            Text("Até \(max(6, model.extraLines.count)) linhas de texto livre sobre a imagem, como endereço ou telefone. Não existe no VMS antigo.")
                 .foregroundStyle(.secondary)
         }
     }

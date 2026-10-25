@@ -110,7 +110,8 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 ### 2.6 Sobrepor (Texto na imagem)
 - [x] Mostrar as opções extras **só quando a câmera tiver**: Channel Title, Time Title, Status de gravação,
   Alarm flashes, Channel Docking Line, Brilho, Device QR Code, Antivibração, Transparência, Resolução, OSD extra.
-  Feito para o texto extra (exige `OtherFunction.SupportOSDInfo`); as outras opções o VMS Next ainda não tem.
+  O texto extra (até 6 linhas, `fVideo.OSDInfo`) aparece sempre que a câmera tiver essa configuração, mesmo sem
+  `SupportOSDInfo` (o VMS antigo esconde; o usuário pediu para manter, 25/10). As outras opções o VMS Next ainda não tem.
 
 ### 2.7 Detecção inteligente, Câmera bloqueada, Perda de vídeo
 O VMS antigo mostra **só**: Habilitar, HumanoidDetect, Sensibilidade, Rule, Período, Intervalo,
@@ -118,7 +119,9 @@ Saída de alarme + Atraso (só com saídas), Gravação, Record Delay, Tirar fot
 Enviar e-mail, Escrever log, FTP, Notificações, Saída de alarme.
 - [x] Esconder as ações que a câmera não tem: Bipe e Aviso na tela (`TipShow.NoBeepTipShow`),
   Aviso sonoro (`SupportAlarmVoiceTips`), Saída de alarme (`AlarmOutChannel > 0`), opções antigas (SMS, MMS,
-  Matriz, ShowInfo, SaveSer) sempre escondidas.
+  Matriz, SaveSer) sempre escondidas. A pedido do usuário (25/10), "Mostrar informação na imagem" (ShowInfo) e
+  "Filtro de oscilação" (Dejitter) ficam num grupo recolhido "Opções avançadas", e "Evitar rosto estourado" aparece
+  sempre que o campo existir, mesmo sem `SupportPreventOverExpo` (diferenças propositais com o VMS antigo).
 - [x] **Sensibilidade em 6 níveis**: Muito baixa, Baixa, Média, Alta, Muito alta, Ultra alta.
 - [x] **Ativação de PTZ**: tipo (Nenhum, Predefinido, Ronda, Padrão) + número, para o próprio canal (`EventHandler.PtzLink`).
 - [x] **Câmera bloqueada**: corrigido o "Tirar foto" que aparecia **duas vezes** (era o "Continuar gravando por" com identificador repetido); não tem Intervalo nem Saída de alarme.
