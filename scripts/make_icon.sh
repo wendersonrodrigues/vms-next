@@ -1,11 +1,11 @@
 #!/bin/bash
-# Gera Resources/AppIcon.icns a partir de icone/NEXT_icon.png.
+# Gera Resources/AppIcon.icns a partir de icone/NEXT_icon_new.png.
 # O desenho é reduzido para ~85% de uma tela de 1024 px (grade de ícones do macOS),
 # para ficar do mesmo tamanho dos outros ícones no Dock.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SRC="icone/NEXT_icon.png"
+SRC="icone/NEXT_icon_new.png"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 

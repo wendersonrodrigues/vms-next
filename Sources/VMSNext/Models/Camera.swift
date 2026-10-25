@@ -21,6 +21,8 @@ struct Camera: Codable, Identifiable, Hashable {
     var cloudID: String?
     /// Split virtual: câmera dupla (uma imagem em cima da outra) mostrada como dois quadros no app.
     var split: CameraSplit?
+    /// Se a câmera tem motor (PTZ): automático pelas capacidades ou escolhido em Editar câmera.
+    var ptz: PTZSupport = .auto
 
     /// Nome completo para mosaico e listas: "NVR · Canal 2" ou "Frente".
     var displayName: String { group.map { "\($0) · \(name)" } ?? name }
@@ -54,6 +56,7 @@ struct Camera: Codable, Identifiable, Hashable {
         sameAs = try c.decodeIfPresent(UUID.self, forKey: .sameAs)
         cloudID = try c.decodeIfPresent(String.self, forKey: .cloudID)
         split = try c.decodeIfPresent(CameraSplit.self, forKey: .split)
+        ptz = try c.decodeIfPresent(PTZSupport.self, forKey: .ptz) ?? .auto
     }
 
     func rtspURL(password: String, quality: StreamQuality) -> String {
@@ -64,6 +67,20 @@ struct Camera: Codable, Identifiable, Hashable {
             .replacingOccurrences(of: "{stream}", with: String(quality.rawValue))
         if !path.hasPrefix("/") { path = "/" + path }
         return "rtsp://\(host):\(rtspPort)\(path)"
+    }
+}
+
+/// PTZ da câmera. A Xiongmai não informa isso de forma confiável; o automático usa as capacidades e,
+/// num canal de NVR ligado a uma câmera avulsa ("Mesma câmera que"), o que vale para ela.
+enum PTZSupport: String, Codable, CaseIterable {
+    case auto, yes, no
+
+    var label: String {
+        switch self {
+        case .auto: return "Automático"
+        case .yes: return "Tem PTZ"
+        case .no: return "Não tem PTZ"
+        }
     }
 }
 

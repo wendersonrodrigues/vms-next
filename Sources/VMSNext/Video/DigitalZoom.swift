@@ -52,6 +52,13 @@ final class DigitalZoom: ObservableObject {
         )
     }
 
+    /// Só a pinça (no mosaico, enquanto a imagem não está ampliada, arrastar continua trocando o quadro de lugar).
+    var magnifyGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { self.magnify(by: $0.magnification) }
+            .onEnded { _ in self.commit() }
+    }
+
     /// Deslocamento efetivo: o mesmo limite usado pela camada do vídeo (a imagem não sai do quadro).
     func clampedPan(in area: CGSize) -> CGSize {
         let limitX = (scale - 1) * area.width / 2
@@ -65,37 +72,41 @@ final class DigitalZoom: ObservableObject {
 struct ZoomControls: View {
     @ObservedObject var zoom: DigitalZoom
     var enabled = true
+    /// Versão menor, para os quadros do mosaico.
+    var compact = false
     @StateObject private var hover = HoverFlag()
 
+    private var button: CGSize { compact ? CGSize(width: 30, height: 26) : CGSize(width: 48, height: 44) }
+
     var body: some View {
-        VStack(spacing: 6) {
-            Button { zoom.step(1) } label: { Image(systemName: "plus.magnifyingglass").frame(width: 48, height: 44) }
+        VStack(spacing: compact ? 2 : 6) {
+            Button { zoom.step(1) } label: { Image(systemName: "plus.magnifyingglass").frame(width: button.width, height: button.height) }
                 .disabled(!enabled || zoom.scale >= DigitalZoom.maximum)
                 .help("Zoom digital: amplia a imagem no Mac (qualquer câmera). Também: pinça no trackpad e arrastar para mover.")
                 .accessibilityLabel("Aumentar o zoom digital")
             Button { zoom.reset() } label: {
                 Text(String(format: "%.1f×", zoom.scale))
-                    .font(.system(size: 15, weight: .bold)).monospacedDigit()
-                    .frame(width: 52, height: 24)
+                    .font(.system(size: compact ? 11 : 15, weight: .bold)).monospacedDigit()
+                    .frame(width: compact ? 34 : 52, height: compact ? 16 : 24)
             }
             .disabled(zoom.scale <= 1)
             .help("Voltar ao tamanho normal")
-            Button { zoom.step(-1) } label: { Image(systemName: "minus.magnifyingglass").frame(width: 48, height: 44) }
+            Button { zoom.step(-1) } label: { Image(systemName: "minus.magnifyingglass").frame(width: button.width, height: button.height) }
                 .disabled(!enabled || zoom.scale <= 1)
                 .help("Diminuir o zoom digital")
                 .accessibilityLabel("Diminuir o zoom digital")
         }
         .buttonStyle(.plain)
-        .font(.system(size: 26, weight: .semibold))
+        .font(.system(size: compact ? 16 : 26, weight: .semibold))
         .foregroundStyle(.white)
-        .padding(.vertical, Space.s)
+        .padding(.vertical, compact ? Space.xs : Space.s)
         .background(.black.opacity(hover.on ? 0.6 : 0.2), in: Capsule())
         .overlay(Capsule().strokeBorder(.white.opacity(hover.on ? 0.35 : 0.1)))
         .opacity(hover.on ? 1 : 0.35)
         .contentShape(Capsule())
         .onHover { hover.on = $0 }
         .animation(.easeOut(duration: 0.15), value: hover.on)
-        .padding(.trailing, Space.m)
+        .padding(.trailing, compact ? Space.s : Space.m)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
     }
 }

@@ -66,6 +66,29 @@ enum DeviceCapabilities {
         return profile
     }
 
+    /// Funções que só câmeras com motor informam (ronda, posição de repouso, retomar posição).
+    static let ptzFunctions = ["OtherFunction.SupportPTZTour", "OtherFunction.SupportPtzIdleState",
+                               "OtherFunction.SupportResumePtzState"]
+
+    /// A câmera tem PTZ? Escolha manual vence; senão, as capacidades da própria câmera (ou da câmera avulsa
+    /// ligada ao canal do NVR). Sem informação nenhuma, considera que não tem.
+    @MainActor
+    static func hasPTZ(_ camera: Camera, in cameras: [Camera]) async -> Bool {
+        switch camera.ptz {
+        case .yes: return true
+        case .no: return false
+        case .auto: break
+        }
+        var source = camera
+        if camera.group != nil {
+            guard let id = camera.sameAs, let linked = cameras.first(where: { $0.id == id }) else { return false }
+            if linked.ptz != .auto { return linked.ptz == .yes }
+            source = linked
+        }
+        guard let functions = await systemFunction(for: source) else { return false }
+        return ptzFunctions.contains { supports(functions, $0) }
+    }
+
     /// SystemFunction do equipamento (guardado por endereço). nil quando ele não informa.
     @MainActor
     static func systemFunction(for camera: Camera) async -> [String: Any]? {

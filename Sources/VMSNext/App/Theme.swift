@@ -154,21 +154,44 @@ struct BarButton: View {
     }
 }
 
-/// Logo do app: versão escura no modo escuro (Resources/Icons/logo_dark.png), clara no modo claro.
+/// Logo do app (Resources/Icons/logo.png, o mesmo desenho do ícone do Dock): um só para o modo claro e o escuro.
 struct AppLogo: View {
     var size: CGFloat
-    @Environment(\.colorScheme) private var scheme
 
-    private static func load(_ name: String) -> NSImage? {
-        Bundle.main.resourceURL.flatMap { NSImage(contentsOf: $0.appendingPathComponent("Icons/\(name).png")) }
-    }
-    private static let dark = load("logo_dark")
-    private static let light = load("logo_light")
+    private static let image: NSImage? = Bundle.main.resourceURL
+        .flatMap { NSImage(contentsOf: $0.appendingPathComponent("Icons/logo.png")) }
 
     var body: some View {
-        Image(nsImage: (scheme == .dark ? Self.dark : Self.light) ?? NSApp.applicationIconImage)
+        Image(nsImage: Self.image ?? NSApp.applicationIconImage)
             .resizable()
             .interpolation(.high)
             .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Ícone de "câmera ligada" (Resources/Icons/linked_camera.png, gerado no Magnific): símbolo de uma cor que segue
+/// a cor do texto ao lado, como os símbolos do sistema. Mostra o nome oficial junto das metades do split.
+struct LinkedCameraIcon: View {
+    var size: CGFloat = 12
+
+    private static let image: NSImage? = {
+        guard let url = Bundle.main.resourceURL?.appendingPathComponent("Icons/linked_camera.png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.isTemplate = true
+        return image
+    }()
+
+    var body: some View {
+        Group {
+            if let image = Self.image {
+                Image(nsImage: image).resizable().interpolation(.high).renderingMode(.template)
+            } else {
+                Image(systemName: "link").resizable()
+            }
+        }
+        .aspectRatio(contentMode: .fit)
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }

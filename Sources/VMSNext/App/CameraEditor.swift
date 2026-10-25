@@ -63,6 +63,11 @@ struct CameraEditor: View {
                         .foregroundStyle(.secondary)
                 }
                 Section {
+                    Picker(selection: $form.camera.ptz) {
+                        ForEach(PTZSupport.allCases, id: \.self) { Text($0.label).tag($0) }
+                    } label: {
+                        FieldLabel("PTZ (motor)", detail: "Mostra o botão PTZ no mosaico. No automático, segue o que a câmera informa.")
+                    }
                     Picker("Vídeo ao vivo", selection: $form.camera.liveSource) {
                         Text("Automático").tag(LiveSource.auto)
                         Text("RTSP").tag(LiveSource.rtsp)

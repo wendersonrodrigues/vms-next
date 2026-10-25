@@ -58,7 +58,7 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 ## Primeiros passos
 
 1. **Adicionar câmeras:** vá em **Dispositivos → Procurar na rede**. Aparecem as câmeras e NVRs Xiongmai da sua rede; clique em **Adicionar…**, confira o nome e digite o **usuário e a senha do equipamento** (os mesmos do iCSee/XMEye). Também dá para adicionar pelo IP com **+ → Nova câmera**.
-2. **Ver ao vivo:** clique em **Ao vivo**. Escolha o modelo de tela na barra de baixo e arraste câmeras da lista para os quadros. **Duplo clique** abre uma câmera em tela cheia, com som, HD/SD, zoom, foto, gravar e PTZ.
+2. **Ver ao vivo:** clique em **Ao vivo** (⌘2). Escolha o modelo de tela na barra de baixo e arraste câmeras da lista para os quadros. Cada quadro tem embaixo o nome, o **PTZ** (nas câmeras que têm), o som e o botão **expandir**, que abre a câmera em tela cheia (duplo clique também abre).
 3. **Câmera dupla** (duas imagens uma em cima da outra): botão direito → **Dividir em duas (split virtual)**.
 4. **Gravações:** clique em **Gravações**, escolha a câmera na lista e o dia. Clique numa gravação para assistir; **Baixar** salva em MP4.
 5. **Alertas:** em **Eventos → Ajustes dos alertas** escolha quais tipos notificam e tocam som. Cada alerta tem atalhos para o **ao vivo** e para a **gravação** daquele momento.
@@ -86,8 +86,10 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **Modelos personalizados**: grade de até 6 × 6 com quadros juntados.
 - **Rodízio de telas** (Tour): passa sozinho pelas telas escolhidas, com tempo ajustável.
 - **Split virtual** para câmeras duplas: uma imagem vira dois quadros (cima e baixo) com um só vídeo da câmera, nomes próprios e o nome oficial sempre junto.
-- Câmera em tela cheia com barra de baixo: **som**, **HD/SD**, **zoom digital** (botões, pinça no trackpad e arrastar), **Gravar** e **PTZ**.
-- **PTZ**: 8 direções, velocidade, zoom óptico, foco, íris, presets e **ronda** (passeio entre presets).
+- Barra embaixo de cada quadro do mosaico: nome (e a câmera ligada, nas metades do split), **PTZ**, **som** e **expandir**.
+- **Zoom digital** em cada quadro e na câmera em tela cheia (botões, pinça no trackpad e arrastar).
+- Câmera em tela cheia com barra de baixo: **som**, **HD/SD**, **foto**, **Gravar** e **PTZ**.
+- **PTZ** no pé da lista de câmeras, uma câmera por vez, no arranjo do VMS antigo: 8 direções, zoom óptico, íris, foco, passo, **presets** e **ronda** (com janela de edição), escolhidos numa lista. Inverter esquerda/direita e cima/baixo por câmera. O botão só aparece nas câmeras com PTZ (automático ou escolhido em Editar câmera).
 - **Áudio** G.711 das câmeras, um som por vez.
 - Lista de câmeras **reordenável** arrastando; NVR como grupo com seus canais.
 - Vídeo H.264 e H.265 por RTSP ou pelo protocolo Xiongmai, com reconexão automática.
@@ -117,16 +119,22 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - Senha salva visível no editor (botão de olho).
 
 ### Configurações (das câmeras)
-Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido na lista. Começam num menu de ícones e mantêm a tela aberta ao trocar de câmera. Só aparecem as telas e opções que o equipamento informa ter (capacidades `SystemFunction`, `EncodeCapability` e outras).
+Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido na lista. Começam num menu de ícones e mantêm a tela aberta ao trocar de câmera. Só aparecem as telas e opções que o equipamento informa ter (capacidades `SystemFunction`, `EncodeCapability` e outras). Os valores e as regras de cada tela foram conferidos no próprio código do VMS antigo (mapa em [docs/REA-MAPA-CONFIG.md](docs/REA-MAPA-CONFIG.md)).
 
 - **Imagem e visão noturna**: brilho, contraste, saturação, matiz, espelhar, virar, contraluz, anti-cintilação e os modos de visão noturna (colorida, infravermelha e luz dupla), com **prévia ilustrada** de cada ajuste.
 - **Exposição e ajustes finos**: modo de exposição com os tempos da câmera, ganho, faixa dinâmica (WDR), ruído, estilo e filtro IR.
 - **Texto na imagem** e máscaras de privacidade.
-- **Qualidade do vídeo e som**: compressão (H.265X/H.265), resolução, qualidade, FPS, CBR/VBR, taxa de bits, intervalo de quadro, áudio e Smart Encode (H265AI), com aviso para reiniciar.
+- **Qualidade do vídeo e som**: seletor de canal (câmeras de lente dupla), compressão (H.265X/H.265), resolução, qualidade, FPS, CBR/VBR, taxa de bits, intervalo de quadro, áudio, perfil e Smart Encode (H265AI), com aviso para reiniciar.
 - **Gravação** com agenda semanal pintável, **Fotos automáticas** e **Disco / cartão**.
 - **Alarmes**: detecção inteligente com área e linha de aviso, perda de vídeo, câmera bloqueada, veículos, problemas no equipamento e saída de alarme.
-- **Equipamento**: sistema e horário, manutenção, usuários, restaurar padrão, rede, serviços de rede (nuvem, RTSP, filtro de IP, Wi-Fi, notificações no celular), **PTZ por cabo** (RS485) e informações.
+- **Equipamento**: sistema e horário (com fuso horário e servidor de horário), manutenção, usuários, restaurar padrão, rede, serviços de rede (nuvem, RTSP, filtro de IP, Wi-Fi, notificações no celular), **PTZ por cabo** (RS485) e informações.
 - **Diagnóstico** em JSON (sem senhas) em cada tela, e **Capacidades…** em Informações.
+
+### Acessibilidade e teclado
+Interface revista pelas regras da Apple para o macOS ([docs/REVISAO-INTERFACE-MACOS.md](docs/REVISAO-INTERFACE-MACOS.md)).
+- Cores com contraste mínimo também no modo claro e reforçadas com **Aumentar contraste**; respeita **Reduzir movimento**.
+- **VoiceOver** em português em todos os botões, nos quadros de vídeo (estado e ações), no PTZ, na agenda e nos editores.
+- Atalhos: **⌘,** Preferências · **⌘1–⌘6** telas · **⌥⌘← ⌥⌘→** páginas do mosaico · **⌥⌘↑** voltar ao mosaico · **⌥⌘R** rodízio · nas Gravações **espaço**, **← →** e **⌘D** · **⌘R** recarregar as configurações.
 
 ### Preferências
 - Tema claro, escuro ou igual ao Mac.
@@ -141,6 +149,18 @@ Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido 
 - Depois de uma senha recusada, o app **não repete o login** até a senha ser trocada, para a câmera não bloquear o usuário.
 - Configurações gravadas no modo *ler, alterar e devolver*: campos que o app não conhece são preservados.
 - Diagnósticos e exportações nunca incluem senhas.
+
+## Próximos passos
+
+O que está nos planos (ideias e pedidos são bem-vindos nas *Issues*):
+- PTZ pelas setas do teclado e **Return** para abrir a câmera escolhida no mosaico.
+- **Delete** para apagar itens nas configurações (máscaras, usuários, passos do rodízio).
+- Opção **H265+** da codificação inteligente e conferência do perfil de codificação em mais modelos.
+- Aba **Wi-Fi** completa (procurar redes e trocar de rede com segurança).
+- **Filtro de IP** e **horário de verão** editáveis.
+- Trocar o IP de uma câmera pelo NVR e **atualizar o firmware** pelo app.
+- Mais preferências do VMS antigo (conectar sozinho, trocar HD/SD automático).
+- Testes com mais modelos de câmeras e NVRs Xiongmai.
 
 ## Requisitos
 
@@ -182,7 +202,7 @@ As notas técnicas do protocolo estão em [docs/PROTOCOLO.md](docs/PROTOCOLO.md)
 A versão fica num lugar só, o `Resources/Info.plist`: o app inteiro (coluna lateral, Início, Ajuda e Sobre) lê dali. Para trocar:
 
 ```bash
-./scripts/set-version.sh 1.1.0          # ou 1.1.0-beta.1 para versão de testes (vai como pré-lançamento)
+./scripts/set-version.sh 1.2.0          # ou 1.2.0-beta.1 para versão de testes (vai como pré-lançamento)
 ```
 
 O `release.sh` compila, monta o app e gera o instalador `build/VMS-Next-<versão>.dmg` (janela de arrastar para Aplicativos, feita pelo `make-dmg.sh`) e o `build/VMS-Next-<versão>.zip` com o resumo (SHA-256) para anexar a um Release no GitHub. As novidades de cada versão ficam no [CHANGELOG.md](CHANGELOG.md).
@@ -201,7 +221,7 @@ Ideias, problemas e melhorias são bem-vindos pelas *Issues* e *Pull Requests* d
 
 ## Créditos
 
-Criado por **Wenderson Rodrigues**. Ícones e imagens de exemplo gerados no Magnific.
+Criado por **Wenderson Rodrigues**. Ícones e imagens de exemplo gerados no Magnific. Configurações conferidas no VMS antigo com o [REA](https://github.com/morluto/rea) e o Hopper.
 
 ## Aviso
 

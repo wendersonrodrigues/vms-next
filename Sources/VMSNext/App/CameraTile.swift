@@ -19,17 +19,27 @@ struct CameraTile: View {
     /// Ação do duplo clique (abrir em tela única ou voltar ao mosaico), oferecida também ao VoiceOver.
     var onOpen: (() -> Void)?
     var openTitle = "Abrir em tela única"
+    /// Mosaico: PTZ deste quadro aberto (azul) e a ação de abrir/fechar. nil = sem botão de PTZ.
+    var ptzActive = false
+    var onTogglePTZ: (() -> Void)?
+    /// A câmera tem PTZ (lido das capacidades ou da escolha em Editar câmera). ObservableObject no lugar de
+    /// @State, que precisa do Xcode.
+    @StateObject private var ptzSupport = HoverFlag()
+    private var hasPTZ: Bool { ptzSupport.on }
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @EnvironmentObject private var store: CameraStore
     @StateObject private var lease: StreamLease
     @StateObject private var zoom = DigitalZoom()
     @ObservedObject private var recorder = LocalRecorder.shared
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(camera: Camera, quality: StreamQuality, part: SplitPart = .full, onEdit: @escaping () -> Void,
          onSettings: (() -> Void)? = nil, onToggleSplit: (() -> Void)? = nil, onRename: (() -> Void)? = nil,
          single: SingleViewControls? = nil, extraMenu: AnyView? = nil,
-         onOpen: (() -> Void)? = nil, openTitle: String = "Abrir em tela única") {
+         onOpen: (() -> Void)? = nil, openTitle: String = "Abrir em tela única",
+         ptzActive: Bool = false, onTogglePTZ: (() -> Void)? = nil) {
+        self.ptzActive = ptzActive
+        self.onTogglePTZ = onTogglePTZ
         self.onOpen = onOpen
         self.openTitle = openTitle
         self.single = single
@@ -50,14 +60,11 @@ struct CameraTile: View {
         VStack(spacing: 0) {
             videoArea
             if let single {
-                if single.showPTZ.wrappedValue {
-                    PTZBar(camera: camera)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
                 controlBar(single)
+            } else {
+                gridBar
             }
         }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: single?.showPTZ.wrappedValue)
         .background(Color.black)
         .contentShape(Rectangle())
         .contextMenu { menu }
@@ -67,6 +74,65 @@ struct CameraTile: View {
         }
         .onDisappear { LiveStreamHub.shared.release(lease.key) }
         .onChange(of: store.passwordRevision) { start(force: true) }
+        .task(id: "\(camera.id)-\(camera.ptz)-\(camera.sameAs?.uuidString ?? "")") {
+            ptzSupport.on = await DeviceCapabilities.hasPTZ(camera, in: store.cameras)
+        }
+    }
+
+    /// Barra de baixo do quadro do mosaico: nome, câmera ligada, PTZ (só se tiver), som e abrir em tela única.
+    private var gridBar: some View {
+        HStack(spacing: Space.s) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(camera.title(for: part))
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                if part != .full {
+                    // Nome oficial da câmera, sempre junto das metades do split.
+                    HStack(spacing: 3) {
+                        LinkedCameraIcon(size: 12)
+                        Text(camera.displayName).lineLimit(1)
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.65))
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Câmera \(camera.displayName)")
+                }
+            }
+            Spacer(minLength: Space.xs)
+            if hasPTZ, let onTogglePTZ {
+                Button(action: onTogglePTZ) {
+                    Label("PTZ", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(ptzActive ? Color.white : Color.white.opacity(0.55))
+                        .padding(.horizontal, Space.s)
+                        .padding(.vertical, Space.xxs)
+                        .background(RoundedRectangle(cornerRadius: Radius.small)
+                            .fill(ptzActive ? Theme.accent : Color.white.opacity(0.1)))
+                }
+                .buttonStyle(.hover)
+                .help(ptzActive ? "Fechar os controles de PTZ desta câmera" : "Abrir os controles de PTZ desta câmera")
+                .accessibilityLabel("PTZ")
+                .accessibilityAddTraits(ptzActive ? .isSelected : [])
+            }
+            if stream.hasAudio, part != .bottom {
+                SpeakerButton(id: stream.audioID, setAudio: stream.setAudio)
+                    .buttonStyle(.hover)
+                    .font(.caption)
+            }
+            if let onOpen {
+                Button(action: onOpen) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right").font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.hover)
+                .help("Abrir em tela única (também com duplo clique)")
+                .accessibilityLabel("Abrir em tela única")
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, Space.s)
+        .padding(.vertical, Space.xs)
+        .frame(minHeight: 30)
+        .background(Color(white: 0.07))
     }
 
     /// Barra de baixo da câmera em tela cheia, no lugar onde as pessoas procuram esses controles.
@@ -75,7 +141,11 @@ struct CameraTile: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(camera.title(for: part)).font(.headline)
                 if part != .full {
-                    Label(camera.displayName, systemImage: "link").font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        LinkedCameraIcon(size: 14)
+                        Text(camera.displayName)
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
                 }
             }
             Spacer()
@@ -107,18 +177,22 @@ struct CameraTile: View {
             }
             .buttonStyle(.hover)
             .help("Gravar esta câmera no disco do Mac (vídeo principal), na pasta das Preferências")
-            Button {
-                single.showPTZ.wrappedValue.toggle()
-            } label: {
-                Label("PTZ", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .padding(.horizontal, Space.m)
-                    .padding(.vertical, Space.xs)
-                    .background(RoundedRectangle(cornerRadius: Radius.small)
-                        .fill(single.showPTZ.wrappedValue ? Theme.accent.opacity(0.25) : Color.primary.opacity(0.08)))
+            // PTZ no pé da lista de câmeras, o mesmo painel do mosaico (só nas câmeras que têm PTZ).
+            if hasPTZ, let onTogglePTZ {
+                Button(action: onTogglePTZ) {
+                    Label("PTZ", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(ptzActive ? Color.white : Color.primary)
+                        .padding(.horizontal, Space.m)
+                        .padding(.vertical, Space.xs)
+                        .background(RoundedRectangle(cornerRadius: Radius.small)
+                            .fill(ptzActive ? Theme.accent : Color.primary.opacity(0.08)))
+                }
+                .buttonStyle(.hover)
+                .help(ptzActive ? "Fechar os controles de PTZ" : "Mostrar os controles de PTZ ao lado, embaixo da lista de câmeras")
+                .accessibilityLabel("PTZ")
+                .accessibilityAddTraits(ptzActive ? .isSelected : [])
             }
-            .buttonStyle(.hover)
-            .help("Mostrar os controles de movimento (PTZ), zoom óptico, foco e presets")
         }
         .padding(.horizontal, Space.l)
         .padding(.vertical, Space.m)
@@ -193,7 +267,10 @@ struct CameraTile: View {
         ZStack {
             VideoLayerView(layer: part == .bottom ? stream.mirrorLayer() : stream.displayLayer, crop: part,
                            videoSize: stream.videoSize, zoom: zoom.scale, pan: zoom.pan)
-                .gesture(allowsZoom ? zoom.gesture : nil)
+                // Tela única: pinça e arrastar. Mosaico: pinça; arrastar só move a imagem quando ampliada
+                // (sem zoom, arrastar troca o quadro de lugar no modelo de tela).
+                .gesture(allowsZoom || zoom.scale > 1 ? zoom.gesture : nil)
+                .simultaneousGesture(allowsZoom ? nil : zoom.magnifyGesture)
                 // VoiceOver: nome da câmera, se está ao vivo e as ações do menu do botão direito.
                 .accessibilityElement()
                 .accessibilityLabel(camera.title(for: part))
@@ -206,8 +283,7 @@ struct CameraTile: View {
                 .accessibilityAction(named: "Reconectar") { start(force: true) }
                 .accessibilityAction(named: "Editar câmera") { onEdit() }
             overlay
-            if single == nil { nameOverlay }
-            if allowsZoom { ZoomControls(zoom: zoom) }
+            ZoomControls(zoom: zoom, compact: single == nil)
             if recorder.isRecording(camera) {
                 Label("REC", systemImage: "record.circle.fill")
                     .font(.caption.weight(.bold))
@@ -231,38 +307,6 @@ struct CameraTile: View {
         case .needsPassword: return "Senha não definida"
         case let .failed(message, _): return "Sem conexão: \(message)" + recording
         }
-    }
-
-    private var nameOverlay: some View {
-            VStack {
-                Spacer()
-                HStack {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(camera.title(for: part))
-                            .font(.caption.weight(.medium))
-                        if part != .full {
-                            // Nome oficial da câmera, sempre junto das metades.
-                            Label(camera.displayName, systemImage: "link")
-                                .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-                    }
-                    .padding(.horizontal, Space.s)
-                    .padding(.vertical, Space.xs)
-                    .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: Radius.small))
-                    .foregroundStyle(.white)
-                    Spacer()
-                    if stream.hasAudio, part != .bottom {
-                        SpeakerButton(id: stream.audioID, setAudio: stream.setAudio)
-                            .buttonStyle(.hover)
-                            .font(.caption)
-                            .padding(Space.xs)
-                            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: Radius.small))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .padding(Space.s)
-            }
     }
 
     @ViewBuilder
@@ -311,8 +355,7 @@ struct CameraTile: View {
     }
 }
 
-/// Ligações da câmera em tela cheia com a janela: qualidade escolhida e painel de PTZ aberto.
+/// Ligação da câmera em tela cheia com a janela: qualidade escolhida.
 struct SingleViewControls {
     var quality: Binding<StreamQuality>
-    var showPTZ: Binding<Bool>
 }

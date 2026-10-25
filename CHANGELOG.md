@@ -1,5 +1,17 @@
 # Novidades
 
+## 1.1.0 — 25/10/2026
+
+Versão oficial. Junta tudo das betas 1, 2 e 3 e acrescenta:
+
+- **Mosaico novo**: barra embaixo de cada quadro com nome, câmera ligada (ícone novo), **PTZ** (só nas câmeras que têm), som e **expandir**; **zoom digital** em cada quadro.
+- **PTZ no pé da lista de câmeras**, para o mosaico e a tela única, uma câmera por vez, no arranjo simples do VMS antigo: setas, zoom/íris/foco, passo, preset e ronda escolhidos numa lista, e janela para editar a ronda. A barra de PTZ embaixo da tela única saiu.
+- **PTZ (motor)** em Editar câmera: automático (pelas capacidades) ou escolhido à mão.
+- **Logo e ícone novos**, um só desenho para o modo claro e o escuro.
+- README com as novidades e os próximos passos.
+
+Resumo das betas: configurações conferidas no código do VMS antigo (REA + Hopper), fuso horário e servidor de horário, seletor de canal na Mídia, funções extras mantidas (texto extra, evitar rosto estourado, opções avançadas das detecções) e a interface revista pelas regras da Apple (cores e contraste, VoiceOver, atalhos de teclado, telas acessíveis e acabamento).
+
 ## 1.1.0 Beta 3 — 25/10/2026
 
 Versão de testes. Interface revista pelas regras da Apple para o macOS (relatório em `docs/REVISAO-INTERFACE-MACOS.md`).

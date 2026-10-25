@@ -7,6 +7,7 @@ struct ContentView: View {
     @ObservedObject private var alarms = AlarmCenter.shared
     @ObservedObject private var layouts = ViewLayoutStore.shared
     @ObservedObject private var rotation = RotationStore.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // A coluna de ícones fica fora da barra lateral: o botão de esconder a barra só esconde a lista de câmeras.
@@ -18,7 +19,7 @@ struct ContentView: View {
             }
             NavigationSplitView(columnVisibility: $ui.columnVisibility) {
                 sidebar
-                    .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 360)
+                    .navigationSplitViewColumnWidth(min: 230, ideal: 250, max: 360)
             } detail: {
                 detail
             }
@@ -28,6 +29,8 @@ struct ContentView: View {
         }
         .onChange(of: ui.mode) { old, new in
             if new == .events { alarms.markAllRead() }
+            // O PTZ do mosaico fecha ao sair do ao vivo.
+            if new != .live { ui.mosaicPTZCamera = nil }
             // No Início a lista de câmeras fica recolhida; volta ao sair dele.
             let hidden: [ViewMode] = [.home, .preferences]
             if hidden.contains(new) { ui.columnVisibility = .detailOnly } else if hidden.contains(old) { ui.columnVisibility = .all }
@@ -139,6 +142,37 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
+        // No ao vivo, o PTZ da câmera escolhida no mosaico fica no pé da lista (a lista rola por cima).
+        GeometryReader { proxy in
+            VStack(spacing: 0) {
+                cameraList
+                // Até 60% da altura: com muitas câmeras, a lista continua rolando por cima do painel.
+                sidebarPTZ(height: min(580, proxy.size.height * 0.6))
+            }
+        }
+        .background(Theme.sidebar)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: ui.mosaicPTZCamera)
+    }
+
+    @ViewBuilder
+    private func sidebarPTZ(height: CGFloat) -> some View {
+        if ui.mode == .live, let id = ui.mosaicPTZCamera, let camera = store.cameras.first(where: { $0.id == id }) {
+            VStack(spacing: 0) {
+                Divider()
+                ScrollView {
+                    PTZPanel(camera: camera) { ui.mosaicPTZCamera = nil }
+                        .id(camera.id)
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { ui.ptzPanelHeight = $0 }
+                }
+                // Só a altura do conteúdo, encostado na base; com pouco espaço, no máximo `height` e rola.
+                .frame(height: ui.ptzPanelHeight > 0 ? min(ui.ptzPanelHeight, height) : height)
+            }
+            .background(Theme.surface)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private var cameraList: some View {
         List(selection: $ui.selection) {
             DisclosureGroup(isExpanded: expanded("all")) {
                 ForEach(topNodes) { node in nodeRow(node) }
@@ -312,6 +346,16 @@ struct ContentView: View {
         return "Câmeras"
     }
 
+    /// Abre ou fecha o PTZ desta câmera no pé da lista; abre a lista se ela estiver escondida.
+    private func togglePTZ(_ camera: Camera) {
+        if ui.mosaicPTZCamera == camera.id {
+            ui.mosaicPTZCamera = nil
+        } else {
+            ui.mosaicPTZCamera = camera.id
+            if ui.columnVisibility == .detailOnly { ui.columnVisibility = .all }
+        }
+    }
+
     private func backToGrid(from camera: Camera) {
         ui.selection = camera.group.map { .group($0) } ?? .all
     }
@@ -395,8 +439,10 @@ struct ContentView: View {
                            onSettings: { openSettings(settingsTarget(for: camera)) },
                            onToggleSplit: { toggleSplit(camera) },
                            onRename: focusedPart == .full ? nil : { rename(camera, part: focusedPart) },
-                           single: SingleViewControls(quality: $ui.singleQuality, showPTZ: $ui.showPTZ),
-                           onOpen: { backToGrid(from: camera) }, openTitle: "Voltar ao mosaico")
+                           single: SingleViewControls(quality: $ui.singleQuality),
+                           onOpen: { backToGrid(from: camera) }, openTitle: "Voltar ao mosaico",
+                           ptzActive: ui.mosaicPTZCamera == camera.id,
+                           onTogglePTZ: { togglePTZ(camera) })
                     .id("\(camera.id)-\(focusedPart)-\(ui.singleQuality)-\(camera.hashValue)")
                     .onTapGesture(count: 2) { backToGrid(from: camera) }
             }
@@ -476,7 +522,9 @@ struct ContentView: View {
                           onToggleSplit: { toggleSplit(camera) },
                           onRename: tile.part == .full ? nil : { rename(camera, part: tile.part) },
                           extraMenu: extraMenu,
-                          onOpen: { ui.selection = tile.part == .full ? .camera(camera.id) : .part(camera.id, tile.part) })
+                          onOpen: { ui.selection = tile.part == .full ? .camera(camera.id) : .part(camera.id, tile.part) },
+                          ptzActive: ui.mosaicPTZCamera == camera.id,
+                          onTogglePTZ: { togglePTZ(camera) })
             .id("\(camera.id)-\(tile.part)-\(single)-\(camera.hashValue)")
             .onTapGesture(count: 2) {
                 ui.selection = tile.part == .full ? .camera(camera.id) : .part(camera.id, tile.part)
@@ -779,7 +827,10 @@ final class ContentUIState: ObservableObject {
     /// Itens da lista recolhidos (o resto fica aberto).
     @Published var collapsed: Set<String> = []
     @Published var alertMessage: String?
-    @Published var showPTZ = false
+    /// Câmera com o PTZ aberto (mosaico ou tela única; só uma por vez), no pé da lista de câmeras.
+    @Published var mosaicPTZCamera: Camera.ID?
+    /// Altura do conteúdo do painel de PTZ, para ele ocupar só o necessário (rola só se não couber).
+    @Published var ptzPanelHeight: CGFloat = 0
     /// Qualidade da câmera em tela cheia (o mosaico usa sempre o vídeo extra, mais leve).
     @Published var singleQuality: StreamQuality = .main
     /// O app sempre abre no Início, que mostra se as câmeras estão conectadas antes do mosaico.
