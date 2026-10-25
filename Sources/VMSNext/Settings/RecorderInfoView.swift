@@ -446,6 +446,7 @@ struct RecorderInfoView: View {
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
                     .disabled(model.loading)
                 Button("Recarregar") { Task { await model.load() } }
+                    .keyboardShortcut("r")
                     .disabled(model.loading)
             }
             .padding(Space.m)
@@ -586,7 +587,7 @@ private struct StatusLabelStyle: LabelStyle {
     let color: Color
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 6) {
-            configuration.icon.font(.system(size: 7)).foregroundStyle(color)
+            configuration.icon.font(.system(size: 8)).foregroundStyle(color)
             configuration.title
         }
     }

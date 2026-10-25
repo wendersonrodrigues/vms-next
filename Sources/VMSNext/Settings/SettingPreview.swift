@@ -132,8 +132,8 @@ struct SettingPreview: View {
         // Na luz dupla, o resto da cena fica em infravermelho (cinza) e só a área iluminada ganha cor.
         if night == .dualLight {
             context.fill(Path(CGRect(x: 0, y: 0, width: w * 0.42, height: h)), with: .color(.gray.opacity(0.55)))
-            context.draw(Text("IR").font(.system(size: 9, weight: .bold)).foregroundColor(.white), at: CGPoint(x: w * 0.05, y: h * 0.92))
-            context.draw(Text("luz acesa ao detectar").font(.system(size: 8)).foregroundColor(.white), at: CGPoint(x: w * 0.72, y: h * 0.94))
+            context.draw(Text("IR").font(.caption2.weight(.bold)).foregroundColor(.white), at: CGPoint(x: w * 0.05, y: h * 0.92))
+            context.draw(Text("luz acesa ao detectar").font(.caption2).foregroundColor(.white), at: CGPoint(x: w * 0.72, y: h * 0.94))
         }
         // Marca para mostrar o espelhamento: "1" sempre no canto superior esquerdo da cena.
         context.draw(Text("1").font(.system(size: 12, weight: .heavy)).foregroundColor(.white), at: CGPoint(x: w * 0.93, y: h * 0.1))

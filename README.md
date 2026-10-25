@@ -26,7 +26,7 @@ Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configura�
   </tr>
   <tr>
     <td><img src="docs/images/eventos.jpg" alt="Eventos"><br><sub><b>Eventos</b>: alertas com atalhos para o ao vivo e a gravação</sub></td>
-    <td><img src="docs/images/config-imagem.jpg" alt="Configurações da câmera"><br><sub><b>Config. câmeras</b>: ajustes com prévia ilustrada</sub></td>
+    <td><img src="docs/images/config-imagem.jpg" alt="Configurações da câmera"><br><sub><b>Configurações</b>: ajustes com prévia ilustrada</sub></td>
   </tr>
 </table>
 
@@ -62,8 +62,8 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 3. **Câmera dupla** (duas imagens uma em cima da outra): botão direito → **Dividir em duas (split virtual)**.
 4. **Gravações:** clique em **Gravações**, escolha a câmera na lista e o dia. Clique numa gravação para assistir; **Baixar** salva em MP4.
 5. **Alertas:** em **Eventos → Ajustes dos alertas** escolha quais tipos notificam e tocam som. Cada alerta tem atalhos para o **ao vivo** e para a **gravação** daquele momento.
-6. **Configurar uma câmera:** clique em **Config. câmeras** e escolha a câmera ou o NVR na lista. Só aparecem as opções que o equipamento tem.
-7. **Preferências do app:** pastas de fotos e downloads, gravação no Mac, tema e segundo plano.
+6. **Configurar uma câmera:** clique em **Configurações** e escolha a câmera ou o NVR na lista. Só aparecem as opções que o equipamento tem.
+7. **Preferências (⌘,):** pastas de fotos e downloads, gravação no Mac, tema e segundo plano.
 
 ### Dúvidas comuns
 
@@ -116,7 +116,7 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **Importar e exportar** a lista de câmeras para outro Mac (sem as senhas).
 - Senha salva visível no editor (botão de olho).
 
-### Config. câmeras
+### Configurações (das câmeras)
 Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido na lista. Começam num menu de ícones e mantêm a tela aberta ao trocar de câmera. Só aparecem as telas e opções que o equipamento informa ter (capacidades `SystemFunction`, `EncodeCapability` e outras).
 
 - **Imagem e visão noturna**: brilho, contraste, saturação, matiz, espelhar, virar, contraluz, anti-cintilação e os modos de visão noturna (colorida, infravermelha e luz dupla), com **prévia ilustrada** de cada ajuste.
@@ -128,7 +128,7 @@ Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido 
 - **Equipamento**: sistema e horário, manutenção, usuários, restaurar padrão, rede, serviços de rede (nuvem, RTSP, filtro de IP, Wi-Fi, notificações no celular), **PTZ por cabo** (RS485) e informações.
 - **Diagnóstico** em JSON (sem senhas) em cada tela, e **Capacidades…** em Informações.
 
-### Preferências do app
+### Preferências
 - Tema claro, escuro ou igual ao Mac.
 - Pastas de fotos, downloads e gravações, e se pergunta onde salvar.
 - Voltar para onde parei, lembrar login, acertar o relógio das câmeras, qualidade ao abrir uma câmera.

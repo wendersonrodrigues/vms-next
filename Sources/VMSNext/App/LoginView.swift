@@ -19,15 +19,21 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("VMS Next")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+            // Cabeçalho com o logo e as cores do tema (claro e escuro), como o resto do app.
+            HStack(spacing: Space.m) {
+                AppLogo(size: 52)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("VMS Next").font(.title.weight(.bold))
+                    Text(settingUp ? "Primeiro acesso" : "Entre para ver as suas câmeras")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
             }
-            .padding(.horizontal, Space.xxxl)
-            .frame(height: 72)
-            .background(LinearGradient(colors: [Color(white: 0.28), Color(white: 0.14)], startPoint: .top, endPoint: .bottom))
+            .padding(.horizontal, Space.xxl)
+            .padding(.vertical, Space.l)
+            .background(Theme.surface)
+            .overlay(alignment: .bottom) { Divider() }
 
             Form {
                 if settingUp {
@@ -55,7 +61,7 @@ struct LoginView: View {
             HStack {
                 Spacer()
                 Button("Sair") { NSApp.terminate(nil) }
-                Button(settingUp ? "Criar e entrar" : "Login", action: submit)
+                Button(settingUp ? "Criar e entrar" : "Entrar", action: submit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(form.user.isEmpty || form.password.isEmpty)
             }
@@ -63,7 +69,8 @@ struct LoginView: View {
         }
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Theme.background)
+        .tint(Theme.accent)
     }
 
     private func submit() {

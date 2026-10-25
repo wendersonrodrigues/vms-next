@@ -103,17 +103,19 @@ private struct HoverBody: View {
     let radius: CGFloat
     @StateObject private var hover = HoverFlag()
     @Environment(\.isEnabled) private var enabled
+    /// "Reduzir movimento" do macOS: sem crescer, sem brilho e sem animação; só o fundo leve.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let active = hover.on && enabled
         configuration.label
             .background(RoundedRectangle(cornerRadius: radius).fill(Color.primary.opacity(active ? 0.08 : 0)))
-            .brightness(active ? 0.06 : 0)
-            .scaleEffect(configuration.isPressed ? 0.95 : (active ? 1.04 : 1))
-            .shadow(color: active ? Theme.accent.opacity(0.35) : .clear, radius: 8)
+            .brightness(active && !reduceMotion ? 0.06 : 0)
+            .scaleEffect(reduceMotion ? 1 : (configuration.isPressed ? 0.95 : (active ? 1.04 : 1)))
+            .shadow(color: active && !reduceMotion ? Theme.accent.opacity(0.35) : .clear, radius: 8)
             .opacity(enabled ? 1 : 0.4)
-            .animation(.easeOut(duration: 0.15), value: active)
-            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: active)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.1), value: configuration.isPressed)
             .onHover { hover.on = $0 }
             .contentShape(Rectangle())
     }

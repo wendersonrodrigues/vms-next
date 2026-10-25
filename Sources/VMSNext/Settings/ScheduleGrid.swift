@@ -226,7 +226,7 @@ struct ScheduleGrid: View {
     private func draw(_ context: GraphicsContext, cell: CGFloat) {
         for hour in 0 ... 24 {
             let x = labelWidth + CGFloat(hour * 2) * cell
-            context.draw(Text("\(hour)").font(.system(size: 9)).foregroundStyle(.secondary), at: CGPoint(x: x, y: 7))
+            context.draw(Text("\(hour)").font(.caption2).foregroundStyle(.secondary), at: CGPoint(x: x, y: 7))
             var tick = Path()
             tick.move(to: CGPoint(x: x, y: rulerHeight - 7))
             tick.addLine(to: CGPoint(x: x, y: rulerHeight - 2))

@@ -24,6 +24,7 @@ struct CameraTile: View {
     @StateObject private var lease: StreamLease
     @StateObject private var zoom = DigitalZoom()
     @ObservedObject private var recorder = LocalRecorder.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(camera: Camera, quality: StreamQuality, part: SplitPart = .full, onEdit: @escaping () -> Void,
          onSettings: (() -> Void)? = nil, onToggleSplit: (() -> Void)? = nil, onRename: (() -> Void)? = nil,
@@ -56,7 +57,7 @@ struct CameraTile: View {
                 controlBar(single)
             }
         }
-        .animation(.easeOut(duration: 0.2), value: single?.showPTZ.wrappedValue)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: single?.showPTZ.wrappedValue)
         .background(Color.black)
         .contentShape(Rectangle())
         .contextMenu { menu }
@@ -242,7 +243,7 @@ struct CameraTile: View {
                         if part != .full {
                             // Nome oficial da câmera, sempre junto das metades.
                             Label(camera.displayName, systemImage: "link")
-                                .font(.system(size: 9))
+                                .font(.caption2)
                                 .foregroundStyle(.white.opacity(0.7))
                         }
                     }

@@ -317,6 +317,7 @@ struct MaintenanceView: View {
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
                     .disabled(model.loading || model.saving)
                 Button("Recarregar") { Task { await model.load() } }
+                    .keyboardShortcut("r")
                     .disabled(model.loading || model.saving)
                 Button("Aplicar") { Task { await model.apply() } }
                     .keyboardShortcut(.defaultAction)

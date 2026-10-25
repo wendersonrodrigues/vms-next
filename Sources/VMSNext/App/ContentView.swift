@@ -384,7 +384,7 @@ struct ContentView: View {
                 }
         } else if ui.mode == .preferences {
             PreferencesView()
-                .navigationTitle("Preferências do app")
+                .navigationTitle("Preferências")
                 .toolbar {
                     titleIcon
                     modeToolbar
@@ -624,7 +624,7 @@ struct ContentView: View {
                     .overlay(alignment: .topTrailing) {
                         if alarms.unread > 0 {
                             Text(alarms.unread > 99 ? "99+" : "\(alarms.unread)")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.caption2.weight(.bold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, Space.xs)
                                 .padding(.vertical, Space.xxs)
@@ -817,7 +817,7 @@ extension ViewMode {
         case .recordings: return "Gravações"
         case .events: return "Eventos"
         case .devices: return "Dispositivos"
-        case .settings: return "Config. câmeras"
+        case .settings: return "Configurações"
         case .preferences: return "Preferências"
         }
     }

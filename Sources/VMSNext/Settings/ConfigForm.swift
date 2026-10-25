@@ -456,26 +456,16 @@ struct ConfigFormView: View {
             }
 
             Divider()
-            HStack {
-                if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
-                }
-                Spacer()
-                Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
-                    .disabled(model.loading || model.saving)
-                Button("Recarregar") { Task { await model.load() } }
-                    .disabled(model.loading || model.saving)
-                Button("Aplicar") {
-                    if model.spec.confirmApply != nil {
-                        model.confirming = true
-                    } else {
-                        Task { await model.apply() }
-                    }
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(model.loading || model.saving || !model.hasChanges)
-            }
-            .padding(Space.m)
+            SettingsFooter(notice: model.notice, busy: model.loading || model.saving, applyDisabled: !model.hasChanges,
+                           onDiagnostic: { model.diagnosticText = await model.diagnostic() },
+                           onReload: { await model.load() },
+                           onApply: {
+                               if model.spec.confirmApply != nil {
+                                   model.confirming = true
+                               } else {
+                                   Task { await model.apply() }
+                               }
+                           })
         }
         .task { await model.load() }
         .confirmationDialog("Aplicar as mudanças?", isPresented: $model.confirming) {

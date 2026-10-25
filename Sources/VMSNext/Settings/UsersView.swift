@@ -422,6 +422,7 @@ struct UsersView: View {
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
                     .disabled(model.loading || model.saving)
                 Button("Recarregar") { Task { await model.load() } }
+                    .keyboardShortcut("r")
                     .disabled(model.loading || model.saving)
             }
             .padding(Space.m)

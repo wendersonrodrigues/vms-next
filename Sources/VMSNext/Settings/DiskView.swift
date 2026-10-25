@@ -234,20 +234,10 @@ struct DiskView: View {
             }
 
             Divider()
-            HStack {
-                if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
-                }
-                Spacer()
-                Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
-                    .disabled(model.loading || model.saving)
-                Button("Recarregar") { Task { await model.load() } }
-                    .disabled(model.loading || model.saving)
-                Button("Aplicar") { Task { await model.applyOverwrite() } }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!model.hasOverwrite || model.loading || model.saving)
-            }
-            .padding(Space.m)
+            SettingsFooter(notice: model.notice, busy: model.loading || model.saving, applyDisabled: !model.hasOverwrite,
+                           onDiagnostic: { model.diagnosticText = await model.diagnostic() },
+                           onReload: { await model.load() },
+                           onApply: { Task { await model.applyOverwrite() } })
         }
         .task { await model.load() }
         .confirmationDialog(model.pendingAction?.title ?? "", isPresented: Binding(

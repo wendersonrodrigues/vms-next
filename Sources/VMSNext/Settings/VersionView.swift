@@ -118,6 +118,7 @@ struct VersionView: View {
                 }
                 .disabled(model.rows.isEmpty)
                 Button("Recarregar") { Task { await model.load() } }
+                    .keyboardShortcut("r")
                     .disabled(model.loading)
             }
             .padding(Space.m)

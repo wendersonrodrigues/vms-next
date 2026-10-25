@@ -81,27 +81,17 @@ struct NetworkView: View {
             }
 
             Divider()
-            HStack {
-                if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
-                        .lineLimit(2)
-                }
-                Spacer()
-                Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
-                    .disabled(model.loading || model.saving)
-                Button("Recarregar") { Task { await model.load() } }
-                    .disabled(model.loading || model.saving)
-                Button("Aplicar") {
-                    if model.changesAddress {
-                        model.confirmingAddressChange = true
-                    } else {
-                        Task { await model.apply() }
-                    }
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(!editable || model.loading || model.validationError != nil)
-            }
-            .padding(Space.m)
+            SettingsFooter(notice: model.notice, busy: model.loading || model.saving,
+                           applyDisabled: !editable || model.validationError != nil,
+                           onDiagnostic: { model.diagnosticText = await model.diagnostic() },
+                           onReload: { await model.load() },
+                           onApply: {
+                               if model.changesAddress {
+                                   model.confirmingAddressChange = true
+                               } else {
+                                   Task { await model.apply() }
+                               }
+                           })
         }
         .task {
             let store = store

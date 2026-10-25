@@ -37,3 +37,34 @@ enum SettingsGroup: String, CaseIterable {
     case alarms = "Alarmes"
     case device = "Equipamento"
 }
+
+/// Rodapé padrão das telas de configuração que gravam no equipamento: aviso de "aplicado" à esquerda e
+/// Diagnóstico…, Recarregar e Aplicar à direita, sempre nessa ordem (Aplicar é a ação principal, com Return).
+struct SettingsFooter: View {
+    let notice: String?
+    /// Lendo ou gravando: trava os três botões.
+    let busy: Bool
+    /// Motivo próprio da tela para não deixar aplicar (nada mudou, campo inválido…).
+    var applyDisabled = false
+    let onDiagnostic: () async -> Void
+    let onReload: () async -> Void
+    let onApply: () -> Void
+
+    var body: some View {
+        HStack {
+            if let notice {
+                Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success).lineLimit(2)
+            }
+            Spacer()
+            Button("Diagnóstico…") { Task { await onDiagnostic() } }
+                .disabled(busy)
+            Button("Recarregar") { Task { await onReload() } }
+                .keyboardShortcut("r")
+                .disabled(busy)
+            Button("Aplicar", action: onApply)
+                .keyboardShortcut(.defaultAction)
+                .disabled(busy || applyDisabled)
+        }
+        .padding(Space.m)
+    }
+}

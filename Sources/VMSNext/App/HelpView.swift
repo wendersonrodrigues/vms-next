@@ -35,7 +35,7 @@ struct HelpView: View {
                 ])
                 section("Configurações e preferências", [
                     "Configurações: ajustes da câmera ou do NVR escolhido na lista, organizados por assunto. Só aparecem as opções que o equipamento tem.",
-                    "Preferências do app: pastas, aparência, gravação no Mac, sons e segundo plano.",
+                    "Preferências (⌘,): pastas, aparência, gravação no Mac, sons e segundo plano.",
                 ])
                 Text("O VMS Next fala direto com os equipamentos na sua rede, sem nuvem e sem o SDK da fabricante. É um projeto independente, sem ligação com a Xiongmai.")
                     .font(.caption)

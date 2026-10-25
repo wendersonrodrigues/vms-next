@@ -301,20 +301,10 @@ private struct SnapConfigForm: View {
             }
 
             Divider()
-            HStack {
-                if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
-                }
-                Spacer()
-                Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
-                    .disabled(model.loading || model.saving)
-                Button("Recarregar") { Task { await model.load() } }
-                    .disabled(model.loading || model.saving)
-                Button("Aplicar") { Task { await model.apply() } }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(model.loading || model.saving || model.validationError != nil)
-            }
-            .padding(Space.m)
+            SettingsFooter(notice: model.notice, busy: model.loading || model.saving, applyDisabled: model.validationError != nil,
+                           onDiagnostic: { model.diagnosticText = await model.diagnostic() },
+                           onReload: { await model.load() },
+                           onApply: { Task { await model.apply() } })
         }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")

@@ -150,6 +150,9 @@ configuração seguem bem o formulário agrupado do macOS. Os pontos fracos são
    "Conectando", "Sem conexão") e ações (abrir/voltar ao mosaico, gravar, reconectar, editar); agenda com o nome de
    cada dia virando menu (Tab e VoiceOver) e resumo falado ("Normal 08:00–18:00"); editor de regra com pontos
    escolhidos por Tab, movidos pelas setas (Shift = 5%) e posição falada; editor de modelo com botões no lugar do toque.
-5. **Acabamento**: tamanhos mínimos de fonte, nomes iguais, rodapé padrão, tela de entrada.
+5. ✅ **Acabamento** (feito em 25/10): nenhum texto abaixo de 10 pt (coluna só com nome e versão); nomes iguais
+   ("Configurações" para as câmeras, "Preferências" para o app, "Ao detectar" nas ações, "Entrar"); rodapé padrão
+   `SettingsFooter` em 11 telas e ⌘R em Recarregar; tela de entrada com logo e tema; "Reduzir movimento" respeitado
+   (botões sem crescer nem brilhar, coluna e barra do PTZ sem animação).
 
 Cada etapa é pequena o bastante para testar e fazer commit separado, como nas etapas de paridade.

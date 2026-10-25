@@ -42,6 +42,7 @@ final class AppearanceSettings: ObservableObject {
 struct NavigationRail: View {
     @Binding var mode: ViewMode
     let unread: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 6) {
@@ -75,23 +76,16 @@ struct NavigationRail: View {
 
     private var version: String { AppInfo.version }
 
-    /// Créditos: nome do app, versão, autor e link para o GitHub.
+    /// Nome e versão (útil por causa do Beta). Autor e GitHub ficam no Início e em Sobre o VMS Next.
     private var credits: some View {
         VStack(spacing: 3) {
             Divider().padding(.horizontal, Space.m)
-            Text("VMS Next").font(.system(size: 10, weight: .semibold))
-            Text("versão \(version)").font(.system(size: 9)).monospacedDigit()
-                // Beta em laranja: versão de testes, ainda com erros conhecidos.
-                .foregroundStyle(AppInfo.isBeta ? Theme.warning : Color.primary)
-            Text("criado por\nWenderson Rodrigues")
-                .font(.system(size: 8))
+            Text("VMS Next").font(.caption2.weight(.semibold))
+            Text("versão \(version)").font(.caption2).monospacedDigit()
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-            Link(destination: Self.githubURL) {
-                Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-                    .font(.system(size: 9, weight: .medium))
-            }
-            .help("Abrir o projeto no GitHub")
+                // Beta em laranja: versão de testes, ainda com erros conhecidos.
+                .foregroundStyle(AppInfo.isBeta ? Theme.warning : Color.primary)
         }
         .foregroundStyle(.secondary)
         .padding(.top, Space.xs)
@@ -107,12 +101,12 @@ struct NavigationRail: View {
             VStack(spacing: 4) {
                 ModeIcon(mode: target, size: 40)
                     .opacity(selected ? 1 : 0.7)
-                    .scaleEffect(selected ? 1.06 : 1)
+                    .scaleEffect(selected && !reduceMotion ? 1.06 : 1)
                     .frame(height: 42)
                     .overlay(alignment: .topTrailing) {
                         if badge > 0 {
                             Text(badge > 99 ? "99+" : "\(badge)")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.caption2.weight(.bold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, Space.xs)
                                 .padding(.vertical, Space.xxs)
@@ -121,7 +115,7 @@ struct NavigationRail: View {
                         }
                     }
                 Text(title)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.caption2.weight(.medium))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -159,7 +153,7 @@ struct PreferencesView: View {
                 HStack(spacing: 14) {
                     AppLogo(size: 56)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Preferências do app").font(.title2.weight(.bold))
+                        Text("Preferências").font(.title2.weight(.bold))
                         Text("Valem para o VMS Next neste Mac. As configurações de cada câmera ficam em Configurações.")
                             .font(.callout).foregroundStyle(.secondary)
                     }
@@ -335,7 +329,7 @@ struct PreferencesView: View {
 }
 
 /// Ícone de uma tela: o ícone gerado (Resources/Icons/<tela>.png) ou, sem ele, o símbolo do sistema.
-/// "Config. câmeras" usa câmera com engrenagem, para não confundir com as Preferências do app.
+/// "Configurações" (das câmeras) usa câmera com engrenagem, para não confundir com as Preferências do app.
 struct ModeIcon: View {
     let mode: ViewMode
     var size: CGFloat = 24
