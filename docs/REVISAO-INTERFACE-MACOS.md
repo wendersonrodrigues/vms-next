@@ -146,7 +146,10 @@ configuração seguem bem o formulário agrupado do macOS. Os pontos fracos são
 3. ✅ **Teclado** (feito em 25/10): ⌘, abre as Preferências; menu Visualizar com Início…Config. câmeras em ⌘1–⌘6;
    menu Mosaico (página anterior/próxima ⌥⌘← ⌥⌘→, voltar ao mosaico ⌥⌘↑, rodízio ⌥⌘R); Gravações com espaço,
    ← → (vídeo em foco) e ⌘D para baixar. Ficaram para depois: setas no PTZ, ⌘R em Recarregar e Delete para apagar.
-4. **Telas difíceis**: quadros de vídeo, agenda, editor de regra, editor de modelo.
+4. ✅ **Telas difíceis** (feito em 25/10): quadros de vídeo com nome, estado ("Ao vivo, gravando no Mac",
+   "Conectando", "Sem conexão") e ações (abrir/voltar ao mosaico, gravar, reconectar, editar); agenda com o nome de
+   cada dia virando menu (Tab e VoiceOver) e resumo falado ("Normal 08:00–18:00"); editor de regra com pontos
+   escolhidos por Tab, movidos pelas setas (Shift = 5%) e posição falada; editor de modelo com botões no lugar do toque.
 5. **Acabamento**: tamanhos mínimos de fonte, nomes iguais, rodapé padrão, tela de entrada.
 
 Cada etapa é pequena o bastante para testar e fazer commit separado, como nas etapas de paridade.

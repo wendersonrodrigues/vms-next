@@ -156,18 +156,30 @@ struct ScheduleGrid: View {
             ZStack(alignment: .topLeading) {
                 Canvas { context, _ in draw(context, cell: cell) }
                     .contentShape(Rectangle())
+                    // O desenho é só para o mouse; o VoiceOver e o teclado usam o menu de cada dia.
+                    .accessibilityHidden(true)
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { paintAt($0.location, cell: cell) }
                             .onEnded { _ in paint.value = nil; paint.row = nil }
                     )
                 ForEach(0 ..< 7, id: \.self) { day in
-                    Text(ScheduleCodec.dayNames[day])
-                        .font(.callout)
-                        .frame(width: labelWidth - 8, height: dayHeight - dayGap, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .offset(y: rulerHeight + CGFloat(day) * dayHeight)
-                        .contextMenu { dayMenu(day) }
+                    // Nome do dia = menu com as mesmas opções do botão direito (dá para usar com Tab e VoiceOver).
+                    Menu {
+                        dayMenu(day)
+                    } label: {
+                        Text(ScheduleCodec.dayNames[day]).font(.callout)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .frame(width: labelWidth - 8, height: dayHeight - dayGap, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .offset(y: rulerHeight + CGFloat(day) * dayHeight)
+                    .contextMenu { dayMenu(day) }
+                    .help("Opções de \(ScheduleCodec.dayNames[day]): copiar para os outros dias, dia inteiro, limpar")
+                    .accessibilityLabel(ScheduleCodec.dayNames[day])
+                    .accessibilityValue(summary(day))
                 }
             }
         }
@@ -185,6 +197,26 @@ struct ScheduleGrid: View {
         }
         Button("Dia inteiro") { fill(day, rows.reduce(0) { $0 | $1.bit }) }
         Button("Limpar o dia") { fill(day, 0) }
+    }
+
+    /// Resumo falado do dia: "Normal 08:00–18:00; Alarme dia inteiro" ou "nada marcado".
+    private func summary(_ day: Int) -> String {
+        let parts: [String] = rows.compactMap { row in
+            let marked = slots[day].map { $0 & row.bit != 0 ? 1 : 0 }
+            let ranges = ScheduleCodec.runs(marked)
+            guard !ranges.isEmpty else { return nil }
+            if ranges.count == 1, ranges[0].start == 0, ranges[0].end == ScheduleCodec.slotsPerDay {
+                return rows.count > 1 ? "\(row.label) dia inteiro" : "dia inteiro"
+            }
+            let text = ranges.map { "\(Self.clock($0.start))–\(Self.clock($0.end))" }.joined(separator: ", ")
+            return rows.count > 1 ? "\(row.label) \(text)" : text
+        }
+        return parts.isEmpty ? "nada marcado" : parts.joined(separator: "; ")
+    }
+
+    private static func clock(_ slot: Int) -> String {
+        let minutes = slot * ScheduleCodec.minutesPerSlot
+        return String(format: "%02d:%02d", minutes / 60, minutes % 60)
     }
 
     private func fill(_ day: Int, _ mask: Int) {

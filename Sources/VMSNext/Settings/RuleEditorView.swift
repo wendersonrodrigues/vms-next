@@ -148,6 +148,9 @@ struct RuleEditorView: View {
         let size = stream.videoSize ?? CGSize(width: 16, height: 9)
         return ZStack {
             VideoLayerView(layer: stream.displayLayer)
+                .accessibilityElement()
+                .accessibilityLabel(draft.kind == .area ? "Área de aviso com \(draft.area.count) pontos sobre a imagem"
+                                                        : "Linha de aviso sobre a imagem")
             GeometryReader { proxy in
                 let frame = proxy.size
                 ZStack {
@@ -160,6 +163,18 @@ struct RuleEditorView: View {
                             .fill(Color.white)
                             .overlay(Circle().stroke(Color.blue, lineWidth: 2))
                             .frame(width: 14, height: 14)
+                            // Teclado: Tab escolhe o ponto, setas movem 1% (5% com Shift).
+                            .focusable()
+                            .onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow]) { press in
+                                let step: CGFloat = press.modifiers.contains(.shift) ? 0.05 : 0.01
+                                switch press.key {
+                                case .leftArrow: nudge(index, dx: -step, dy: 0)
+                                case .rightArrow: nudge(index, dx: step, dy: 0)
+                                case .upArrow: nudge(index, dx: 0, dy: -step)
+                                default: nudge(index, dx: 0, dy: step)
+                                }
+                                return .handled
+                            }
                             .position(x: handles[index].x * frame.width, y: handles[index].y * frame.height)
                             .gesture(
                                 DragGesture(coordinateSpace: .named("rule"))
@@ -167,6 +182,14 @@ struct RuleEditorView: View {
                                         move(index, to: CGPoint(x: value.location.x / frame.width, y: value.location.y / frame.height))
                                     }
                             )
+                            .accessibilityElement()
+                            .accessibilityLabel(draft.kind == .area ? "Ponto \(index + 1) de \(handles.count) da área"
+                                                                    : (index == 0 ? "Começo da linha" : "Fim da linha"))
+                            .accessibilityValue("\(Int((handles[index].x * 100).rounded()))% da esquerda, \(Int((handles[index].y * 100).rounded()))% do topo")
+                            .accessibilityAction(named: "Mover para a esquerda") { nudge(index, dx: -0.05, dy: 0) }
+                            .accessibilityAction(named: "Mover para a direita") { nudge(index, dx: 0.05, dy: 0) }
+                            .accessibilityAction(named: "Mover para cima") { nudge(index, dx: 0, dy: -0.05) }
+                            .accessibilityAction(named: "Mover para baixo") { nudge(index, dx: 0, dy: 0.05) }
                     }
                 }
             }
@@ -190,6 +213,11 @@ struct RuleEditorView: View {
         points.dropFirst().forEach { path.addLine(to: $0) }
         if draft.kind == .area { path.closeSubpath() }
         return path
+    }
+
+    private func nudge(_ index: Int, dx: CGFloat, dy: CGFloat) {
+        let current = handles.indices.contains(index) ? handles[index] : .zero
+        move(index, to: CGPoint(x: current.x + dx, y: current.y + dy))
     }
 
     private func move(_ index: Int, to point: CGPoint) {

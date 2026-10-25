@@ -92,14 +92,21 @@ struct TemplateEditor: View {
             ZStack(alignment: .topLeading) {
                 ForEach(Array(draft.cells.enumerated()), id: \.offset) { index, cell in
                     let selected = draft.selection.contains(index)
-                    RoundedRectangle(cornerRadius: Radius.small)
-                        .fill(selected ? Theme.accent.opacity(0.45) : Color.primary.opacity(0.12))
-                        .overlay(Text("\(index + 1)").font(.headline).foregroundStyle(.secondary))
-                        .overlay(RoundedRectangle(cornerRadius: Radius.small).stroke(selected ? Theme.accent : .clear, lineWidth: 2))
-                        .frame(width: cellWidth * CGFloat(cell.w) + spacing * CGFloat(cell.w - 1),
-                               height: cellHeight * CGFloat(cell.h) + spacing * CGFloat(cell.h - 1))
-                        .offset(x: CGFloat(cell.x) * (cellWidth + spacing), y: CGFloat(cell.y) * (cellHeight + spacing))
-                        .onTapGesture { draft.toggle(index) }
+                    // Botão (não toque solto): funciona com teclado e VoiceOver.
+                    Button { draft.toggle(index) } label: {
+                        RoundedRectangle(cornerRadius: Radius.small)
+                            .fill(selected ? Theme.accent.opacity(0.45) : Color.primary.opacity(0.12))
+                            .overlay(Text("\(index + 1)").font(.headline).foregroundStyle(.secondary))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.small).stroke(selected ? Theme.accent : .clear, lineWidth: 2))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Quadro \(index + 1)")
+                    .accessibilityValue(cell.w > 1 || cell.h > 1 ? "ocupa \(cell.w) por \(cell.h)" : "")
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                    .frame(width: cellWidth * CGFloat(cell.w) + spacing * CGFloat(cell.w - 1),
+                           height: cellHeight * CGFloat(cell.h) + spacing * CGFloat(cell.h - 1))
+                    .offset(x: CGFloat(cell.x) * (cellWidth + spacing), y: CGFloat(cell.y) * (cellHeight + spacing))
                 }
             }
         }

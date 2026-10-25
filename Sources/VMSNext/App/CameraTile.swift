@@ -16,6 +16,9 @@ struct CameraTile: View {
     private var allowsZoom: Bool { single != nil }
     /// Itens a mais no menu do botão direito (ex.: escolher a câmera do quadro no modelo de tela).
     var extraMenu: AnyView?
+    /// Ação do duplo clique (abrir em tela única ou voltar ao mosaico), oferecida também ao VoiceOver.
+    var onOpen: (() -> Void)?
+    var openTitle = "Abrir em tela única"
 
     @EnvironmentObject private var store: CameraStore
     @StateObject private var lease: StreamLease
@@ -24,7 +27,10 @@ struct CameraTile: View {
 
     init(camera: Camera, quality: StreamQuality, part: SplitPart = .full, onEdit: @escaping () -> Void,
          onSettings: (() -> Void)? = nil, onToggleSplit: (() -> Void)? = nil, onRename: (() -> Void)? = nil,
-         single: SingleViewControls? = nil, extraMenu: AnyView? = nil) {
+         single: SingleViewControls? = nil, extraMenu: AnyView? = nil,
+         onOpen: (() -> Void)? = nil, openTitle: String = "Abrir em tela única") {
+        self.onOpen = onOpen
+        self.openTitle = openTitle
         self.single = single
         self.extraMenu = extraMenu
         self.camera = camera
@@ -187,6 +193,17 @@ struct CameraTile: View {
             VideoLayerView(layer: part == .bottom ? stream.mirrorLayer() : stream.displayLayer, crop: part,
                            videoSize: stream.videoSize, zoom: zoom.scale, pan: zoom.pan)
                 .gesture(allowsZoom ? zoom.gesture : nil)
+                // VoiceOver: nome da câmera, se está ao vivo e as ações do menu do botão direito.
+                .accessibilityElement()
+                .accessibilityLabel(camera.title(for: part))
+                .accessibilityValue(accessibilityStatus)
+                .accessibilityAddTraits(.isImage)
+                .accessibilityAction(named: openTitle) { onOpen?() }
+                .accessibilityAction(named: recorder.isRecording(camera) ? "Parar gravação no Mac" : "Gravar no Mac") {
+                    recorder.toggle(camera)
+                }
+                .accessibilityAction(named: "Reconectar") { start(force: true) }
+                .accessibilityAction(named: "Editar câmera") { onEdit() }
             overlay
             if single == nil { nameOverlay }
             if allowsZoom { ZoomControls(zoom: zoom) }
@@ -202,6 +219,16 @@ struct CameraTile: View {
                     .help("Gravando no Mac")
                     .accessibilityLabel("Gravando no Mac")
             }
+        }
+    }
+
+    private var accessibilityStatus: String {
+        let recording = recorder.isRecording(camera) ? ", gravando no Mac" : ""
+        switch stream.status {
+        case .idle, .playing: return "Ao vivo" + recording
+        case .connecting: return "Conectando" + recording
+        case .needsPassword: return "Senha não definida"
+        case let .failed(message, _): return "Sem conexão: \(message)" + recording
         }
     }
 

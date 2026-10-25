@@ -395,7 +395,8 @@ struct ContentView: View {
                            onSettings: { openSettings(settingsTarget(for: camera)) },
                            onToggleSplit: { toggleSplit(camera) },
                            onRename: focusedPart == .full ? nil : { rename(camera, part: focusedPart) },
-                           single: SingleViewControls(quality: $ui.singleQuality, showPTZ: $ui.showPTZ))
+                           single: SingleViewControls(quality: $ui.singleQuality, showPTZ: $ui.showPTZ),
+                           onOpen: { backToGrid(from: camera) }, openTitle: "Voltar ao mosaico")
                     .id("\(camera.id)-\(focusedPart)-\(ui.singleQuality)-\(camera.hashValue)")
                     .onTapGesture(count: 2) { backToGrid(from: camera) }
             }
@@ -474,7 +475,8 @@ struct ContentView: View {
                           onSettings: { openSettings(settingsTarget(for: camera)) },
                           onToggleSplit: { toggleSplit(camera) },
                           onRename: tile.part == .full ? nil : { rename(camera, part: tile.part) },
-                          extraMenu: extraMenu)
+                          extraMenu: extraMenu,
+                          onOpen: { ui.selection = tile.part == .full ? .camera(camera.id) : .part(camera.id, tile.part) })
             .id("\(camera.id)-\(tile.part)-\(single)-\(camera.hashValue)")
             .onTapGesture(count: 2) {
                 ui.selection = tile.part == .full ? .camera(camera.id) : .part(camera.id, tile.part)
