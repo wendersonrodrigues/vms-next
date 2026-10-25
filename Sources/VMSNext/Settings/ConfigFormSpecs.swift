@@ -168,10 +168,12 @@ enum ConfigFormSpecs {
     @MainActor
     private static func exposureLevels(_ model: ConfigFormModel) -> [ConfigOption]? {
         guard let speeds = (model.abilities["Camera"] as? [String: Any])?["Speeds"] as? [Any], !speeds.isEmpty else { return nil }
+        // Como o VMS antigo (CCameraParamConfig::onUpdateConfig): ordena os tempos do maior para o menor e o
+        // Level gravado é a posição nessa lista (1 = obturador mais lento).
+        let sorted = speeds.compactMap { ConfigValue.int($0) }.filter { $0 > 0 }.sorted(by: >)
         var options = [ConfigOption("0", "Automático")]
-        for (index, raw) in speeds.enumerated() {
-            guard let micro = ConfigValue.int(raw), micro > 0 else { continue }
-            options.append(ConfigOption(String(index + 1), "Manual · 1/\(Int((1_000_000 / Double(micro)).rounded())) s"))
+        for (index, micro) in sorted.enumerated() {
+            options.append(ConfigOption(String(index + 1), "Manual · 1/\(Int(1_000_000 / Double(micro))) s"))
         }
         return options
     }
@@ -225,12 +227,15 @@ enum ConfigFormSpecs {
                     ]), title: "Modo de exposição", original: "Modo de exposição",
                     detail: "No automático a câmera escolhe o tempo do obturador entre o mínimo e o máximo abaixo; os outros fixam o obturador.",
                     dynamicOptions: exposureLevels),
-                    ConfigField(source: 0, path: ["ExposureParam", "LeastTime"], kind: .number(10 ... 80000, unit: "µs"),
+                    // O VMS antigo só aceita de 0,1 a 80 ms e só grava os tempos no modo automático.
+                    ConfigField(source: 0, path: ["ExposureParam", "LeastTime"], kind: .number(100 ... 80000, unit: "µs"),
                                 title: "Tempo mínimo do obturador", original: "Horário",
-                                detail: "Em microssegundos (1000 µs = 1 ms)."),
-                    ConfigField(source: 0, path: ["ExposureParam", "MostTime"], kind: .number(10 ... 80000, unit: "µs"),
+                                detail: "Em microssegundos (1000 µs = 1 ms), de 100 a 80000.",
+                                enabledWhen: ConfigCondition(source: 0, path: ["ExposureParam", "Level"], values: ["0"])),
+                    ConfigField(source: 0, path: ["ExposureParam", "MostTime"], kind: .number(100 ... 80000, unit: "µs"),
                                 title: "Tempo máximo do obturador", original: "Horário",
-                                detail: "Tempos maiores clareiam a noite, mas borram quem se move."),
+                                detail: "Tempos maiores clareiam a noite, mas borram quem se move.",
+                                enabledWhen: ConfigCondition(source: 0, path: ["ExposureParam", "Level"], values: ["0"])),
                     ConfigField(source: 0, path: ["ElecLevel"], kind: .slider(0 ... 100),
                                 title: "Brilho de referência", original: "Referência AE",
                                 detail: "Quão clara a câmera tenta deixar a imagem. Padrão 50."),
@@ -289,7 +294,21 @@ enum ConfigFormSpecs {
                                 enabledWhen: ConfigCondition(source: 2, path: ["Enable"], values: ["1"])),
                     ConfigField(source: 1, path: ["PreventOverExpo"], kind: .toggle,
                                 title: "Evitar rosto estourado", original: "NoRedFaceExposure",
-                                detail: "À noite, segura o infravermelho para quem chega perto da câmera não ficar branco."),
+                                detail: "À noite, segura o infravermelho para quem chega perto da câmera não ficar branco.",
+                                requires: "Camera.SupportPreventOverExpo"),
+                ]),
+                // Só nas câmeras que informam a função, como no VMS antigo.
+                ConfigSection(title: "Orientação e lente", fields: [
+                    ConfigField(source: 1, path: ["CorridorMode"], kind: .choice([
+                        ConfigOption("0", "Normal"), ConfigOption("1", "Corredor 1"),
+                        ConfigOption("2", "Reflexo"), ConfigOption("3", "Corredor 2"),
+                    ]), title: "Modo corredor", original: "CorridorMode",
+                    detail: "Gira a imagem para ficar em pé, útil em corredores e portas estreitas.",
+                    requires: "OtherFunction.SupportCorridorMode"),
+                    ConfigField(source: 1, path: ["LDCValue"], kind: .slider(0 ... 100),
+                                title: "Correção de distorção da lente", original: "LDC",
+                                detail: "Endireita as bordas curvas das lentes grande-angulares.",
+                                requires: "Camera.SupportSetLDC"),
                 ]),
                 ConfigSection(title: "Filtro infravermelho", fields: [
                     ConfigField(source: 0, path: ["IRCUTMode"], kind: .choice([

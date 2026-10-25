@@ -1,5 +1,20 @@
 # Novidades
 
+## 1.1.0 Beta 1 — 25/10/2026
+
+Versão de testes: muita coisa nova, ainda com erros conhecidos. Fica em beta até tudo ser conferido nas câmeras.
+
+- **Configurações iguais ao VMS antigo**, conferidas no próprio código dele (REA + Hopper): cada tela mostra só o que a câmera tem, com os mesmos valores. Mapa completo em `docs/REA-MAPA-CONFIG.md`.
+- **Exposição**: ordem certa do modo manual, tempos do obturador de 0,1 a 80 ms (só no automático), novos "Modo corredor" e "Correção de distorção da lente".
+- **Imagem e visão noturna**: limiar dia/noite de 10 a 50, modo "Leitura de placas" e regras de luz dupla; luz branca com duração até 120 s e sensibilidade como no VMS antigo.
+- **Qualidade do vídeo e som**: seletor de canal (lente dupla, como Quintal/Corredor), perfil estático, taxa de bits em lista e codificação inteligente.
+- **Sistema e horário**: fuso horário editável (System.TimeZone) e escolha do servidor de horário (automático ou personalizado).
+- **Detecção e alarmes**: sensibilidade em 6 níveis, Ativação de PTZ, ações escondidas quando a câmera não tem, "Continuar gravando por" de 10 a 300 s.
+- **NVR**: Câmeras do NVR, Modo e Estado dos canais, procurar câmeras pelo NVR e editar o canal.
+- **Rede**: interface com fio ou Wi-Fi, MTU da nuvem e proteção ONVIF.
+- **Disco, Usuários e Manutenção** como no VMS antigo.
+- Ao vivo: zoom digital flutuante, setas de PTZ à direita com inversão por câmera e reordenar as metades do split.
+
 ## 1.0.0 — 23/10/2026
 
 Primeira versão pública.

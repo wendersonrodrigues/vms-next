@@ -237,7 +237,7 @@ struct SettingsContent: View {
         case .exposure:
             ConfigFormView(camera: camera, spec: ConfigFormSpecs.exposure(camera: camera))
         case .encoding:
-            ConfigFormView(camera: camera, spec: ConfigFormSpecs.encoding(camera: camera))
+            perChannel { ConfigFormView(camera: $0, spec: ConfigFormSpecs.encoding(camera: $0)) }
         case .netServices:
             ConfigFormView(camera: camera, spec: ConfigFormSpecs.networkServices(camera: camera))
         case .ptzSerial:
@@ -282,6 +282,17 @@ struct SettingsContent: View {
             RecorderInfoView(camera: camera, category: category)
         case .version:
             VersionView(camera: camera)
+        }
+    }
+
+    /// Só a Mídia tem o seletor de canal, como no VMS antigo: aparece em toda câmera avulsa, mesmo com um canal só
+    /// (fica em "1"); na lente dupla (Quintal/Corredor) troca de canal. No NVR e nos canais dele, a tela vai direto.
+    @ViewBuilder
+    private func perChannel<Content: View>(@ViewBuilder _ content: @escaping (Camera) -> Content) -> some View {
+        if target.scope == .camera {
+            RecorderChannelView(recorder: camera, channelCount: 1, initialChannel: camera.channel, content: content)
+        } else {
+            content(camera)
         }
     }
 }

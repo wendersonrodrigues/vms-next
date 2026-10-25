@@ -81,6 +81,8 @@ struct NavigationRail: View {
             Divider().padding(.horizontal, 10)
             Text("VMS Next").font(.system(size: 10, weight: .semibold))
             Text("versão \(version)").font(.system(size: 9)).monospacedDigit()
+                // Beta em laranja: versão de testes, ainda com erros conhecidos.
+                .foregroundStyle(AppInfo.isBeta ? Color.orange : Color.primary)
             Text("criado por\nWenderson Rodrigues")
                 .font(.system(size: 8))
                 .multilineTextAlignment(.center)

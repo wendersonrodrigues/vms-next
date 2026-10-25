@@ -182,7 +182,7 @@ As notas técnicas do protocolo estão em [docs/PROTOCOLO.md](docs/PROTOCOLO.md)
 A versão fica num lugar só, o `Resources/Info.plist`: o app inteiro (coluna lateral, Início, Ajuda e Sobre) lê dali. Para trocar:
 
 ```bash
-./scripts/set-version.sh 1.1.0
+./scripts/set-version.sh 1.1.0          # ou 1.1.0-beta.1 para versão de testes (vai como pré-lançamento)
 ```
 
 O `release.sh` compila, monta o app e gera o instalador `build/VMS-Next-<versão>.dmg` (janela de arrastar para Aplicativos, feita pelo `make-dmg.sh`) e o `build/VMS-Next-<versão>.zip` com o resumo (SHA-256) para anexar a um Release no GitHub. As novidades de cada versão ficam no [CHANGELOG.md](CHANGELOG.md).

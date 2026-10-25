@@ -61,7 +61,12 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 - [x] Corrigir os nomes de 0–2 com a tradução do próprio VMS antigo (tela "IPC Param" e arquivo English.qm):
   0 = Star IR → **Visão noturna infravermelha**; 1 = Full Color → **Colorida (luz das estrelas)**;
   2 = BlackAndWhiteMode → **Alerta de luz dupla**. (Hoje o app diz "Preto e branco" para o 2.)
-- [x] Seção **Luz branca** (iCSee) só com `SupportCameraWhiteLight`. Hoje aparece na Sala.
+- [x] Seção **Luz branca** (iCSee) só com `SupportCameraWhiteLight`.
+- Teste na Sala (24/10): o VMS antigo também **não consegue** trocar o `DayNightColor` (aplica Star IR e a câmera
+  continua em 5). Trocar `Camera.WhiteLight.WorkMode` para Close e depois o modo também não adiantou; tudo foi
+  devolvido como estava. Agora o app avisa que essa câmera não deixa trocar o modo pelo computador e mostra o
+  modo real. Como no VMS antigo, o controle ao lado do modo é o "DNC Threshold" (`DncThr`) nos modos 0–2 e o
+  "Ajuste dia e noite" (`AutomaticAdjustment`) nos modos 3–5. Hoje aparece na Sala.
 - [x] "Ajuste dia e noite" (`AutomaticAdjustment`) ✅ feito. "Sensibilidade da troca" (`DncThr`) só se o campo existir ✅.
 
 ### 2.3 Exposição e ajustes finos
@@ -79,10 +84,11 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 - [x] Perfil de imagem: typedefault/type1/type2 = Estilo 1/2/3 ✅ feito.
 
 ### 2.4 Sistema e horário
-- [ ] **Fuso horário editável** (lista UTC−12 … UTC+14). Hoje é só leitura. Falta confirmar como o código do
-  equipamento (14 = UTC−03:00) vira cada fuso antes de liberar a edição; um fuso errado bagunça a hora das gravações.
-  Lista do VMS antigo (na ordem): UTC−12 … −04, −03:30, −03, −02, −01, +00 … +03, +03:30, +04, +04:30, +05, +05:30,
-  +05:45, +06, +06:30, +07 … +09, +09:30, +10 … +13. UTC−03:00 é o 11º item, mas a câmera grava 14: a regra ainda não é conhecida.
+- [x] **Fuso horário editável** (lista do VMS antigo, UTC−12 … UTC+13 com as meias horas), com confirmação.
+  Descoberto com o REA (25/10): o 14 do `NetWork.NetNTP.TimeZone` **não é fuso**. O fuso fica em `System.TimeZone`
+  (`timeMin`, minutos a **oeste** de UTC: UTC−03:00 = 180; também tem `FirstUserTimeZone`, mantido como está).
+  Provas: `CSystemConfig::onUpdateConfig/onSaveConfig` (cada item da lista guarda HHMM com sinal, UTC−03:00 = −300)
+  e `exchangeTable<TimeZone>` no libnetsdk. Ainda não testado gravando no equipamento.
 - [ ] **Horário de verão** com o botão "Configuração" (início e fim), não só liga/desliga.
 - [x] **Idioma**: usar a lista que a câmera informa (na Sala: Inglês, Chinês simples, Espanhol, Russo,
   Português, Japonês). A Sala grava "Brazilian", que não está na lista do VMS antigo; por isso ele mostra
@@ -98,7 +104,8 @@ As fontes que ele usa (todas já lidas pelo VMS Next, mas pouco aproveitadas):
 - [x] **OnvifProtect** (`NetWork.OnvifPwdCheckout.Enable`). A **porta ONVIF** não veio em nenhuma configuração lida; falta descobrir onde fica.
 - [x] **Nuvem**: além de ligar/desligar, o **MTU** (`NetWork.Nat.XMeyeMTU`, 1280 bytes).
 - [ ] **Filtro de IP** editável (tipo lista negra/branca, adicionar, apagar). Hoje é só leitura.
-- [ ] **NTP**: "Custom" ou "Auto Select Server" + intervalo ✅ (conferir se o modo automático existe).
+- [x] **NTP**: "Custom" ou "Auto Select Server" + intervalo. Pelo REA: o VMS antigo grava isso em
+  `NetWork.NetNTP.TimeZone` (13 = Custom, 14 = Auto Select Server; no automático o campo do servidor fica apagado).
 
 ### 2.6 Sobrepor (Texto na imagem)
 - [x] Mostrar as opções extras **só quando a câmera tiver**: Channel Title, Time Title, Status de gravação,
@@ -152,7 +159,13 @@ H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio
 - [x] **IPC Param** — já coberto: as telas de cada canal do NVR (Imagem, Exposição, Mídia) configuram a câmera pelo NVR. Falta só "Reiniciar a câmera" e o volume.
   Original: configurar a câmera ligada no NVR **através do NVR** (Versão + QR Code, Imagem, Luz,
   Codificação, Avançado com volume e nevoeiro, Reiniciar a câmera). Hoje o VMS Next não tem.
-- [x] **Canal digital** (só leitura, "Câmeras do NVR"): lista das câmeras do NVR (nome, tipo, IP, canal remoto), Habilitar,
+- [x] **Procurar câmeras pelo NVR** ("Procurar" da janela Config. de canal remoto): `OPLocalSearch`, código 1634,
+  `{"SearchProtocol": "TCP"|"ONVIF"|"RTSP"}` ("TCP" = NETIP). Descoberto no libnetsdk do VMS antigo
+  (CPackSenddata::sendSearchRequest_comm). Testado com NETIP: as mesmas 6 câmeras do VMS antigo.
+- [x] **Editar canal** (Config. de canal remoto): nome, tipo, protocolo, canal remoto, IP, porta, usuário e
+  senha, preenchendo a partir do Procurar; grava `NetWork.RemoteDeviceV3` com confirmação. Ainda não testado
+  gravando (troca a câmera do canal de verdade). Falta: "Configuração de rede" (OPDIGSetIP, muda o IP da câmera).
+- [x] **Canal digital** ("Câmeras do NVR"): lista das câmeras do NVR (nome, tipo, IP, canal remoto), Habilitar,
   Sincronizar horário (Aux. Off, Fuso horário, Horário local), Decodificar (Prioridade real 1/2, Média,
   Prioridade de fluxo 1–4), Modo (Single link), Resolução de sincronização.
 - [x] **Modo de canal** (só leitura, "Modo dos canais"): tabela de modos (ex.: 10 × 5M ou 4 × 4K), máximo de playback e de visualização.
@@ -180,6 +193,16 @@ H.265 · 4M · Ultra alta · 24 qps · CBR · 3378 kb/s · intervalo 1 · áudio
 - [ ] Mapa e Decodificar: baixa prioridade.
 
 ---
+
+## 4.1 Revisão com o REA (25/10/2026)
+
+Todas as telas da câmera conferidas no binário do VMS antigo; detalhes e tabelas em
+[REA-MAPA-CONFIG.md](REA-MAPA-CONFIG.md). Corrigido: ordem do modo de exposição manual, tempos do obturador
+(100–80000 µs, só no automático), limiar dia/noite 10–50, modo "Leitura de placas" (LicensePlateMode),
+"Modo corredor" e "Correção de distorção da lente" novos (só com a capacidade), "Evitar rosto estourado" só com
+`SupportPreventOverExpo`, duração da luz até 120 s, sensibilidade da luz 1–5 fora do modo inteligente, e
+"Continuar gravando por" de 10 a 300 s. Em aberto: opção H265+ da codificação inteligente e confirmar o valor do
+perfil estático (0–2 ou 1–3).
 
 ## 5. Ordem sugerida
 

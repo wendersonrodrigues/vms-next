@@ -61,7 +61,8 @@ struct ConfigField: Identifiable {
     var allowed: (@MainActor (ConfigFormModel) -> [String]?)?
     /// Opções montadas a partir das capacidades (substituem as fixas quando não são nil).
     var dynamicOptions: (@MainActor (ConfigFormModel) -> [ConfigOption]?)?
-    /// Função que o equipamento precisa ter em SystemFunction, ex.: "EncodeFunction.SmartH264V2".
+    /// Função que o equipamento precisa ter em SystemFunction, ex.: "EncodeFunction.SmartH264V2",
+    /// ou na capacidade "Camera", ex.: "Camera.SupportSetLDC" (a capacidade precisa estar em spec.abilities).
     var requires: String?
 }
 
@@ -115,15 +116,23 @@ final class ConfigFormModel: ObservableObject {
     }
 
     var visibleSections: [ConfigSection] {
-        let functions = abilities["SystemFunction"] as? [String: Any]
-        return spec.sections.compactMap { section in
-            guard section.requires.map({ DeviceCapabilities.supports(functions, $0) }) ?? true else { return nil }
+        spec.sections.compactMap { section in
+            guard section.requires.map(supports) ?? true else { return nil }
             let fields = section.fields.filter { field in
-                value(source: field.source, path: field.path) != nil
-                    && (field.requires.map { DeviceCapabilities.supports(functions, $0) } ?? true)
+                value(source: field.source, path: field.path) != nil && (field.requires.map(supports) ?? true)
             }
             return fields.isEmpty ? nil : ConfigSection(title: section.title, footer: section.footer, fields: fields)
         }
+    }
+
+    /// "Camera.X": campo X da capacidade Camera ligado (sem a capacidade, considera que não tem, como o VMS
+    /// antigo); o resto vem de SystemFunction.
+    func supports(_ path: String) -> Bool {
+        if path.hasPrefix("Camera.") {
+            let value = (abilities["Camera"] as? [String: Any])?[String(path.dropFirst(7))]
+            return (value as? Bool) ?? (ConfigValue.int(value) == 1)
+        }
+        return DeviceCapabilities.supports(abilities["SystemFunction"] as? [String: Any], path)
     }
 
     var hasChanges: Bool {

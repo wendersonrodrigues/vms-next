@@ -19,5 +19,8 @@ echo "Pacotes:"
 echo "  $DMG  SHA-256: $(shasum -a 256 "$DMG" | cut -d' ' -f1)"
 echo "  $ZIP  SHA-256: $(shasum -a 256 "$ZIP" | cut -d' ' -f1)"
 echo
+# Versão beta vai como pré-lançamento no GitHub.
+PRERELEASE=""
+[[ "$VERSION" == *-beta* ]] && PRERELEASE=" --prerelease"
 echo "Para publicar (depois de revisar):"
-echo "  gh release create v$VERSION \"$DMG\" \"$ZIP\" --title \"VMS Next $VERSION\" --notes-file CHANGELOG.md"
+echo "  gh release create v$VERSION \"$DMG\" \"$ZIP\" --title \"VMS Next $VERSION\"$PRERELEASE --notes-file CHANGELOG.md"

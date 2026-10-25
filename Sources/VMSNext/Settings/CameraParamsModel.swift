@@ -27,6 +27,9 @@ final class CameraParamsModel: ObservableObject {
                      detail: "Usa a luz quente da câmera para a imagem ficar colorida à noite.", needsDoubleLight: true),
         DayNightMode(value: 5, label: "Infravermelho inteligente", original: "IntelligentInfrared",
                      detail: "Infravermelho que se ajusta para não estourar quem está perto da câmera.", needsDoubleLight: true),
+        // Só com OtherFunction.SupportPlateDetect, como no VMS antigo.
+        DayNightMode(value: 6, label: "Leitura de placas", original: "LicensePlateMode",
+                     detail: "Ajusta a imagem noturna para ler placas de carro.", needsDoubleLight: false),
     ]
     static let autoDayNightMode = 0
 
@@ -41,7 +44,8 @@ final class CameraParamsModel: ObservableObject {
          "Infravermelho em preto e branco; ao detectar pessoas, a luz branca acende e a imagem fica colorida."),
     ]
     static let triggerLevels: [(value: Int, label: String)] = [(1, "Baixa"), (3, "Média"), (5, "Alta")]
-    static let triggerDurations = [10, 30, 60, 90, 120, 180, 300]
+    /// O VMS antigo (CCameraWhiteLightWidget) limita a duração a 120 s nas câmeras de luz dupla.
+    static let triggerDurations = [10, 30, 60, 90, 120]
 
     @Published private(set) var loading = false
     @Published private(set) var saving = false
@@ -87,6 +91,7 @@ final class CameraParamsModel: ObservableObject {
         dayNightOptions.filter { mode in
             if mode.value == deviceDayNight { return true }
             if mode.needsDoubleLight { return cameraAbility == nil || hasDoubleLight }
+            if mode.value == 6 { return profile.has("OtherFunction.SupportPlateDetect") }
             return mode.value > 5 || !hidesNormalModes
         }
     }
@@ -119,8 +124,9 @@ final class CameraParamsModel: ObservableObject {
         }
         return options
     }
+    /// Como no VMS antigo: Baixa/Média/Alta (1/3/5) no modo inteligente; nos outros, níveis de 1 a 5.
     var triggerLevelOptions: [(value: Int, label: String)] {
-        var options = Self.triggerLevels
+        var options = nightMode == "Intelligent" ? Self.triggerLevels : (1 ... 5).map { ($0, "Nível \($0)") }
         if !options.contains(where: { $0.value == triggerLevel }) {
             options.append((triggerLevel, "Nível \(triggerLevel)"))
             options.sort { $0.value < $1.value }
@@ -230,15 +236,20 @@ final class CameraParamsModel: ObservableObject {
                     error = "A câmera aceitou o comando mas manteve a visão noturna anterior (\(applied))."
                     return
                 }
-            } else if hasImageParams && dayNightChanged {
-                // Algumas câmeras aceitam o comando mas ignoram o modo dia/noite: confere lendo de volta.
+            }
+            if hasImageParams && dayNightChanged {
+                // Algumas câmeras aceitam o comando mas ignoram o modo dia/noite (a Sala recusa até pelo VMS
+                // antigo, com qualquer modo da luz branca): confere lendo de volta e mostra o modo real.
                 let check = ConfigValue.object(in: try await optionalConfig(client, paramName))
                 let applied = ConfigValue.int(check?["DayNightColor"])
                 if applied == nil {
                     error = "Este modelo não tem o campo DayNightColor; o modo dia/noite fica em outra configuração. Use \"Diagnóstico…\" e me envie o resultado."
                     return
-                } else if applied != dayNight {
-                    error = "A câmera aceitou o comando mas manteve o modo dia/noite anterior (\(applied!)). Use \"Diagnóstico…\" e me envie o resultado."
+                } else if let applied, applied != dayNight {
+                    let name = dayNightOptions.first { $0.value == applied }?.label ?? "\(applied)"
+                    dayNight = applied
+                    dayNightChanged = false
+                    error = "Esta câmera não deixa trocar o modo dia/noite pelo computador (o VMS antigo também não consegue) e continua em \"\(name)\". As outras configurações foram aplicadas. Para trocar o modo, use o app iCSee."
                     return
                 }
             }

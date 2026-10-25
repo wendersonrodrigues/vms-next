@@ -44,10 +44,15 @@ struct CameraParamsView: View {
                                            detail: "Como a câmera se comporta quando escurece.")
                             }
                             .pickerStyle(.radioGroup)
-                            if model.hasDayNightThreshold {
-                                slider("Sensibilidade da troca", detail: "Com que escuridão a câmera passa para o modo noturno.", value: $model.dayNightThreshold)
+                            // Como no VMS antigo: nos modos normais o controle é o limiar (DNC Threshold);
+                            // nos de luz dupla, o "Ajuste dia e noite".
+                            let doubleLightMode = (3 ... 5).contains(model.dayNight)
+                            if model.hasDayNightThreshold && (!doubleLightMode || !model.hasDayNightAdjust) {
+                                slider("Sensibilidade da troca", original: "DNC Threshold",
+                                       detail: "Com que escuridão a câmera passa para o modo noturno.", value: $model.dayNightThreshold,
+                                       range: 10 ... 50)
                             }
-                            dayNightAdjustRow
+                            if doubleLightMode || !model.hasDayNightThreshold { dayNightAdjustRow }
                         }
                     }
                     if model.hasWhiteLight {
@@ -191,10 +196,12 @@ struct CameraParamsView: View {
         }
     }
 
-    private func slider(_ title: String, original: String? = nil, detail: String? = nil, value: Binding<Double>) -> some View {
+    /// O limiar dia/noite (DncThr) vai de 10 a 50 no VMS antigo; o resto, de 0 a 100.
+    private func slider(_ title: String, original: String? = nil, detail: String? = nil, value: Binding<Double>,
+                        range: ClosedRange<Double> = 0 ... 100) -> some View {
         HStack(alignment: .top) {
             FieldLabel(title, original: original, detail: detail).frame(width: 260, alignment: .leading)
-            Slider(value: value, in: 0 ... 100, step: 1)
+            Slider(value: value, in: min(range.lowerBound, value.wrappedValue) ... max(range.upperBound, value.wrappedValue), step: 1)
             Text("\(Int(value.wrappedValue))").monospacedDigit().frame(width: 32, alignment: .trailing)
         }
     }

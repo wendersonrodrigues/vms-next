@@ -731,7 +731,7 @@ struct EventConfigView: View {
         ForEach(indices.map { -1 - $0 }, id: \.self) { key in
             let index = -1 - key
             let delay = entry.wrappedValue.handler.delays[index]
-            Stepper(value: entry.handler.delays[index].seconds, in: 0 ... 600) {
+            Stepper(value: entry.handler.delays[index].seconds, in: delay.spec.range) {
                 FieldLabel("\(delay.spec.title): \(delay.seconds) s", original: delay.spec.original, detail: delay.spec.detail)
             }
         }

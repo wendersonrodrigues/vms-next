@@ -19,6 +19,8 @@ final class SmartAlertModel: ObservableObject {
         var original: String?
         let detail: String
         let group: ActionGroup
+        /// Faixa aceita pelo VMS antigo (CVDMotionDetect::onSaveConfig: gravação de 10 a 300 s).
+        var range: ClosedRange<Int> = 0 ... 600
     }
 
     struct Action: Identifiable {
@@ -79,7 +81,8 @@ final class SmartAlertModel: ObservableObject {
         Spec(key: "EventLatch", title: "Intervalo entre alarmes", original: "Intervalo",
              detail: "Tempo mínimo entre dois alarmes seguidos. Evita uma enxurrada de avisos.", group: .notify),
         Spec(key: "RecordLatch", title: "Continuar gravando por", original: "Record Delay",
-             detail: "Segundos de gravação depois que o movimento termina.", group: .record),
+             detail: "Segundos de gravação depois que o movimento termina (de 10 a 300).", group: .record,
+             range: 10 ... 300),
         Spec(key: "AlarmOutLatch", title: "Manter a saída ligada por", original: "Atraso",
              detail: "Segundos que a sirene/relé fica ligada depois do alarme.", group: .external),
         Spec(key: "Dejitter", title: "Filtro de oscilação", original: "Dejitter",
@@ -520,7 +523,7 @@ struct SmartAlertView: View {
                     }
                 }
                 ForEach(delays, id: \.wrappedValue.id) { $delay in
-                    Stepper(value: $delay.seconds, in: 0 ... 600) {
+                    Stepper(value: $delay.seconds, in: delay.spec.range) {
                         FieldLabel("\(delay.spec.title): \(delay.seconds) s", original: delay.spec.original, detail: delay.spec.detail)
                     }
                 }

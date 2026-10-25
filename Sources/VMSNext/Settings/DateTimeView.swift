@@ -2,8 +2,8 @@ import SwiftUI
 
 /// "Sistema e horário" (Config. do sistema no VMS antigo): relógio do equipamento (OPTimeQuery 1452 /
 /// OPTimeSetting 1450), sincronização automática (NetWork.NetNTP), formato da data, idioma e padrão de vídeo
-/// (General.Location), saída automática (General.General) e nome do equipamento (NetWork.NetCommon.HostName,
-/// o "Device Name" do VMS antigo; o MachineName de General.General fica "LocalHost" e não é usado).
+/// (General.Location), saída automática (General.General), fuso horário (System.TimeZone) e nome do equipamento
+/// (NetWork.NetCommon.HostName, o "Device Name" do VMS antigo; o MachineName de General.General fica "LocalHost").
 @MainActor
 final class DateTimeModel: ObservableObject {
     static let dateFormats: [(value: String, label: String)] = [
@@ -24,8 +24,22 @@ final class DateTimeModel: ObservableObject {
         "Vietnamese": "Vietnamita", "Thai": "Tailandês", "Hebrew": "Hebraico", "Czech": "Tcheco",
     ]
     static let videoFormats: [(value: String, label: String)] = [("NTSC", "NTSC (Brasil, Américas)"), ("PAL", "PAL (Europa, Ásia)")]
-    /// Códigos de fuso do equipamento confirmados (o VMS antigo mostra 14 como UTC−03:00).
-    static let knownTimeZones = [14: "UTC−03:00 · Brasília"]
+    /// Lista de fusos do VMS antigo (tela Config. do sistema), na mesma ordem, em minutos a leste de UTC.
+    /// O equipamento guarda em System.TimeZone.timeMin os minutos a OESTE (UTC−03:00 = 180), visto no
+    /// CSystemConfig do VMS antigo e no exchangeTable<TimeZone> do libnetsdk.
+    static let timeZones: [Int] = [
+        -720, -660, -600, -540, -480, -420, -360, -300, -240, -210, -180, -120, -60,
+        0, 60, 120, 180, 210, 240, 270, 300, 330, 345, 360, 390, 420, 480, 540, 570, 600, 660, 720, 780,
+    ]
+    static func timeZoneLabel(_ minutes: Int) -> String {
+        let sign = minutes < 0 ? "−" : "+"
+        let text = String(format: "UTC%@%02d:%02d", sign, abs(minutes) / 60, abs(minutes) % 60)
+        return minutes == -180 ? text + " · Brasília" : text
+    }
+    /// NetWork.NetNTP.TimeZone não é fuso: o VMS antigo usa 13 = servidor escolhido ("Custom") e
+    /// 14 = "Auto Select Server" (CNetNTPConfig::onUpdateConfig / on_radioButton_clicked).
+    static let ntpCustomServer = 13
+    static let ntpAutoServer = 14
 
     @Published private(set) var loading = false
     @Published private(set) var saving = false
@@ -47,7 +61,11 @@ final class DateTimeModel: ObservableObject {
     @Published var timeFormat = "24"
     @Published private(set) var hasDST = false
     @Published var dstOn = false
-    @Published private(set) var timeZoneCode: Int?
+    /// Modo do servidor NTP (13 ou 14, ver ntpCustomServer); nil se a câmera usar outro valor.
+    @Published var ntpServerMode: Int?
+    /// Fuso em minutos a leste de UTC (System.TimeZone); nil se a câmera não tiver essa configuração.
+    @Published var timeZoneMinutes: Int?
+    @Published var confirmingTimeZone = false
     @Published var language: String?
     @Published var videoFormat: String?
     /// Idiomas que a câmera aceita (capacidade MultiLanguage), como na lista do VMS antigo.
@@ -64,6 +82,9 @@ final class DateTimeModel: ObservableObject {
     private var locationRaw: Any?
     private var generalRaw: Any?
     private var commonRaw: Any?
+    private var timeZoneRaw: Any?
+    private var loadedTimeZone: Int?
+    var timeZoneChanged: Bool { timeZoneMinutes != nil && timeZoneMinutes != loadedTimeZone }
 
     init(camera: Camera) {
         self.camera = camera
@@ -87,8 +108,13 @@ final class DateTimeModel: ObservableObject {
                 ntpEnabled = (ntp["Enable"] as? Bool) ?? (ConfigValue.int(ntp["Enable"]) == 1)
                 ntpServer = (ntp["Server"] as? [String: Any])?["Name"] as? String ?? ""
                 ntpPeriod = ConfigValue.int(ntp["UpdatePeriod"]) ?? 60
-                timeZoneCode = ConfigValue.int(ntp["TimeZone"])
+                ntpServerMode = ConfigValue.int(ntp["TimeZone"]).flatMap {
+                    [Self.ntpCustomServer, Self.ntpAutoServer].contains($0) ? $0 : nil
+                }
             }
+            timeZoneRaw = try? await client.getConfig("System.TimeZone")
+            timeZoneMinutes = ConfigValue.object(in: timeZoneRaw).flatMap { ConfigValue.int($0["timeMin"]) }.map { -$0 }
+            loadedTimeZone = timeZoneMinutes
             locationRaw = try? await client.getConfig("General.Location")
             if let location = ConfigValue.object(in: locationRaw) {
                 hasLocation = true
@@ -135,7 +161,12 @@ final class DateTimeModel: ObservableObject {
         }
     }
 
-    func apply() async {
+    /// Trocar o fuso muda o horário local do equipamento (e o das gravações novas): pede confirmação antes.
+    func apply(confirmed: Bool = false) async {
+        if timeZoneChanged && !confirmed {
+            confirmingTimeZone = true
+            return
+        }
         saving = true
         error = nil
         notice = nil
@@ -149,6 +180,7 @@ final class DateTimeModel: ObservableObject {
                     ntp["Server"] = server
                 }
                 ConfigValue.set(&ntp, "UpdatePeriod", ntpPeriod)
+                if let ntpServerMode { ConfigValue.set(&ntp, "TimeZone", ntpServerMode) }
                 let updated = ConfigValue.replacingObject(in: raw, with: ntp)
                 try await client.setConfig("NetWork.NetNTP", updated)
                 ntpRaw = updated
@@ -180,6 +212,14 @@ final class DateTimeModel: ObservableObject {
                 try await client.setConfig("General.General", updated)
                 generalRaw = updated
             }
+            if timeZoneChanged, let raw = timeZoneRaw, var zone = ConfigValue.object(in: raw), let minutes = timeZoneMinutes {
+                ConfigValue.set(&zone, "timeMin", -minutes)
+                let updated = ConfigValue.replacingObject(in: raw, with: zone)
+                try await client.setConfig("System.TimeZone", updated)
+                timeZoneRaw = updated
+                loadedTimeZone = minutes
+                await readClock(client)
+            }
             notice = "Configuração aplicada."
         } catch {
             self.error = error.localizedDescription
@@ -189,7 +229,7 @@ final class DateTimeModel: ObservableObject {
     func diagnostic() async -> String {
         await ConfigDiagnostics.dump(camera: camera, requests: [
             (1452, "OPTimeQuery"), (1042, "NetWork.NetNTP"), (1042, "General.Location"), (1042, "General.General"),
-            (1042, "NetWork.NetCommon"), (1360, "MultiLanguage"),
+            (1042, "NetWork.NetCommon"), (1042, "System.TimeZone"), (1360, "MultiLanguage"),
         ])
     }
 
@@ -260,11 +300,18 @@ struct DateTimeView: View {
                     .disabled(model.loading || model.saving)
                 Button("Aplicar") { Task { await model.apply() } }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(model.loading || model.saving || (!model.hasNTP && !model.hasLocation && !model.hasGeneral))
+                    .disabled(model.loading || model.saving || (!model.hasNTP && !model.hasLocation && !model.hasGeneral && model.timeZoneMinutes == nil))
             }
             .padding(12)
         }
         .task { await model.load() }
+        .confirmationDialog("Trocar o fuso horário para \(DateTimeModel.timeZoneLabel(model.timeZoneMinutes ?? 0))?",
+                            isPresented: $model.confirmingTimeZone) {
+            Button("Trocar o fuso") { Task { await model.apply(confirmed: true) } }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("A hora mostrada e gravada pelo equipamento muda junto. Gravações já feitas ficam com o horário antigo.")
+        }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")
         }
@@ -285,6 +332,16 @@ struct DateTimeView: View {
                 LabeledContent("Diferença") {
                     Text(Self.describe(offset))
                         .foregroundStyle(abs(offset) > 60 ? .orange : .green)
+                }
+            }
+            if let minutes = model.timeZoneMinutes {
+                // Lista do VMS antigo; o valor atual sempre aparece, mesmo fora dela.
+                let options = DateTimeModel.timeZones.contains(minutes) ? DateTimeModel.timeZones : DateTimeModel.timeZones + [minutes]
+                Picker(selection: Binding(get: { minutes }, set: { model.timeZoneMinutes = $0 })) {
+                    ForEach(options, id: \.self) { Text(DateTimeModel.timeZoneLabel($0)).tag($0) }
+                } label: {
+                    FieldLabel("Fuso horário", original: "Fuso horário",
+                               detail: "Define a hora local do equipamento. No Brasil (Brasília) é UTC−03:00.")
                 }
             }
             Button {
@@ -320,22 +377,25 @@ struct DateTimeView: View {
                 FieldLabel("Acertar automaticamente pela internet", original: "NTP",
                            detail: "O equipamento consulta um servidor de horário e corrige o relógio sozinho.")
             }
+            if let mode = model.ntpServerMode {
+                Picker(selection: Binding(get: { mode }, set: { model.ntpServerMode = $0 })) {
+                    Text("Escolher automaticamente").tag(DateTimeModel.ntpAutoServer)
+                    Text("Usar o servidor abaixo").tag(DateTimeModel.ntpCustomServer)
+                } label: {
+                    FieldLabel("Servidor", original: "Auto Select Server / Custom",
+                               detail: "No automático o equipamento usa os servidores de horário que já conhece.")
+                }
+                .pickerStyle(.radioGroup)
+                .disabled(!model.ntpEnabled)
+            }
             TextField(text: $model.ntpServer) {
                 FieldLabel("Servidor de horário", detail: "Para o Brasil, a.ntp.br ou pool.ntp.org funcionam bem.")
             }
-            .disabled(!model.ntpEnabled)
+            .disabled(!model.ntpEnabled || model.ntpServerMode == DateTimeModel.ntpAutoServer)
             Stepper(value: $model.ntpPeriod, in: 1 ... 1440) {
                 FieldLabel("Conferir a cada \(model.ntpPeriod) min", original: "UpdatePeriod")
             }
             .disabled(!model.ntpEnabled)
-            if let code = model.timeZoneCode {
-                LabeledContent {
-                    Text(DateTimeModel.knownTimeZones[code] ?? "Código \(code) do equipamento")
-                } label: {
-                    FieldLabel("Fuso horário", original: "Fuso horário",
-                               detail: "Usado pela sincronização automática. Para trocar, use o VMS antigo ou o menu do equipamento.")
-                }
-            }
         } header: {
             Text("Sincronização automática")
         }

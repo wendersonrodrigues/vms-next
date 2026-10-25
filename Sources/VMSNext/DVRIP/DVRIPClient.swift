@@ -124,10 +124,11 @@ final class DVRIPClient: @unchecked Sendable {
 
     /// Envia um comando no formato {"Name": nome, "SessionID": ..., nome: payload}.
     @discardableResult
-    func command(code: UInt16, name: String, payload: Any?, accepted: Set<Int> = [100]) async throws -> [String: Any] {
+    func command(code: UInt16, name: String, payload: Any?, accepted: Set<Int> = [100],
+                 timeout: Double = 8) async throws -> [String: Any] {
         var json: [String: Any] = ["Name": name, "SessionID": sessionString]
         if let payload { json[name] = payload }
-        let response = try await send(code: code, json: json)
+        let response = try await send(code: code, json: json, timeout: timeout)
         let ret = response["Ret"] as? Int ?? 0
         guard accepted.contains(ret) else {
             throw DVRIPError.device(ret)
@@ -183,7 +184,8 @@ final class DVRIPClient: @unchecked Sendable {
 
     var sessionString: String { String(format: "0x%08X", sessionValue) }
 
-    private func send(code: UInt16, json: [String: Any]) async throws -> [String: Any] {
+    /// `timeout` maior só para comandos lentos, como a busca de câmeras pelo NVR.
+    private func send(code: UInt16, json: [String: Any], timeout: Double = 8) async throws -> [String: Any] {
         let body = try JSONSerialization.data(withJSONObject: json)
         return try await withCheckedThrowingContinuation { continuation in
             queue.async { [self] in
@@ -195,7 +197,7 @@ final class DVRIPClient: @unchecked Sendable {
                 let id = nextWaiterID
                 waiters.append((id, code + 1, continuation))
                 connection.send(content: frame(code: code, body: body), completion: .contentProcessed { _ in })
-                queue.asyncAfter(deadline: .now() + 8) { [weak self] in
+                queue.asyncAfter(deadline: .now() + timeout) { [weak self] in
                     guard let self, waiters.contains(where: { $0.id == id }) else { return }
                     shutdown(.timeout)
                 }
