@@ -47,7 +47,7 @@
     </td>
     <td width="25%" valign="top">
       <h3>🔒 Tudo na sua rede</h3>
-      Fala direto com as câmeras e os NVRs. Senhas num cofre criptografado, só neste Mac. Nada vai para a nuvem.
+      Fala direto com as câmeras e os NVRs. Senhas num cofre criptografado e a IA que analisa os alertas rodam só neste Mac. Nada vai para a nuvem.
     </td>
     <td width="25%" valign="top">
       <h3>🎛️ Igual ao VMS antigo</h3>
@@ -130,8 +130,8 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 1. **Adicionar câmeras:** vá em **Dispositivos → Procurar na rede**. Aparecem as câmeras e NVRs Xiongmai da sua rede; clique em **Adicionar…**, confira o nome e digite o **usuário e a senha do equipamento** (os mesmos do iCSee/XMEye). Também dá para adicionar pelo IP com **+ → Nova câmera**.
 2. **Ver ao vivo:** clique em **Ao vivo** (⌘2). Escolha o modelo de tela na barra de baixo e arraste câmeras da lista para os quadros. Cada quadro tem embaixo o nome, o **PTZ** (nas câmeras que têm), o som e o botão **expandir**, que abre a câmera em tela cheia (duplo clique também abre).
 3. **Câmera dupla** (duas imagens uma em cima da outra): botão direito → **Dividir em duas (split virtual)**.
-4. **Gravações:** clique em **Gravações** e escolha a câmera na lista. A linha do tempo mostra o dia; clique num ponto para assistir dali e use a data embaixo para escolher outro dia. **Baixar** salva em MP4.
-5. **Alertas:** em **Eventos → Ajustes dos alertas** escolha quais tipos notificam e tocam som. Cada alerta tem atalhos para o **ao vivo** e para a **gravação** daquele momento.
+4. **Gravações:** clique em **Gravações** e escolha a câmera na lista. A linha do tempo mostra o dia; clique num ponto para assistir dali e use a data embaixo para escolher outro dia (o calendário marca os dias com gravação). **Baixar** salva em MP4 direto na pasta das Preferências. Câmera sem cartão que grava no NVR: **Editar câmera → Gravações → NVR**.
+5. **Alertas:** em **Eventos → Ajustes dos alertas** escolha quais tipos notificam e tocam som, e se a **IA no Mac** analisa a foto de cada alerta. O **▶ Play** de cada alerta abre a gravação com a agulha no horário dele.
 6. **Configurar uma câmera:** clique em **Configurações** e escolha a câmera ou o NVR na lista. Só aparecem as opções que o equipamento tem.
 7. **Preferências (⌘,):** pastas de fotos e downloads, gravação no Mac, tema e segundo plano.
 
@@ -141,6 +141,7 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **NVR recusa o login:** no menu de rede do NVR, deixe **Criptografia de rede** em **"Login remoto precisa de criptografia"**.
 - **A busca na rede não acha nada:** o Mac precisa estar na mesma rede das câmeras e o VMS Next precisa da permissão de **Rede local** (Ajustes do Sistema → Privacidade e Segurança → Rede Local).
 - **Ver de fora de casa:** o VMS Next conecta pelo IP. Use uma VPN para a sua rede (por exemplo Tailscale ou WireGuard no roteador).
+- **As gravações de uma câmera estão no NVR:** em **Editar câmera → Gravações**, escolha **NVR** (ou **Cartão e NVR**) e o canal do NVR que mostra essa câmera.
 - **Levar para outro Mac:** **+ → Exportar câmeras** e, no outro Mac, **Importar câmeras**. As senhas não vão no arquivo.
 
 ## Funcionalidades
@@ -157,7 +158,7 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **Rodízio de telas** (Tour): passa sozinho pelas telas escolhidas, com tempo ajustável.
 - **Split virtual** para câmeras duplas: uma imagem vira dois quadros (cima e baixo) com um só vídeo da câmera, nomes próprios e o nome oficial sempre junto.
 - Barra embaixo de cada quadro do mosaico: nome (e a câmera ligada, nas metades do split), **PTZ**, **som** e **expandir**.
-- **Zoom digital** em cada quadro e na câmera em tela cheia (botões, pinça no trackpad e arrastar).
+- **Zoom digital** em cada quadro e na câmera em tela cheia: **roda do mouse** mirando onde o mouse está, botões, pinça no trackpad e arrastar.
 - Câmera em tela cheia com barra de baixo: **som**, **HD/SD**, **foto**, **Gravar** e **PTZ**.
 - **PTZ** no pé da lista de câmeras, uma câmera por vez, no arranjo do VMS antigo: 8 direções, zoom óptico, íris, foco, passo, **presets** e **ronda** (com janela de edição), escolhidos numa lista. Inverter esquerda/direita e cima/baixo por câmera. O botão só aparece nas câmeras com PTZ (automático ou escolhido em Editar câmera).
 - **Áudio** G.711 das câmeras, um som por vez.
@@ -168,9 +169,12 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - A câmera vem da lista ao lado e a busca do dia é automática.
 - **Linha do tempo** de 0 h a 24 h com uma faixa por tipo (alarme, movimento, manual e contínua), hora ao passar o mouse e clique para assistir daquele momento.
 - **Setas por tipo** (‹ Movimento ›, ‹ Contínua ›) para ir ao trecho anterior ou ao próximo.
-- Barra de data com **‹ ›** de dia em dia, **calendário** ao clicar na data, **Hoje** e a lista de **Arquivos** do dia.
+- Barra de data com **‹ ›** de dia em dia, **calendário** que marca os dias com gravação e os dias com vídeo baixado, **Hoje** e a lista de **Arquivos** do dia.
+- **Tags** nos vídeos: criar, buscar e tirar; clicar numa tag lista os vídeos com ela, de qualquer dia. Trechos com tag ganham uma marca na linha do tempo.
+- **Origem das gravações** por câmera: cartão, NVR ou os dois (chave **NVR | Cartão**).
+- Vindo de um alerta, **marca vermelha** no horário dele e a agulha já posicionada ali.
 - Reprodução com pausa, saltos de 10 s, barra de progresso, velocidade de ½× a 8× e som; a barra se ajusta em janelas estreitas.
-- **Download em MP4** (vídeo sem recomprimir e som em AAC).
+- **Download em MP4** direto na pasta das Preferências, com câmera, dia, horário e tipo no nome (vídeo sem recomprimir e som em AAC). Os baixados ficam com selo **No Mac**, tom mais claro na linha do tempo e **Mostrar no Finder**.
 - **Zoom digital** e **foto do quadro**, inteira ou só da parte ampliada.
 
 ### Gravação no Mac
@@ -179,8 +183,11 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - Arquivos de 5 a 120 minutos, reserva de espaço livre e, com o disco cheio, parar ou apagar as mais antigas.
 
 ### Eventos
-- Alertas das câmeras e do NVR, **guardados no Mac** entre aberturas.
-- Em cada alerta: **Ao vivo** e **Gravação** (abre a gravação no momento do alerta).
+- Alertas das câmeras e do NVR, **guardados no Mac** entre aberturas, como um gerenciador de alarmes.
+- **IA no Mac** (Vision do macOS, sem internet e sem baixar modelo): antes de avisar, o app pega uma foto da câmera e procura **pessoas, rostos, veículos, cães e gatos** e placas; o alerta diz o que apareceu ("Pessoa", "Veículo · carro") e a notificação leva a foto.
+- **Gravidade** automática (alta, média, baixa), que dá para trocar à mão; movimento sem nada na foto vira **provável falso alarme** (pode ficar só no histórico).
+- Em cada alerta: **▶ Play** (gravação com a agulha no horário do alerta), **ao vivo**, **nota** e **soneca** (15 min a até amanhã, de um tipo ou de todos os alertas da câmera).
+- Filtros por gravidade, sem os prováveis falsos alarmes e só os com nota; o fim do alarme vira a duração.
 - **Notificações do macOS** e **som no Mac** por tipo de alerta (sons do sistema ou arquivo próprio).
 - **Alertas repetidos juntados** quando a mesma câmera avisa por ela e pelo NVR.
 - **Registro**: o que aconteceu no app (entradas, configurações alteradas, reinícios, fotos, downloads) e o registro guardado em cada equipamento, com filtro por data e tipo e exportação em CSV.
@@ -209,6 +216,10 @@ Interface revista pelas regras da Apple para o macOS ([docs/REVISAO-INTERFACE-MA
 - **VoiceOver** em português em todos os botões, nos quadros de vídeo (estado e ações), no PTZ, na agenda e nos editores.
 - Atalhos: **⌘,** Preferências · **⌘1–⌘6** telas · **⌥⌘← ⌥⌘→** páginas do mosaico · **⌥⌘↑** voltar ao mosaico · **⌥⌘R** rodízio · nas Gravações **espaço**, **← →** e **⌘D** · **⌘R** recarregar as configurações.
 
+### Barra de menus
+- Últimos alertas, com os repetidos seguidos juntados numa linha só.
+- Botões em ícone: abrir o app, ligar e desligar os alertas, **câmeras silenciadas** (escolher de quais receber alertas), opções e sair.
+
 ### Preferências
 - **Idioma**: português ou inglês (ou igual ao Mac); o app reinicia no idioma escolhido.
 - Tema claro, escuro ou igual ao Mac.
@@ -234,6 +245,9 @@ O que está nos planos (ideias e pedidos são bem-vindos nas *Issues*):
 - **Filtro de IP** e **horário de verão** editáveis.
 - Trocar o IP de uma câmera pelo NVR e **atualizar o firmware** pelo app.
 - Mais preferências do VMS antigo (conectar sozinho, trocar HD/SD automático).
+- **YOLOX-Tiny** (Core ML) como opção da IA, para achar veículos pequenos e contar cada um.
+- Reconhecer **pessoas conhecidas** pelo rosto e detectar **sons** (vidro quebrando, latido, sirene) nos alertas.
+- Prévia em miniatura ao passar o mouse na linha do tempo das Gravações.
 - Testes com mais modelos de câmeras e NVRs Xiongmai.
 
 ## Requisitos
