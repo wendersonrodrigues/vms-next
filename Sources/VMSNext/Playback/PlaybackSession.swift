@@ -90,7 +90,8 @@ final class PlaybackSession: ObservableObject {
             hasAudio = false
         }
         seekTarget = start
-        clock = start
+        // Já começa no ponto pedido (ou no início do trecho), para a linha da linha do tempo não sumir no salto.
+        clock = start ?? recording.begin
 
         let parser = XMMediaParser()
         self.parser = parser

@@ -125,6 +125,7 @@ final class RecordingBrowser: ObservableObject {
 final class PlaybackPopovers: ObservableObject {
     @Published var calendar = false
     @Published var list = false
+    @Published var tags = false
 }
 
 struct PlaybackView: View {
@@ -138,6 +139,7 @@ struct PlaybackView: View {
     @StateObject private var session = PlaybackSession()
     @StateObject private var zoom = DigitalZoom()
     @StateObject private var popovers = PlaybackPopovers()
+    @ObservedObject private var tags = RecordingTags.shared
     /// Vídeo em foco: espaço toca/pausa, ← e → voltam e avançam 10 s (sem atrapalhar a lista e os campos).
     @FocusState private var playerFocused: Bool
 
@@ -184,9 +186,21 @@ struct PlaybackView: View {
                     kindSteppers
                     RecordingLegend(recordings: browser.recordings)
                 }
+                if let camera {
+                    RecordingTagButton(count: currentRecording.map { tags.tags(of: $0, camera: camera).count } ?? 0) {
+                        popovers.tags = true
+                    }
+                    .popover(isPresented: $popovers.tags, arrowEdge: .top) {
+                        RecordingTagsPopover(camera: camera, current: currentRecording) { item in
+                            popovers.tags = false
+                            open(camera: camera, at: item.begin, exact: true)
+                        }
+                    }
+                }
             }
-            if camera != nil {
-                RecordingTimeline(day: browser.day, recordings: browser.recordings, playhead: session.clock) { date, kind in
+            if let camera {
+                RecordingTimeline(day: browser.day, recordings: browser.recordings, playhead: session.clock,
+                                  tagged: tags.taggedFiles(camera: camera)) { date, kind in
                     play(at: date, preferring: kind)
                 }
                 .padding(.top, Space.xs)
@@ -355,15 +369,27 @@ struct PlaybackView: View {
     // MARK: - Player
 
     /// Busca o dia do alerta e toca a gravação que contém o momento (começando alguns segundos antes).
+    /// Vídeo que está tocando (ou o escolhido na lista), para as tags.
+    private var currentRecording: Recording? {
+        if let playing = session.recording, browser.recordings.contains(where: { $0.id == playing.id }) { return playing }
+        return browser.selected.flatMap { id in browser.recordings.first { $0.id == id } }
+    }
+
     private func openRequest() {
         guard let request, request.cameraID == cameraID, let camera else { return }
         self.request = nil
+        open(camera: camera, at: request.date, exact: false)
+    }
+
+    /// Vai para o dia do momento, busca e toca a gravação que o contém. Alertas começam 5 s antes;
+    /// um vídeo com tag começa no início dele (`exact`).
+    private func open(camera: Camera, at date: Date, exact: Bool) {
         browser.openingRequest = true
-        browser.day = request.date
+        browser.day = date
         Task {
             await browser.search(camera: camera)
             browser.openingRequest = false
-            let target = request.date.addingTimeInterval(-5)
+            let target = exact ? date.addingTimeInterval(1) : date.addingTimeInterval(-5)
             let match = browser.recordings.first { $0.begin <= target && target <= $0.end }
                 ?? browser.recordings.first { $0.begin >= target }
             guard let match else {
@@ -371,7 +397,7 @@ struct PlaybackView: View {
                 return
             }
             browser.selectWithoutPlaying(match.id)
-            await session.play(match, camera: camera, from: max(target, match.begin))
+            await session.play(match, camera: camera, from: exact ? nil : max(target, match.begin))
         }
     }
 

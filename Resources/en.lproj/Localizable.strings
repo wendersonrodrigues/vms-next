@@ -1290,3 +1290,25 @@
 
 "%@: trecho anterior" = "%@: previous clip";
 "%@: próximo trecho" = "%@: next clip";
+
+"Tags (%lld)" = "Tags (%lld)";
+"Tags" = "Tags";
+"Colocar tags no vídeo e ver os vídeos de uma tag" = "Tag the video and see the videos with a tag";
+"Este vídeo" = "This video";
+"Sem tags ainda." = "No tags yet.";
+"Toque um vídeo para colocar tags nele." = "Play a video to tag it.";
+"Buscar tag" = "Search tags";
+"Adicionar ou buscar tag" = "Add or search tags";
+"Criar a tag \"%@\"" = "Create the tag \"%@\"";
+"Criar a tag e colocar neste vídeo" = "Create the tag and add it to this video";
+"Nenhuma tag criada ainda." = "No tags created yet.";
+"Nenhuma tag com esse nome." = "No tag with that name.";
+"Tirar a tag deste vídeo" = "Remove the tag from this video";
+"Tirar a tag %@" = "Remove the tag %@";
+"Ver os vídeos com esta tag" = "See the videos with this tag";
+"Colocar a tag neste vídeo" = "Add the tag to this video";
+"Colocar a tag %@" = "Add the tag %@";
+"Voltar" = "Back";
+"Nenhum vídeo desta câmera com esta tag." = "No videos from this camera with this tag.";
+"Abrir este vídeo" = "Open this video";
+"%@ · %@" = "%@ · %@";

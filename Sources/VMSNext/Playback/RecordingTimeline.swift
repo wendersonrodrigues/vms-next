@@ -28,10 +28,13 @@ struct RecordingTimeline: View {
     let recordings: [Recording]
     /// Momento do vídeo que está tocando (nil = nada tocando).
     let playhead: Date?
+    /// Arquivos com tag: ganham uma marquinha em cima do trecho.
+    var tagged: Set<String> = []
     /// Clique: o momento escolhido e, se o clique foi numa faixa, o tipo dela.
     let onSelect: (Date, Recording.Kind?) -> Void
 
     @StateObject private var hover = TimelineHover()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let rulerHeight: CGFloat = 20
     private let laneHeight: CGFloat = 12
@@ -50,6 +53,14 @@ struct RecordingTimeline: View {
             let width = proxy.size.width
             ZStack(alignment: .topLeading) {
                 Canvas { context, size in draw(context, size: size) }
+                if let x = playheadX(width: width) {
+                    Rectangle()
+                        .fill(Theme.accent)
+                        .frame(width: 2, height: height - rulerHeight + 4)
+                        .offset(x: x - 1, y: rulerHeight - 4)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: x)
+                        .allowsHitTesting(false)
+                }
                 if let x = hover.x {
                     hoverMarker(x: x, width: width)
                 }
@@ -103,16 +114,26 @@ struct RecordingTimeline: View {
                 let x1 = max(CGFloat(end / 86_400) * width, x0 + 2)
                 context.fill(Path(roundedRect: CGRect(x: x0, y: y, width: x1 - x0, height: laneHeight), cornerRadius: laneHeight / 2),
                              with: .color(kind.color))
+                if tagged.contains(recording.fileName) {
+                    // Marquinha de tag: um losango azul no meio do trecho, com borda para destacar da cor da faixa.
+                    let mid = (x0 + x1) / 2
+                    var diamond = Path()
+                    diamond.move(to: CGPoint(x: mid, y: y - 3))
+                    diamond.addLine(to: CGPoint(x: mid + 5, y: y + laneHeight / 2))
+                    diamond.addLine(to: CGPoint(x: mid, y: y + laneHeight + 3))
+                    diamond.addLine(to: CGPoint(x: mid - 5, y: y + laneHeight / 2))
+                    diamond.closeSubpath()
+                    context.fill(diamond, with: .color(Theme.accent))
+                    context.stroke(diamond, with: .color(.white), lineWidth: 1.5)
+                }
             }
         }
-        // Onde o vídeo está.
-        if let playhead, Calendar.current.isDate(playhead, inSameDayAs: day) {
-            let x = CGFloat(playhead.timeIntervalSince(dayStart) / 86_400) * width
-            var line = Path()
-            line.move(to: CGPoint(x: x, y: rulerHeight - 4))
-            line.addLine(to: CGPoint(x: x, y: size.height))
-            context.stroke(line, with: .color(Theme.accent), lineWidth: 2)
-        }
+    }
+
+    /// Onde o vídeo está: fora do Canvas para deslizar até o novo ponto num salto, em vez de pular.
+    private func playheadX(width: CGFloat) -> CGFloat? {
+        guard let playhead, Calendar.current.isDate(playhead, inSameDayAs: day) else { return nil }
+        return CGFloat(playhead.timeIntervalSince(dayStart) / 86_400) * width
     }
 
     private func hoverMarker(x: CGFloat, width: CGFloat) -> some View {
