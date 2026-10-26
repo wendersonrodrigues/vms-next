@@ -217,7 +217,11 @@ struct ContentView: View {
     /// Linha da lista. NVRs e câmeras divididas abrem os itens de dentro; os canais de um NVR
     /// também podem ser reordenados arrastando.
     private func nodeRow(_ node: SidebarNode) -> AnyView {
-        let label = Label(node.title, systemImage: node.icon)
+        let label = Label {
+            Text(node.title)
+        } icon: {
+            if node.icon == "video" { CameraGlyph() } else { Image(systemName: node.icon) }
+        }
             .tag(node.id)
             .contextMenu { contextMenu(for: node.id) }
         guard let children = node.children else {
@@ -293,9 +297,9 @@ struct ContentView: View {
     private var settingsTitle: String {
         guard let target = selectedSettingsTarget else { return String(localized: "Configurações") }
         switch target.scope {
-        case .recorder: return "Configurações do NVR · \(target.title)"
-        case .channel: return "Configurações do canal · \(target.title)"
-        case .camera: return "Configurações da câmera · \(target.title)"
+        case .recorder: return String(localized: "Configurações do NVR · \(target.title)")
+        case .channel: return String(localized: "Configurações do canal · \(target.title)")
+        case .camera: return String(localized: "Configurações da câmera · \(target.title)")
         }
     }
 
@@ -863,13 +867,13 @@ final class ContentUIState: ObservableObject {
 extension ViewMode {
     var title: String {
         switch self {
-        case .home: return "Início"
-        case .live: return "Ao vivo"
-        case .recordings: return "Gravações"
-        case .events: return "Eventos"
-        case .devices: return "Dispositivos"
-        case .settings: return "Configurações"
-        case .preferences: return "Preferências"
+        case .home: return String(localized: "Início")
+        case .live: return String(localized: "Ao vivo")
+        case .recordings: return String(localized: "Gravações")
+        case .events: return String(localized: "Eventos")
+        case .devices: return String(localized: "Dispositivos")
+        case .settings: return String(localized: "Configurações")
+        case .preferences: return String(localized: "Preferências")
         }
     }
 

@@ -12,13 +12,13 @@ enum RTSPError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unauthorized: return "Usuário ou senha incorretos"
-        case let .badStatus(code, method): return "\(method) recusado (RTSP \(code))"
-        case .noVideoTrack: return "A câmera não anunciou vídeo"
-        case let .unsupportedCodec(name): return "Codec não suportado: \(name)"
-        case let .connection(message): return "Falha de conexão: \(message)"
-        case .closed: return "A câmera encerrou a conexão"
-        case .stalled: return "Sem vídeo há mais de 10 s"
+        case .unauthorized: return String(localized: "Usuário ou senha incorretos")
+        case let .badStatus(code, method): return String(localized: "\(method) recusado (RTSP \(code))")
+        case .noVideoTrack: return String(localized: "A câmera não anunciou vídeo")
+        case let .unsupportedCodec(name): return String(localized: "Codec não suportado: \(name)")
+        case let .connection(message): return String(localized: "Falha de conexão: \(message)")
+        case .closed: return String(localized: "A câmera encerrou a conexão")
+        case .stalled: return String(localized: "Sem vídeo há mais de 10 s")
         }
     }
 }

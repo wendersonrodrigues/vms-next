@@ -59,7 +59,9 @@ struct DevicesView: View {
             Section("Meus equipamentos") {
                 ForEach(rows, id: \.id) { row in
                     HStack {
-                        Image(systemName: row.isRecorder ? "server.rack" : "video")
+                        Group {
+                            if row.isRecorder { Image(systemName: "server.rack") } else { CameraGlyph() }
+                        }
                             .foregroundStyle(.secondary)
                             .frame(width: 20)
                         VStack(alignment: .leading, spacing: 2) {

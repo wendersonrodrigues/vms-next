@@ -42,12 +42,12 @@ enum AlarmKind: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .person: return "Pessoa detectada"
-        case .motion: return "Movimento"
-        case .videoLoss: return "Perda de vídeo"
-        case .blind: return "Câmera bloqueada"
-        case .storage: return "Problema no disco"
-        case .other: return "Outros alarmes"
+        case .person: return String(localized: "Pessoa detectada")
+        case .motion: return String(localized: "Movimento")
+        case .videoLoss: return String(localized: "Perda de vídeo")
+        case .blind: return String(localized: "Câmera bloqueada")
+        case .storage: return String(localized: "Problema no disco")
+        case .other: return String(localized: "Outros alarmes")
         }
     }
 

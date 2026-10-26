@@ -109,7 +109,7 @@ struct PTZPanel: View {
             }
             GridRow {
                 HoldButton(icon: "arrow.left", command: .left, ptz: ptz, size: 28)
-                Image(systemName: "video").font(.caption).foregroundStyle(.secondary).frame(width: 28, height: 28)
+                CameraGlyph(size: 14).foregroundStyle(.secondary).frame(width: 28, height: 28)
                 HoldButton(icon: "arrow.right", command: .right, ptz: ptz, size: 28)
             }
             GridRow {

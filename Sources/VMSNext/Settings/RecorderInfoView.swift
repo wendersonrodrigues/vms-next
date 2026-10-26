@@ -343,7 +343,7 @@ final class RecorderInfoModel: ObservableObject {
 
     private static func statusLabel(_ status: String) -> String {
         switch isConnected(status) {
-        case true?: return "Conectado"
+        case true?: return String(localized: "Conectado")
         case false?:
             let lower = status.lowercased()
             if lower.contains("config") { return String(localized: "Não configurado") }

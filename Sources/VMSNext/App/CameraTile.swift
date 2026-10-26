@@ -302,10 +302,10 @@ struct CameraTile: View {
     private var accessibilityStatus: String {
         let recording = recorder.isRecording(camera) ? String(localized: ", gravando no Mac") : ""
         switch stream.status {
-        case .idle, .playing: return "Ao vivo" + recording
-        case .connecting: return "Conectando" + recording
-        case .needsPassword: return "Senha não definida"
-        case let .failed(message, _): return "Sem conexão: \(message)" + recording
+        case .idle, .playing: return String(localized: "Ao vivo") + recording
+        case .connecting: return String(localized: "Conectando") + recording
+        case .needsPassword: return String(localized: "Senha não definida")
+        case let .failed(message, _): return String(localized: "Sem conexão: \(message)") + recording
         }
     }
 

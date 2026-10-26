@@ -7,11 +7,11 @@ struct Recording: Identifiable, Hashable {
 
         var label: String {
             switch self {
-            case .regular: return "Contínua"
-            case .motion: return "Movimento"
-            case .alarm: return "Alarme"
-            case .manual: return "Manual"
-            case .other: return "Gravação"
+            case .regular: return String(localized: "Contínua")
+            case .motion: return String(localized: "Movimento")
+            case .alarm: return String(localized: "Alarme")
+            case .manual: return String(localized: "Manual")
+            case .other: return String(localized: "Gravação")
             }
         }
     }

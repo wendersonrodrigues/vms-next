@@ -61,11 +61,38 @@ final class BackgroundSettings: ObservableObject {
 /// quando uma notificação é clicada com o app sem janela.
 struct MenuBarLabel: View {
     @ObservedObject private var alarms = AlarmCenter.shared
+    @ObservedObject private var vault = Vault.shared
     @Environment(\.openWindow) private var openWindow
+
+    /// Ícones próprios da barra de menus (Resources/Icons/menubar_*.png), como "template": o macOS pinta de
+    /// preto ou branco conforme a barra. Normal; lente cheia = alertas novos; riscado = sem receber alertas.
+    private static func icon(_ name: String) -> NSImage? {
+        guard let url = Bundle.main.resourceURL?.appendingPathComponent("Icons/\(name).png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.size = NSSize(width: 18, height: 18)
+        image.isTemplate = true
+        return image
+    }
+    private static let normal = icon("menubar_normal")
+    private static let alert = icon("menubar_alert")
+    private static let off = icon("menubar_off")
+
+    private var state: (image: NSImage?, fallback: String, label: String) {
+        if !vault.isUnlocked || !alarms.enabled {
+            return (Self.off, "video.slash", String(localized: "VMS Next: sem receber alertas"))
+        }
+        if alarms.unread > 0 {
+            return (Self.alert, "video.badge.exclamationmark", String(localized: "VMS Next: alertas novos"))
+        }
+        return (Self.normal, "video", String(localized: "VMS Next"))
+    }
 
     var body: some View {
         HStack(spacing: 3) {
-            Image(systemName: alarms.unread > 0 ? "video.badge.exclamationmark" : "video")
+            Group {
+                if let image = state.image { Image(nsImage: image) } else { Image(systemName: state.fallback) }
+            }
+            .accessibilityLabel(state.label)
             if alarms.unread > 0 {
                 Text(alarms.unread > 99 ? "99+" : "\(alarms.unread)")
                     .monospacedDigit()

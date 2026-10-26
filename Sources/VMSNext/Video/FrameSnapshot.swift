@@ -13,8 +13,8 @@ enum FrameSnapshot {
 
         var errorDescription: String? {
             switch self {
-            case .noFrame: return "Ainda não há imagem na tela para fotografar."
-            case .encode: return "Não foi possível gerar a foto."
+            case .noFrame: return String(localized: "Ainda não há imagem na tela para fotografar.")
+            case .encode: return String(localized: "Não foi possível gerar a foto.")
             }
         }
     }

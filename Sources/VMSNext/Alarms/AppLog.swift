@@ -10,12 +10,12 @@ final class AppLog: ObservableObject {
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .login: return "Entrada e saída"
-            case .config: return "Configuração"
-            case .device: return "Equipamento"
-            case .alarm: return "Alertas"
-            case .recording: return "Gravação no Mac"
-            case .file: return "Fotos e downloads"
+            case .login: return String(localized: "Entrada e saída")
+            case .config: return String(localized: "Configuração")
+            case .device: return String(localized: "Equipamento")
+            case .alarm: return String(localized: "Alertas")
+            case .recording: return String(localized: "Gravação no Mac")
+            case .file: return String(localized: "Fotos e downloads")
             }
         }
     }

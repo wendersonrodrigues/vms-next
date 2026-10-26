@@ -339,8 +339,8 @@ struct HomeView: View {
 
     private func statusText(_ device: Device) -> String {
         switch device.online {
-        case .some(true): return device.totalMB > 0 ? "Conectado · \(Self.size(device.freeMB)) livres" : "Conectado"
-        case .some(false): return device.error ?? "Sem conexão"
+        case .some(true): return device.totalMB > 0 ? "Conectado · \(Self.size(device.freeMB)) livres" : String(localized: "Conectado")
+        case .some(false): return device.error ?? String(localized: "Sem conexão")
         case .none: return "Verificando…"
         }
     }

@@ -28,20 +28,20 @@ enum PTZCommand: String {
     /// Nome em português para a dica do mouse e o VoiceOver (o rawValue é o nome do protocolo).
     var label: String {
         switch self {
-        case .up: return "Para cima"
-        case .down: return "Para baixo"
-        case .left: return "Para a esquerda"
-        case .right: return "Para a direita"
-        case .upLeft: return "Para cima e à esquerda"
-        case .upRight: return "Para cima e à direita"
-        case .downLeft: return "Para baixo e à esquerda"
-        case .downRight: return "Para baixo e à direita"
-        case .zoomIn: return "Aproximar (zoom)"
-        case .zoomOut: return "Afastar (zoom)"
-        case .focusNear: return "Foco mais perto"
-        case .focusFar: return "Foco mais longe"
-        case .irisOpen: return "Abrir a íris"
-        case .irisClose: return "Fechar a íris"
+        case .up: return String(localized: "Para cima")
+        case .down: return String(localized: "Para baixo")
+        case .left: return String(localized: "Para a esquerda")
+        case .right: return String(localized: "Para a direita")
+        case .upLeft: return String(localized: "Para cima e à esquerda")
+        case .upRight: return String(localized: "Para cima e à direita")
+        case .downLeft: return String(localized: "Para baixo e à esquerda")
+        case .downRight: return String(localized: "Para baixo e à direita")
+        case .zoomIn: return String(localized: "Aproximar (zoom)")
+        case .zoomOut: return String(localized: "Afastar (zoom)")
+        case .focusNear: return String(localized: "Foco mais perto")
+        case .focusFar: return String(localized: "Foco mais longe")
+        case .irisOpen: return String(localized: "Abrir a íris")
+        case .irisClose: return String(localized: "Fechar a íris")
         default: return rawValue
         }
     }

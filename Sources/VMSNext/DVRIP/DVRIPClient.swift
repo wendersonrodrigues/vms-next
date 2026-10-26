@@ -12,12 +12,12 @@ enum DVRIPError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case let .connection(message): return "Falha de conexão: \(message)"
-        case .closed: return "A câmera encerrou a sessão"
-        case .timeout: return "A câmera não respondeu"
-        case .authFailed: return "Usuário ou senha incorretos"
-        case let .device(code): return "A câmera recusou o comando (código \(code))"
-        case .invalidResponse: return "Resposta inválida da câmera"
+        case let .connection(message): return String(localized: "Falha de conexão: \(message)")
+        case .closed: return String(localized: "A câmera encerrou a sessão")
+        case .timeout: return String(localized: "A câmera não respondeu")
+        case .authFailed: return String(localized: "Usuário ou senha incorretos")
+        case let .device(code): return String(localized: "A câmera recusou o comando (código \(code))")
+        case .invalidResponse: return String(localized: "Resposta inválida da câmera")
         }
     }
 

@@ -195,3 +195,30 @@ struct LinkedCameraIcon: View {
         .accessibilityHidden(true)
     }
 }
+
+/// Câmera do app (o mesmo desenho do ícone da barra de menus, Resources/Icons/menubar_normal.png), no lugar do
+/// símbolo "video". É "template": segue a cor do texto, inclusive o branco da linha selecionada.
+struct CameraGlyph: View {
+    var size: CGFloat = 16
+
+    private static let image: NSImage? = {
+        guard let url = Bundle.main.resourceURL?.appendingPathComponent("Icons/menubar_normal.png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.isTemplate = true
+        return image
+    }()
+
+    var body: some View {
+        if let image = Self.image {
+            Image(nsImage: image)
+                .renderingMode(.template)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: "video")
+        }
+    }
+}

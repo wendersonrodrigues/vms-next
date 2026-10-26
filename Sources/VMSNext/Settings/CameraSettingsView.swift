@@ -31,30 +31,30 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .imageParams: return "Imagem e visão noturna"
-        case .exposure: return "Exposição e ajustes finos"
-        case .encoding: return "Qualidade do vídeo e som"
-        case .netServices: return "Serviços de rede"
-        case .ptzSerial: return "PTZ por cabo"
-        case .overlay: return "Texto na imagem"
-        case .recording: return "Gravação"
-        case .snapshot: return "Fotos automáticas"
-        case .smartAlert: return "Detecção inteligente"
-        case .videoLoss: return "Perda de vídeo"
-        case .blind: return "Câmera bloqueada"
-        case .vehicle: return "Detecção de veículos"
-        case .abnormality: return "Problemas no equipamento"
-        case .alarmOutput: return "Saída de alarme"
-        case .disk: return "Disco / cartão"
-        case .dateTime: return "Sistema e horário"
-        case .maintenance: return "Manutenção"
-        case .users: return "Usuários"
-        case .defaults: return "Restaurar padrão"
-        case .network: return "Rede"
-        case .version: return "Informações"
-        case .digitalChannels: return "Câmeras do NVR"
-        case .channelMode: return "Modo dos canais"
-        case .channelStatus: return "Estado dos canais"
+        case .imageParams: return String(localized: "Imagem e visão noturna")
+        case .exposure: return String(localized: "Exposição e ajustes finos")
+        case .encoding: return String(localized: "Qualidade do vídeo e som")
+        case .netServices: return String(localized: "Serviços de rede")
+        case .ptzSerial: return String(localized: "PTZ por cabo")
+        case .overlay: return String(localized: "Texto na imagem")
+        case .recording: return String(localized: "Gravação")
+        case .snapshot: return String(localized: "Fotos automáticas")
+        case .smartAlert: return String(localized: "Detecção inteligente")
+        case .videoLoss: return String(localized: "Perda de vídeo")
+        case .blind: return String(localized: "Câmera bloqueada")
+        case .vehicle: return String(localized: "Detecção de veículos")
+        case .abnormality: return String(localized: "Problemas no equipamento")
+        case .alarmOutput: return String(localized: "Saída de alarme")
+        case .disk: return String(localized: "Disco / cartão")
+        case .dateTime: return String(localized: "Sistema e horário")
+        case .maintenance: return String(localized: "Manutenção")
+        case .users: return String(localized: "Usuários")
+        case .defaults: return String(localized: "Restaurar padrão")
+        case .network: return String(localized: "Rede")
+        case .version: return String(localized: "Informações")
+        case .digitalChannels: return String(localized: "Câmeras do NVR")
+        case .channelMode: return String(localized: "Modo dos canais")
+        case .channelStatus: return String(localized: "Estado dos canais")
         }
     }
 
@@ -90,30 +90,30 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .imageParams: return "Brilho, cores, espelhar e modo noturno"
-        case .exposure: return "Exposição, ganho, ruído e filtro IR"
-        case .encoding: return "Resolução, compressão, FPS e áudio"
-        case .netServices: return "Nuvem, RTSP, filtro de IP, Wi-Fi e alertas no celular"
-        case .ptzSerial: return "Protocolo e porta serial RS485 do motor"
-        case .overlay: return "Nome do canal e data/hora sobre o vídeo"
-        case .recording: return "Quando gravar e tamanho dos arquivos"
-        case .snapshot: return "Captura de fotos por horário ou intervalo"
-        case .smartAlert: return "Movimento, pessoas e o que fazer ao detectar"
-        case .videoLoss: return "Aviso quando a imagem do canal some"
-        case .blind: return "Aviso quando a lente é coberta"
-        case .vehicle: return "Aviso quando aparece um carro ou moto"
-        case .abnormality: return "Disco, rede e conflito de IP"
-        case .alarmOutput: return "Sirene, luz ou relé ligados ao equipamento"
-        case .disk: return "Espaço livre, estado e disco cheio"
-        case .dateTime: return "Relógio, fuso, nome e idioma do equipamento"
-        case .maintenance: return "Reiniciar e reinício automático"
-        case .users: return "Contas e senhas do equipamento"
-        case .defaults: return "Voltar configurações de fábrica"
-        case .network: return "Endereço IP, DNS e portas"
-        case .version: return "Modelo, firmware e número de série"
-        case .digitalChannels: return "Quais câmeras estão ligadas em cada canal"
-        case .channelMode: return "Quantos canais e em que resolução o NVR aceita"
-        case .channelStatus: return "Conexão e resolução de cada canal"
+        case .imageParams: return String(localized: "Brilho, cores, espelhar e modo noturno")
+        case .exposure: return String(localized: "Exposição, ganho, ruído e filtro IR")
+        case .encoding: return String(localized: "Resolução, compressão, FPS e áudio")
+        case .netServices: return String(localized: "Nuvem, RTSP, filtro de IP, Wi-Fi e alertas no celular")
+        case .ptzSerial: return String(localized: "Protocolo e porta serial RS485 do motor")
+        case .overlay: return String(localized: "Nome do canal e data/hora sobre o vídeo")
+        case .recording: return String(localized: "Quando gravar e tamanho dos arquivos")
+        case .snapshot: return String(localized: "Captura de fotos por horário ou intervalo")
+        case .smartAlert: return String(localized: "Movimento, pessoas e o que fazer ao detectar")
+        case .videoLoss: return String(localized: "Aviso quando a imagem do canal some")
+        case .blind: return String(localized: "Aviso quando a lente é coberta")
+        case .vehicle: return String(localized: "Aviso quando aparece um carro ou moto")
+        case .abnormality: return String(localized: "Disco, rede e conflito de IP")
+        case .alarmOutput: return String(localized: "Sirene, luz ou relé ligados ao equipamento")
+        case .disk: return String(localized: "Espaço livre, estado e disco cheio")
+        case .dateTime: return String(localized: "Relógio, fuso, nome e idioma do equipamento")
+        case .maintenance: return String(localized: "Reiniciar e reinício automático")
+        case .users: return String(localized: "Contas e senhas do equipamento")
+        case .defaults: return String(localized: "Voltar configurações de fábrica")
+        case .network: return String(localized: "Endereço IP, DNS e portas")
+        case .version: return String(localized: "Modelo, firmware e número de série")
+        case .digitalChannels: return String(localized: "Quais câmeras estão ligadas em cada canal")
+        case .channelMode: return String(localized: "Quantos canais e em que resolução o NVR aceita")
+        case .channelStatus: return String(localized: "Conexão e resolução de cada canal")
         }
     }
 
@@ -201,9 +201,9 @@ struct SettingsTarget: Identifiable {
     /// "Configurações da câmera", "do NVR" ou "do canal".
     var kindLabel: String {
         switch scope {
-        case .recorder: return "Configurações do NVR"
-        case .channel: return "Configurações do canal do NVR"
-        case .camera: return "Configurações da câmera"
+        case .recorder: return String(localized: "Configurações do NVR")
+        case .channel: return String(localized: "Configurações do canal do NVR")
+        case .camera: return String(localized: "Configurações da câmera")
         }
     }
 

@@ -139,8 +139,8 @@ final class HomeModel: ObservableObject {
     /// Código WMO do clima → descrição e ícone.
     static func describe(_ weather: Weather) -> (text: String, icon: String) {
         switch weather.code {
-        case 0: return ("Céu limpo", weather.isDay ? "sun.max.fill" : "moon.stars.fill")
-        case 1, 2: return ("Parcialmente nublado", weather.isDay ? "cloud.sun.fill" : "cloud.moon.fill")
+        case 0: return (String(localized: "Céu limpo"), weather.isDay ? "sun.max.fill" : "moon.stars.fill")
+        case 1, 2: return (String(localized: "Parcialmente nublado"), weather.isDay ? "cloud.sun.fill" : "cloud.moon.fill")
         case 3: return ("Nublado", "cloud.fill")
         case 45, 48: return ("Neblina", "cloud.fog.fill")
         case 51 ... 57: return ("Garoa", "cloud.drizzle.fill")

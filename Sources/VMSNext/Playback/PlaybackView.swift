@@ -121,6 +121,12 @@ final class RecordingBrowser: ObservableObject {
     }
 }
 
+/// Calendário e lista de arquivos abertos (ObservableObject no lugar de @State, que precisa do Xcode).
+final class PlaybackPopovers: ObservableObject {
+    @Published var calendar = false
+    @Published var list = false
+}
+
 struct PlaybackView: View {
     /// Câmera escolhida na lista ao lado da janela principal.
     let cameraID: Camera.ID?
@@ -131,6 +137,7 @@ struct PlaybackView: View {
     @StateObject private var browser = RecordingBrowser()
     @StateObject private var session = PlaybackSession()
     @StateObject private var zoom = DigitalZoom()
+    @StateObject private var popovers = PlaybackPopovers()
     /// Vídeo em foco: espaço toca/pausa, ← e → voltam e avançam 10 s (sem atrapalhar a lista e os campos).
     @FocusState private var playerFocused: Bool
 
@@ -139,12 +146,11 @@ struct PlaybackView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            searchPanel
-                .frame(width: 300)
-                .background(Theme.sidebar)
-            Divider()
+        // Vídeo em cima e a linha do tempo do dia embaixo, na largura toda: nada de painel com largura fixa,
+        // que em janela estreita empurrava a lista de câmeras para fora.
+        VStack(spacing: 0) {
             player
+            timelinePanel
         }
         .onDisappear { session.stop() }
         // A câmera vem da lista ao lado: ao trocar de câmera ou de dia, busca de novo.
@@ -159,75 +165,185 @@ struct PlaybackView: View {
         }
     }
 
-    // MARK: - Busca
+    // MARK: - Linha do tempo e data
 
-    private var searchPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let camera {
-                Label(camera.displayName, systemImage: "video")
-                    .font(.headline)
-            } else {
-                Label("Escolha uma câmera ou canal na lista ao lado.", systemImage: "arrow.left")
-                    .foregroundStyle(.secondary)
+    private var isToday: Bool { Calendar.current.isDateInToday(browser.day) }
+
+    private var timelinePanel: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            HStack(spacing: Space.s) {
+                if let camera {
+                    Label { Text(camera.displayName) } icon: { CameraGlyph() }.font(.headline).lineLimit(1)
+                } else {
+                    Label("Escolha uma câmera ou canal na lista ao lado.", systemImage: "arrow.left")
+                        .foregroundStyle(.secondary)
+                }
+                if browser.searching { ProgressView().controlSize(.small) }
+                Spacer(minLength: Space.s)
+                ViewThatFits(in: .horizontal) {
+                    kindSteppers
+                    RecordingLegend(recordings: browser.recordings)
+                }
             }
-            DatePicker("Dia", selection: $browser.day, displayedComponents: .date)
-                .datePickerStyle(.graphical)
+            if camera != nil {
+                RecordingTimeline(day: browser.day, recordings: browser.recordings, playhead: session.clock) { date, kind in
+                    play(at: date, preferring: kind)
+                }
+                .padding(.top, Space.xs)
+            }
+            if let message = browser.message {
+                Text(message).font(.caption).foregroundStyle(.secondary)
+            }
+            dateBar
+            if !browser.downloads.isEmpty { downloadsRow }
+        }
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.m)
+        .background(Theme.surface)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    /// ‹ dia ›, a data (clique abre o calendário) e Hoje; à direita, buscar de novo e mais opções.
+    private var dateBar: some View {
+        HStack(spacing: Space.s) {
+            Button { shiftDay(-1) } label: { Image(systemName: "chevron.left") }
+                .help("Dia anterior")
+                .accessibilityLabel("Dia anterior")
+            Button {
+                popovers.calendar = true
+            } label: {
+                Label(browser.day.formatted(date: .complete, time: .omitted), systemImage: "calendar")
+                    .lineLimit(1)
+            }
+            .help("Escolher o dia no calendário")
+            .popover(isPresented: $popovers.calendar, arrowEdge: .top) {
+                DatePicker("Dia", selection: Binding(get: { browser.day }, set: { browser.day = $0; popovers.calendar = false }),
+                           in: ...Date(), displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .labelsHidden()
+                    .padding(Space.m)
+            }
+            Button { shiftDay(1) } label: { Image(systemName: "chevron.right") }
+                .disabled(isToday)
+                .help("Próximo dia")
+                .accessibilityLabel("Próximo dia")
+            Button("Hoje") { browser.day = Date() }
+                .buttonStyle(.borderedProminent)
+                .disabled(isToday)
+            Spacer(minLength: Space.s)
             Button {
                 guard let camera else { return }
                 Task { await browser.search(camera: camera) }
             } label: {
-                Label("Buscar de novo", systemImage: "arrow.clockwise")
-                    .frame(maxWidth: .infinity)
+                Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(.borderedProminent)
             .disabled(camera == nil || browser.searching)
-
-            Button("Diagnóstico da busca…") {
-                guard let camera else { return }
-                Task { browser.diagnosticText = await browser.diagnose(camera: camera) }
+            .help("Buscar de novo")
+            .accessibilityLabel("Buscar de novo")
+            Button {
+                popovers.list = true
+            } label: {
+                Label("Arquivos (\(browser.recordings.count))", systemImage: "list.bullet")
             }
-            .controlSize(.small)
-            .disabled(camera == nil || browser.searching)
-
-            if browser.searching {
-                ProgressView().frame(maxWidth: .infinity)
-            } else if let message = browser.message {
-                Text(message).font(.caption).foregroundStyle(.secondary)
+            .disabled(browser.recordings.isEmpty)
+            .help("Lista dos arquivos gravados no dia, para tocar ou baixar um arquivo específico")
+            .popover(isPresented: $popovers.list, arrowEdge: .top) { recordingList }
+            Menu {
+                Button("Diagnóstico da busca…") {
+                    guard let camera else { return }
+                    Task { browser.diagnosticText = await browser.diagnose(camera: camera) }
+                }
+                .disabled(camera == nil || browser.searching)
+            } label: {
+                Image(systemName: "ellipsis.circle")
             }
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Mais opções")
+            .accessibilityLabel("Mais opções")
+        }
+    }
 
-            List(browser.recordings, selection: $browser.selected) { recording in
-                RecordingRow(recording: recording)
-                    .tag(recording.id)
-                    .onTapGesture(count: 2) { play(recording) }
-                    .contextMenu {
-                        Button("Reproduzir") { play(recording) }
-                        Button("Baixar em MP4…") {
-                            if let camera { browser.download(recording, camera: camera) }
-                        }
+    private var recordingList: some View {
+        List(browser.recordings, selection: $browser.selected) { recording in
+            RecordingRow(recording: recording)
+                .tag(recording.id)
+                .contextMenu {
+                    Button("Reproduzir") { play(recording) }
+                    Button("Baixar em MP4…") {
+                        if let camera { browser.download(recording, camera: camera) }
                     }
-            }
-            .listStyle(.inset)
-            .onChange(of: browser.selected) {
-                if browser.consumeSuppressedPlay() { return }
-                if let id = browser.selected, let recording = browser.recordings.first(where: { $0.id == id }) {
-                    play(recording)
                 }
+        }
+        .listStyle(.inset)
+        .frame(width: 340, height: 360)
+        .onChange(of: browser.selected) {
+            if browser.consumeSuppressedPlay() { return }
+            if let id = browser.selected, let recording = browser.recordings.first(where: { $0.id == id }) {
+                play(recording)
             }
+        }
+    }
 
-            if !browser.downloads.isEmpty {
-                HStack {
-                    Text("Downloads").font(.headline)
-                    Spacer()
-                    Button("Limpar") { browser.removeFinishedDownloads() }
-                        .controlSize(.small)
-                        .disabled(!browser.downloads.contains { $0.state != .running })
-                }
-                ForEach(browser.downloads.prefix(4)) { job in
-                    DownloadRow(job: job)
+    private var downloadsRow: some View {
+        HStack(alignment: .top, spacing: Space.m) {
+            ForEach(browser.downloads.prefix(3)) { job in
+                DownloadRow(job: job).frame(maxWidth: 260)
+            }
+            Spacer(minLength: 0)
+            Button("Limpar") { browser.removeFinishedDownloads() }
+                .controlSize(.small)
+                .disabled(!browser.downloads.contains { $0.state != .running })
+        }
+    }
+
+    private func shiftDay(_ days: Int) {
+        guard let next = Calendar.current.date(byAdding: .day, value: days, to: browser.day) else { return }
+        browser.day = min(next, Date())
+    }
+
+    /// Um ‹ tipo › para cada tipo de gravação que existe no dia.
+    private var kindSteppers: some View {
+        let present = Set(browser.recordings.map(\.kind))
+        return HStack(spacing: Space.s) {
+            ForEach(Recording.Kind.timelineOrder.filter { present.contains($0) }, id: \.self) { kind in
+                RecordingKindStepper(kind: kind,
+                                     canGoBack: neighbor(of: kind, forward: false) != nil,
+                                     canGoForward: neighbor(of: kind, forward: true) != nil) { forward in
+                    if let match = neighbor(of: kind, forward: forward) {
+                        browser.selectWithoutPlaying(match.id)
+                        play(match)
+                    }
                 }
             }
         }
-        .padding(Space.m)
+    }
+
+    /// Trecho anterior/seguinte do tipo, a partir do trecho que está tocando (ou do começo/fim do dia, se nada toca).
+    /// A referência é o início do trecho atual, não o relógio: logo depois de um salto o relógio ainda está vazio
+    /// ou atrasado, e o "anterior" acabava repetindo o mesmo trecho.
+    private func neighbor(of kind: Recording.Kind, forward: Bool) -> Recording? {
+        let ofKind = browser.recordings.filter { $0.kind == kind }
+        let current = session.recording.flatMap { playing in browser.recordings.first { $0.id == playing.id } }
+        let reference = current?.begin
+            ?? session.clock.flatMap { Calendar.current.isDate($0, inSameDayAs: browser.day) ? $0 : nil }
+        if forward {
+            return ofKind.filter { $0.begin > (reference ?? .distantPast) }.min { $0.begin < $1.begin }
+        }
+        return ofKind.filter { $0.begin < (reference ?? .distantFuture) }.max { $0.begin < $1.begin }
+    }
+
+    /// Clique na linha do tempo: toca o trecho que tem esse momento (do tipo da faixa clicada, se houver);
+    /// num vão sem gravação, começa no próximo trecho.
+    private func play(at date: Date, preferring kind: Recording.Kind?) {
+        guard let camera else { return }
+        let covering = browser.recordings.filter { $0.begin <= date && date <= $0.end }
+        let match = covering.first { $0.kind == kind } ?? covering.first
+            ?? browser.recordings.filter { $0.begin > date }.min { $0.begin < $1.begin }
+        guard let match else { return }
+        browser.selectWithoutPlaying(match.id)
+        playerFocused = true
+        Task { await session.play(match, camera: camera, from: max(date, match.begin)) }
     }
 
     private func play(_ recording: Recording) {
@@ -312,57 +428,10 @@ struct PlaybackView: View {
             // Barra de baixo no mesmo estilo do ao vivo: controles no centro, ferramentas à direita.
             VStack(spacing: 8) {
                 seekBar
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(session.camera?.displayName ?? String(localized: "Gravação")).font(.headline).lineLimit(1)
-                        if let clock = session.clock {
-                            Text(clock.formatted(date: .abbreviated, time: .standard))
-                                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(minWidth: 150, alignment: .leading)
-                    Spacer()
-                    let hasRecording = session.recording != nil
-                    BarButton(icon: "gobackward.10", help: String(localized: "Voltar 10 s (←)")) { session.skip(by: -10) }
-                        .disabled(!hasRecording)
-                    Button {
-                        if session.status == .finished { session.seek(to: 0) } else { session.togglePause() }
-                    } label: {
-                        Image(systemName: session.status == .playing ? "pause.fill" : "play.fill")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 42, height: 42)
-                            .background(Circle().fill(Theme.accentGradient))
-                            .shadow(color: Theme.accent.opacity(0.5), radius: 8)
-                    }
-                    .buttonStyle(.hover)
-                    .disabled(![.playing, .paused, .finished].contains(session.status))
-                    .help(session.status == .playing ? String(localized: "Pausar (espaço)") : String(localized: "Reproduzir (espaço)"))
-                    .accessibilityLabel(session.status == .playing ? "Pausar" : "Reproduzir")
-                    BarButton(icon: "goforward.10", help: String(localized: "Avançar 10 s (→)")) { session.skip(by: 10) }
-                        .disabled(!hasRecording)
-                    BarButton(icon: "stop.fill", help: String(localized: "Parar")) { session.stop() }
-                        .disabled(session.status == .idle)
-                    Picker("Velocidade", selection: Binding(get: { session.speed }, set: { session.setSpeed($0) })) {
-                        ForEach([0.5, 1, 2, 4, 8], id: \.self) { Text("\($0 == 0.5 ? "½" : String(Int($0)))×").tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 200)
-                    Spacer()
-                    if session.hasAudio {
-                        SpeakerButton(id: session.audioID, setAudio: session.setAudio)
-                            .buttonStyle(.hover)
-                            .font(.system(size: 18))
-                            .disabled(session.speed != 1)
-                    }
-                    BarButton(icon: "camera", title: String(localized: "Foto"), help: String(localized: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)")) { takePhoto() }
-                        .disabled(!hasRecording)
-                    BarButton(icon: "arrow.down.circle", title: String(localized: "Baixar"), help: String(localized: "Baixar esta gravação em MP4 (⌘D)")) {
-                        if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
-                    }
-                    .keyboardShortcut("d")
-                    .disabled(!hasRecording)
+                // Larga: tudo com nomes; estreita: só ícones e a velocidade num menu (nada sai da tela).
+                ViewThatFits(in: .horizontal) {
+                    controlRow(compact: false)
+                    controlRow(compact: true)
                 }
                 if let message = browser.photoMessage ?? (session.info.isEmpty ? nil : session.info) {
                     Text(message).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -372,6 +441,77 @@ struct PlaybackView: View {
             .padding(.horizontal, Space.l)
             .padding(.vertical, Space.m)
             .background(Theme.surface)
+        }
+    }
+
+    private func controlRow(compact: Bool) -> some View {
+        let hasRecording = session.recording != nil
+        return HStack(spacing: Space.s) {
+            if let clock = session.clock {
+                Text(clock.formatted(date: compact ? .omitted : .abbreviated, time: .standard))
+                    .font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+                    .fixedSize()
+            }
+            Spacer(minLength: Space.s)
+            BarButton(icon: "gobackward.10", help: String(localized: "Voltar 10 s (←)")) { session.skip(by: -10) }
+                .disabled(!hasRecording)
+            Button {
+                if session.status == .finished { session.seek(to: 0) } else { session.togglePause() }
+            } label: {
+                Image(systemName: session.status == .playing ? "pause.fill" : "play.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(Theme.accentGradient))
+            }
+            .buttonStyle(.hover)
+            .disabled(![.playing, .paused, .finished].contains(session.status))
+            .help(session.status == .playing ? String(localized: "Pausar (espaço)") : String(localized: "Reproduzir (espaço)"))
+            .accessibilityLabel(session.status == .playing ? "Pausar" : "Reproduzir")
+            BarButton(icon: "goforward.10", help: String(localized: "Avançar 10 s (→)")) { session.skip(by: 10) }
+                .disabled(!hasRecording)
+            BarButton(icon: "stop.fill", help: String(localized: "Parar")) { session.stop() }
+                .disabled(session.status == .idle)
+            speedControl(compact: compact)
+            Spacer(minLength: Space.s)
+            if session.hasAudio {
+                SpeakerButton(id: session.audioID, setAudio: session.setAudio)
+                    .buttonStyle(.hover)
+                    .font(.system(size: 18))
+                    .disabled(session.speed != 1)
+            }
+            BarButton(icon: "camera", title: compact ? nil : String(localized: "Foto"),
+                      help: String(localized: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)")) { takePhoto() }
+                .disabled(!hasRecording)
+            BarButton(icon: "arrow.down.circle", title: compact ? nil : String(localized: "Baixar"),
+                      help: String(localized: "Baixar esta gravação em MP4 (⌘D)")) {
+                if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
+            }
+            .keyboardShortcut(compact ? nil : KeyboardShortcut("d"))
+            .disabled(!hasRecording)
+        }
+    }
+
+    private static let speeds: [Double] = [0.5, 1, 2, 4, 8]
+    private static func speedText(_ speed: Double) -> String { "\(speed == 0.5 ? "½" : String(Int(speed)))×" }
+
+    @ViewBuilder
+    private func speedControl(compact: Bool) -> some View {
+        let binding = Binding(get: { session.speed }, set: { session.setSpeed($0) })
+        if compact {
+            Picker("Velocidade", selection: binding) {
+                ForEach(Self.speeds, id: \.self) { Text(Self.speedText($0)).tag($0) }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .fixedSize()
+        } else {
+            Picker("Velocidade", selection: binding) {
+                ForEach(Self.speeds, id: \.self) { Text(Self.speedText($0)).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 190)
         }
     }
 
@@ -455,15 +595,7 @@ private struct RecordingRow: View {
         }
     }
 
-    private var color: Color {
-        switch recording.kind {
-        case .regular: return .blue
-        case .motion: return .orange
-        case .alarm: return .red
-        case .manual: return .purple
-        case .other: return .gray
-        }
-    }
+    private var color: Color { recording.kind.color }
 }
 
 private struct DownloadRow: View {

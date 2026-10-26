@@ -83,7 +83,7 @@ struct EventsView: View {
                                 }
                             }
                         } label: {
-                            Label(camera.name, systemImage: "video")
+                            Label { Text(camera.name) } icon: { CameraGlyph() }
                         }
                     }
                 } header: {

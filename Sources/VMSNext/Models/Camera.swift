@@ -77,9 +77,9 @@ enum PTZSupport: String, Codable, CaseIterable {
 
     var label: String {
         switch self {
-        case .auto: return "Automático"
-        case .yes: return "Tem PTZ"
-        case .no: return "Não tem PTZ"
+        case .auto: return String(localized: "Automático")
+        case .yes: return String(localized: "Tem PTZ")
+        case .no: return String(localized: "Não tem PTZ")
         }
     }
 }

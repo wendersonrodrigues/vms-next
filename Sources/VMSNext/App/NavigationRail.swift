@@ -9,9 +9,9 @@ final class AppearanceSettings: ObservableObject {
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .system: return "Igual ao Mac"
-            case .light: return "Claro"
-            case .dark: return "Escuro"
+            case .system: return String(localized: "Igual ao Mac")
+            case .light: return String(localized: "Claro")
+            case .dark: return String(localized: "Escuro")
             }
         }
     }
