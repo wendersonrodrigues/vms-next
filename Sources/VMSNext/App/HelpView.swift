@@ -25,17 +25,26 @@ struct HelpView: View {
                     String(localized: "As senhas ficam num cofre criptografado só deste Mac. Para levar a lista a outro Mac, use + → Exportar câmeras (as senhas não vão junto)."),
                 ])
                 section(String(localized: "Ao vivo"), [
-                    String(localized: "Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, HD/SD, zoom digital, Gravar e PTZ."),
+                    String(localized: "Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, HD/SD, foto e Gravar."),
                     String(localized: "Embaixo do mosaico: modelo de tela (arraste câmeras da lista para os quadros) e rodízio de telas."),
+                    String(localized: "Zoom digital: roda do mouse em cima do quadro (amplia onde o mouse está), pinça no trackpad ou os botões da lateral; arraste para mover."),
+                    String(localized: "PTZ: o botão PTZ do quadro abre o controle no pé da lista de câmeras, com setas, zoom, foco, presets e ronda."),
                     String(localized: "Câmeras duplas: botão direito → Dividir em duas (split virtual)."),
                 ])
-                section(String(localized: "Gravações e eventos"), [
-                    String(localized: "Gravações: escolha a câmera na lista e o dia; a busca é automática. Dá para baixar em MP4 e tirar foto do quadro."),
-                    String(localized: "Eventos: alertas das câmeras (guardados no Mac), com atalhos para o ao vivo e a gravação do momento. Registro mostra o que aconteceu no app e nos equipamentos."),
+                section(String(localized: "Gravações"), [
+                    String(localized: "Escolha a câmera na lista: a linha do tempo mostra o dia, com uma faixa e uma cor por tipo (alarme, movimento, manual, contínua). Clique num ponto para assistir dali."),
+                    String(localized: "As setas ‹ › de cada tipo levam ao trecho anterior ou ao próximo. A data abre o calendário, que marca os dias com gravação e os dias com vídeo baixado."),
+                    String(localized: "Baixar salva em MP4 direto na pasta das Preferências; os baixados ficam com o selo No Mac. Tags marcam vídeos para achar depois, de qualquer dia."),
+                    String(localized: "Câmera sem cartão que grava no NVR: Editar câmera → Gravações → NVR (ou Cartão e NVR, com a chave para trocar)."),
+                ])
+                section(String(localized: "Eventos e alertas"), [
+                    String(localized: "Antes de avisar, a IA do Mac (Vision, sem internet) analisa a foto do alerta e diz o que apareceu: pessoa, veículo, animal. Movimento sem nada vira provável falso alarme."),
+                    String(localized: "Cada alerta tem gravidade, nota, soneca e ▶ Play, que abre a gravação com a agulha no horário do alerta (marca vermelha na linha do tempo)."),
+                    String(localized: "Na barra de menus: últimos alertas, ligar e desligar os avisos e escolher as câmeras silenciadas. Registro mostra o que aconteceu no app e nos equipamentos."),
                 ])
                 section(String(localized: "Configurações e preferências"), [
                     String(localized: "Configurações: ajustes da câmera ou do NVR escolhido na lista, organizados por assunto. Só aparecem as opções que o equipamento tem."),
-                    String(localized: "Preferências (⌘,): pastas, aparência, gravação no Mac, sons e segundo plano."),
+                    String(localized: "Preferências (⌘,): idioma, pastas, aparência, gravação no Mac, sons e segundo plano. Ajustes dos alertas (em Eventos): notificações, sons e a IA."),
                 ])
                 Text("O VMS Next fala direto com os equipamentos na sua rede, sem nuvem e sem o SDK da fabricante. É um projeto independente, sem ligação com a Xiongmai.")
                     .font(.caption)
