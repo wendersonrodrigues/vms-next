@@ -94,6 +94,20 @@ struct EventsView: View {
                 }
                 .disabled(!center.enabled)
             }
+            Section {
+                Toggle(isOn: $center.analyzeWithAI) {
+                    FieldLabel(String(localized: "Analisar a foto de cada alerta com IA"),
+                               detail: String(localized: "Antes de avisar, o Mac pega uma foto da câmera e procura pessoas, rostos, veículos e animais com o Vision do macOS. Tudo no Mac, sem internet."))
+                }
+                Toggle(isOn: $center.notifyOnlyWhenFound) {
+                    FieldLabel(String(localized: "Só notificar quando a IA achar algo"),
+                               detail: String(localized: "Movimento sem pessoa, veículo ou animal na foto fica só no histórico, marcado como provável falso alarme."))
+                }
+                .disabled(!center.analyzeWithAI)
+            } header: {
+                Text("IA no Mac")
+            }
+            .disabled(!center.enabled)
             Section("Notificar no macOS") {
                 ForEach(AlarmKind.allCases) { kind in
                     Toggle(isOn: Binding(
@@ -189,41 +203,107 @@ struct EventsView: View {
         }
     }
 
+    /// Só o início de cada alerta (o fim fica como duração), com o filtro de gravidade escolhido.
+    private var visibleEvents: [AlarmEvent] {
+        center.events.filter { event in
+            event.isStart
+                && (state.severity == nil || event.severity == state.severity)
+                && !(state.hideFalse && event.probablyFalse)
+                && (!state.withNotes || event.note != nil)
+        }
+    }
+
     private var history: some View {
         VStack(spacing: 0) {
+            filterBar
+            if !center.activeSnoozes.isEmpty { snoozeBar }
+            Divider()
             if center.events.isEmpty {
                 ContentUnavailableView {
                     Label("Nenhum alerta ainda", systemImage: "bell.slash")
                 } description: {
                     Text("Os alarmes das câmeras e do NVR aparecem aqui assim que acontecem.")
                 }
+            } else if visibleEvents.isEmpty {
+                ContentUnavailableView {
+                    Label("Nenhum alerta com esse filtro", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("Troque a gravidade ou desligue os filtros acima.")
+                }
             } else {
-                List(center.events) { event in
-                    EventRow(event: event,
-                             camera: event.cameraID.flatMap { id in store.cameras.first { $0.id == id } },
-                             onLive: { if let id = event.cameraID { onOpenCamera(id) } },
-                             onRecording: { if let id = event.cameraID { onOpenRecording(id, event.date) } })
+                List(visibleEvents) { event in
+                    let camera = event.cameraID.flatMap { id in store.cameras.first { $0.id == id } }
+                    AlarmCard(event: event, camera: camera, center: center, state: state,
+                              onLive: { if let id = event.cameraID { onOpenCamera(id) } },
+                              onPlay: { if let id = event.cameraID { onOpenRecording(id, event.date) } })
                         .contentShape(Rectangle())
                         .onTapGesture(count: 2) {
-                            if let id = event.cameraID { onOpenCamera(id) }
+                            if let id = event.cameraID { onOpenRecording(id, event.date) }
                         }
-                        .contextMenu {
-                            if let id = event.cameraID {
-                                Button("Ver ao vivo") { onOpenCamera(id) }
-                                Button("Ver gravação deste momento") { onOpenRecording(id, event.date) }
-                            }
-                        }
+                        .listRowSeparator(.visible)
                 }
                 .listStyle(.inset)
             }
             Divider()
             HStack {
-                Text("\(center.events.count) alerta(s) nesta sessão").font(.caption).foregroundStyle(.secondary)
+                Text("\(visibleEvents.count) alerta(s)").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Limpar") { center.clear() }
                     .disabled(center.events.isEmpty)
             }
             .padding(Space.m)
+        }
+    }
+
+    /// Gravidade (Todas, Alta, Média, Baixa) e filtros rápidos.
+    private var filterBar: some View {
+        HStack(spacing: Space.m) {
+            Picker("Gravidade", selection: $state.severity) {
+                Text("Todas").tag(AlarmSeverity?.none)
+                ForEach(AlarmSeverity.allCases.reversed()) { severity in
+                    Text(severity.label).tag(Optional(severity))
+                }
+            }
+            .pickerStyle(.segmented)
+            .fixedSize()
+            .help("Mostrar só os alertas desta gravidade")
+            Toggle("Esconder prováveis falsos alarmes", isOn: $state.hideFalse)
+                .toggleStyle(.checkbox)
+                .help("Movimento em que a IA não achou pessoa, veículo nem animal")
+            Toggle("Com nota", isOn: $state.withNotes)
+                .toggleStyle(.checkbox)
+            Spacer()
+        }
+        .controlSize(.small)
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.s)
+    }
+
+    /// Sonecas valendo agora, com o botão para acordar.
+    private var snoozeBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Space.s) {
+                Image(systemName: "moon.zzz.fill").foregroundStyle(Theme.accent)
+                ForEach(center.activeSnoozes, id: \.key) { snooze in
+                    let name = store.cameras.first { $0.id == snooze.cameraID }?.displayName ?? "?"
+                    HStack(spacing: Space.xs) {
+                        Text("\(name) · \(snooze.kind?.label ?? String(localized: "todos os tipos")) · até \(snooze.until.formatted(date: .omitted, time: .shortened))")
+                        Button {
+                            center.cancelSnooze(snooze.key)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .buttonStyle(.plain)
+                        .help("Acordar: voltar a avisar")
+                        .accessibilityLabel("Acordar")
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, Space.s).padding(.vertical, Space.xxs)
+                    .background(Capsule().fill(Theme.accent.opacity(0.12)))
+                }
+            }
+            .padding(.horizontal, Space.l)
+            .padding(.bottom, Space.s)
         }
     }
 }
@@ -232,61 +312,232 @@ final class EventsUIState: ObservableObject {
     enum Tab { case alerts, log }
     @Published var showSettings = false
     @Published var tab: Tab = .alerts
+    @Published var severity: AlarmSeverity?
+    @Published var hideFalse = false
+    @Published var withNotes = false
+    /// Alerta com a nota aberta para editar, e o texto sendo digitado.
+    @Published var editingNote: AlarmEvent.ID?
+    @Published var noteText = ""
 }
 
-/// Linha do histórico, compacta: hora, o que aconteceu e onde, e atalhos para o ao vivo e a gravação.
-private struct EventRow: View {
+extension AlarmSeverity {
+    var color: Color {
+        switch self {
+        case .low: return .secondary
+        case .medium: return Theme.warning
+        case .high: return .red
+        }
+    }
+}
+
+/// Um alerta no gerenciador: foto, o que a IA achou, gravidade, duração, nota e ações (▶ gravação, ao vivo,
+/// nota, soneca e mudar a gravidade).
+private struct AlarmCard: View {
     let event: AlarmEvent
     let camera: Camera?
+    @ObservedObject var center: AlarmCenter
+    @ObservedObject var state: EventsUIState
     let onLive: () -> Void
-    let onRecording: () -> Void
+    let onPlay: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text(event.date.formatted(date: .omitted, time: .standard))
-                .monospacedDigit()
-                .fontWeight(event.isStart ? .semibold : .regular)
-                .frame(width: 70, alignment: .leading)
-            Image(systemName: event.kind.icon)
-                .frame(width: 20)
-                .foregroundStyle(event.isStart ? Theme.accent : .secondary)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(event.kind == .other ? event.event : event.kind.label)
-                        .fontWeight(event.isStart ? .semibold : .regular)
-                    Text(event.isStart ? String(localized: "início") : "fim")
-                        .font(.caption2)
-                        .padding(.horizontal, Space.xs)
-                        .padding(.vertical, Space.xxs)
-                        .background(Capsule().fill(Color.primary.opacity(0.08)))
-                        .foregroundStyle(.secondary)
+        HStack(alignment: .top, spacing: Space.m) {
+            thumbnail
+            VStack(alignment: .leading, spacing: Space.xs) {
+                HStack(spacing: Space.s) {
+                    Text(event.title).font(.headline).lineLimit(1)
+                    severityPill
+                    if event.probablyFalse {
+                        Label("Provável falso alarme", systemImage: "questionmark.circle")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Text(details).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
-            .frame(minWidth: 220, alignment: .leading)
-            Spacer(minLength: 12)
-            if event.cameraID != nil {
-                Button(action: onLive) {
-                    Label("Ao vivo", systemImage: "video")
+                if event.analyzing == true {
+                    HStack(spacing: Space.xs) {
+                        ProgressView().controlSize(.mini)
+                        Text("Analisando a foto…")
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
+                } else if let chips = event.analysis?.chips, !chips.isEmpty {
+                    HStack(spacing: Space.xs) {
+                        Image(systemName: "sparkles").foregroundStyle(Theme.accent)
+                        ForEach(chips, id: \.self) { chip in
+                            Text(chip)
+                                .padding(.horizontal, Space.s).padding(.vertical, 1)
+                                .background(Capsule().fill(Theme.accent.opacity(0.12)))
+                        }
+                    }
+                    .font(.caption)
                 }
-                .help("Abrir esta câmera ao vivo")
-                Button(action: onRecording) {
-                    Label("Gravação", systemImage: "play.rectangle")
+                if let note = event.note {
+                    Label(note, systemImage: "note.text")
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
                 }
-                .help("Abrir a gravação no momento deste alerta")
             }
+            Spacer(minLength: Space.m)
+            actions
         }
-        .controlSize(.small)
-        .frame(maxWidth: 980, alignment: .leading)
-        .opacity(event.isStart ? 1 : 0.6)
+        .padding(.vertical, Space.xs)
+        .frame(maxWidth: 1100, alignment: .leading)
     }
 
-    /// Câmera, NVR/canal e o nome técnico do evento.
+    private var thumbnail: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: Radius.small).fill(Color.primary.opacity(0.06))
+            if event.hasPhoto == true, let image = NSImage(contentsOf: AlarmPhotos.url(for: event.id)) {
+                Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
+            } else if event.analyzing == true {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: event.kind.icon).font(.title3).foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: 120, height: 68)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.small))
+        .overlay(alignment: .topLeading) {
+            Text(event.date.formatted(date: .omitted, time: .standard))
+                .font(.caption2.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.white)
+                .padding(.horizontal, Space.xs).padding(.vertical, 1)
+                .background(Capsule().fill(.black.opacity(0.55)))
+                .padding(Space.xxs)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private var severityPill: some View {
+        Text(event.severity.label)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, Space.s).padding(.vertical, 1)
+            .background(Capsule().fill(event.severity.color.opacity(0.16)))
+            .foregroundStyle(event.severity.color)
+            .accessibilityLabel(String(localized: "Gravidade \(event.severity.label)"))
+    }
+
+    private var actions: some View {
+        HStack(spacing: Space.xs) {
+            if event.cameraID != nil {
+                Button(action: onPlay) {
+                    Label("Play", systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .help("Abrir a gravação no momento deste alerta")
+                Button(action: onLive) {
+                    Image(systemName: "video")
+                }
+                .help("Abrir esta câmera ao vivo")
+                .accessibilityLabel("Ao vivo")
+            }
+            Button {
+                state.noteText = event.note ?? ""
+                state.editingNote = event.id
+            } label: {
+                Image(systemName: event.note == nil ? "square.and.pencil" : "note.text")
+            }
+            .help(event.note == nil ? String(localized: "Escrever uma nota") : String(localized: "Editar a nota"))
+            .accessibilityLabel("Nota")
+            .popover(isPresented: Binding(get: { state.editingNote == event.id },
+                                          set: { if !$0 { state.editingNote = nil } })) {
+                noteEditor
+            }
+            if let cameraID = event.cameraID { snoozeMenu(cameraID) }
+            Menu {
+                Section("Gravidade") {
+                    ForEach(AlarmSeverity.allCases.reversed()) { severity in
+                        Button {
+                            center.setSeverity(severity, for: event.id)
+                        } label: {
+                            if event.severity == severity { Label(severity.label, systemImage: "checkmark") } else { Text(severity.label) }
+                        }
+                    }
+                    if event.severityOverride != nil {
+                        Button("Voltar à automática") { center.setSeverity(nil, for: event.id) }
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Mais opções")
+            .accessibilityLabel("Mais opções")
+        }
+        .controlSize(.small)
+    }
+
+    private func snoozeMenu(_ cameraID: Camera.ID) -> some View {
+        Menu {
+            Section(String(localized: "Só \(event.kind.label)")) {
+                snoozeButtons(cameraID, kind: event.kind)
+            }
+            Section("Todos os alertas desta câmera") {
+                snoozeButtons(cameraID, kind: nil)
+            }
+        } label: {
+            Image(systemName: center.isSnoozed(cameraID, event.kind) ? "moon.zzz.fill" : "moon.zzz")
+        }
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Soneca: não avisar desta câmera por um tempo")
+        .accessibilityLabel("Soneca")
+    }
+
+    @ViewBuilder
+    private func snoozeButtons(_ cameraID: Camera.ID, kind: AlarmKind?) -> some View {
+        Button("15 minutos") { center.snooze(cameraID, kind: kind, until: Date().addingTimeInterval(15 * 60)) }
+        Button("1 hora") { center.snooze(cameraID, kind: kind, until: Date().addingTimeInterval(3600)) }
+        Button("8 horas") { center.snooze(cameraID, kind: kind, until: Date().addingTimeInterval(8 * 3600)) }
+        Button("Até amanhã") {
+            let tomorrow = Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400)).addingTimeInterval(7 * 3600)
+            center.snooze(cameraID, kind: kind, until: tomorrow)
+        }
+    }
+
+    private var noteEditor: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            Text("Nota do alerta").font(.headline)
+            TextEditor(text: $state.noteText)
+                .font(.body)
+                .frame(width: 280, height: 90)
+                .overlay(RoundedRectangle(cornerRadius: Radius.small).stroke(Theme.stroke))
+            HStack {
+                if event.note != nil {
+                    Button("Apagar", role: .destructive) {
+                        center.setNote("", for: event.id)
+                        state.editingNote = nil
+                    }
+                }
+                Spacer()
+                Button("Cancelar") { state.editingNote = nil }
+                    .keyboardShortcut(.cancelAction)
+                Button("Salvar") {
+                    center.setNote(state.noteText, for: event.id)
+                    state.editingNote = nil
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(Space.l)
+    }
+
+    /// Câmera e canal, hora, duração e, se a IA mudou o título, o que a câmera tinha avisado.
     private var details: String {
         var parts = [camera?.displayName ?? event.cameraName]
-        if let camera, camera.group == nil, camera.channel > 1 { parts.append("canal \(camera.channel)") }
-        if let camera, camera.group != nil { parts.append("canal \(camera.channel)") }
-        parts.append(event.event)
+        if let camera, camera.group != nil || camera.channel > 1 { parts.append(String(localized: "canal \(camera.channel)")) }
+        parts.append(event.date.formatted(date: .abbreviated, time: .standard))
+        if let end = event.endDate {
+            let seconds = max(Int(end.timeIntervalSince(event.date)), 1)
+            parts.append(seconds < 60 ? String(localized: "durou \(seconds) s") : String(localized: "durou \(seconds / 60) min"))
+        }
+        if event.analysis?.title != nil {
+            parts.append(String(localized: "câmera avisou: \(event.kind == .other ? event.event : event.kind.label)"))
+        } else {
+            parts.append(event.event)
+        }
         return parts.joined(separator: " · ")
     }
 }

@@ -13,8 +13,52 @@ struct AlarmEvent: Identifiable, Codable {
     /// Nome do evento como o equipamento envia (ex.: "VideoMotion", "HumanDetect").
     let event: String
     let isStart: Bool
+    /// O que a IA do Mac achou na foto do alerta (nil = não analisado).
+    var analysis: AlarmAnalysis?
+    /// Foto guardada em alert-photos/<id>.jpg.
+    var hasPhoto: Bool?
+    /// Analisando agora (não é guardado de verdade: na próxima abertura volta a nil).
+    var analyzing: Bool?
+    /// Quando o alarme terminou (o aviso de fim do equipamento).
+    var endDate: Date?
+    var note: String?
+    /// Gravidade escolhida à mão; sem ela, vale a calculada.
+    var severityOverride: AlarmSeverity?
 
     var kind: AlarmKind { AlarmKind(event: event) }
+
+    /// Título: o que a IA achou ou, sem análise, o tipo que o equipamento mandou.
+    var title: String {
+        if let found = analysis?.title { return found }
+        return kind == .other ? event : kind.label
+    }
+
+    var severity: AlarmSeverity {
+        if let severityOverride { return severityOverride }
+        switch kind {
+        case .videoLoss, .blind, .storage: return .high
+        default: break
+        }
+        if let analysis, !analysis.failed {
+            if analysis.people > 0 { return .high }
+            if !analysis.vehicles.isEmpty { return .medium }
+            // A detecção de pessoa da própria câmera vale mais que uma foto sem ninguém (a pessoa pode já ter
+            // saído, ou estar pequena demais): fica média em vez de baixa.
+            return kind == .person ? .medium : .low
+        }
+        switch kind {
+        case .person: return .high
+        case .motion: return .low
+        default: return .medium
+        }
+    }
+
+    /// Movimento em que a IA olhou a foto e não achou pessoa, veículo nem animal: provável falso alarme.
+    /// Alerta de pessoa da própria câmera nunca é marcado assim.
+    var probablyFalse: Bool {
+        guard let analysis, !analysis.failed else { return false }
+        return !analysis.foundSomething && kind == .motion
+    }
 }
 
 /// Tipos de alarme agrupados para as preferências de notificação.
@@ -112,6 +156,29 @@ final class AlarmCenter: ObservableObject {
     @Published var mergeDuplicates: Bool {
         didSet { defaults.set(mergeDuplicates, forKey: "alarms.merge") }
     }
+    /// Analisar a foto de cada alerta com a IA do Mac antes de avisar.
+    @Published var analyzeWithAI: Bool {
+        didSet { defaults.set(analyzeWithAI, forKey: "alarms.ai") }
+    }
+    /// Com a IA: só notificar quando ela achar pessoa, veículo ou animal.
+    @Published var notifyOnlyWhenFound: Bool {
+        didSet { defaults.set(notifyOnlyWhenFound, forKey: "alarms.aiOnlyFound") }
+    }
+    /// Sonecas: "câmera|tipo" (ou "câmera|*" para todos os tipos) → até quando ficam sem avisar.
+    @Published private(set) var snoozes: [String: Date] = [:] {
+        didSet { defaults.set(snoozes.mapValues(\.timeIntervalSince1970), forKey: "alarms.snoozes") }
+    }
+
+    /// Câmeras silenciadas: o alerta entra no histórico, mas sem notificação, som nem contagem de novos.
+    @Published var mutedCameras: Set<Camera.ID> {
+        didSet { defaults.set(mutedCameras.map(\.uuidString), forKey: "alarms.mutedCameras") }
+    }
+
+    func isMuted(_ camera: Camera) -> Bool { mutedCameras.contains(camera.id) }
+
+    func setMuted(_ camera: Camera, _ muted: Bool) {
+        if muted { mutedCameras.insert(camera.id) } else { mutedCameras.remove(camera.id) }
+    }
 
     private let defaults = UserDefaults.standard
     private weak var store: CameraStore?
@@ -129,10 +196,15 @@ final class AlarmCenter: ObservableObject {
         notifyKinds = Set((saved ?? [AlarmKind.person.rawValue, AlarmKind.videoLoss.rawValue, AlarmKind.storage.rawValue])
             .compactMap(AlarmKind.init(rawValue:)))
         mergeDuplicates = defaults.object(forKey: "alarms.merge") as? Bool ?? true
+        mutedCameras = Set((defaults.stringArray(forKey: "alarms.mutedCameras") ?? []).compactMap(UUID.init(uuidString:)))
+        analyzeWithAI = defaults.object(forKey: "alarms.ai") as? Bool ?? true
+        notifyOnlyWhenFound = defaults.bool(forKey: "alarms.aiOnlyFound")
+        snoozes = ((defaults.dictionary(forKey: "alarms.snoozes") as? [String: Double]) ?? [:])
+            .mapValues(Date.init(timeIntervalSince1970:)).filter { $0.value > Date() }
         loadSoundSettings()
         if let data = try? Data(contentsOf: Self.historyURL),
            let saved = try? JSONDecoder().decode([AlarmEvent].self, from: data) {
-            events = saved
+            events = saved.map { var event = $0; event.analyzing = nil; return event }
         }
     }
 
@@ -159,6 +231,7 @@ final class AlarmCenter: ObservableObject {
     }
 
     func clear() {
+        AlarmPhotos.remove(events.map(\.id))
         events.removeAll()
         AppLog.shared.add(.alarm, "Lista de alertas limpa")
         unread = 0
@@ -241,6 +314,13 @@ final class AlarmCenter: ObservableObject {
             if let last = recent[key], last.host != host, Date().timeIntervalSince(last.date) < 20 { return }
             recent[key] = (Date(), host)
         }
+        // Fim do alarme: marca no alerta que começou, em vez de virar uma linha a mais.
+        if !isStart {
+            if let index = events.firstIndex(where: { $0.isStart && $0.endDate == nil && $0.cameraID == camera?.id && $0.event == event }) {
+                events[index].endDate = Date()
+            }
+            return
+        }
         let alarm = AlarmEvent(
             date: Date(),
             deviceTime: info["StartTime"] as? String,
@@ -251,11 +331,102 @@ final class AlarmCenter: ObservableObject {
             isStart: isStart
         )
         events.insert(alarm, at: 0)
-        if events.count > maxEvents { events.removeLast(events.count - maxEvents) }
-        if isStart {
-            unread += 1
-            notify(alarm)
+        if events.count > maxEvents {
+            AlarmPhotos.remove(events.suffix(events.count - maxEvents).map(\.id))
+            events.removeLast(events.count - maxEvents)
         }
+        // Silenciada a câmera (a física ou o canal do NVR por onde o alerta veio) ou em soneca: só fica no histórico.
+        let muted = [camera?.id, source?.id].contains { $0.map(mutedCameras.contains) ?? false }
+        let quiet = muted || camera.map { isSnoozed($0.id, alarm.kind) } ?? false
+        let visual = [.person, .motion, .other].contains(alarm.kind)
+        guard analyzeWithAI, visual, let camera else {
+            if !quiet { unread += 1; notify(alarm) }
+            return
+        }
+        // Foto e IA primeiro, para o aviso já dizer o que apareceu (no máximo ~8 s; depois avisa assim mesmo).
+        update(alarm.id) { $0.analyzing = true }
+        Task {
+            let analyzed = await analyze(alarm, camera: camera)
+            if !quiet, !(notifyOnlyWhenFound && analyzed.probablyFalse) {
+                unread += 1
+                notify(analyzed)
+            }
+        }
+    }
+
+    /// Pede a foto, guarda e roda o Vision. Alerta igual da mesma câmera há menos de 10 s reaproveita a análise.
+    private func analyze(_ alarm: AlarmEvent, camera: Camera) async -> AlarmEvent {
+        if let previous = events.first(where: { $0.id != alarm.id && $0.cameraID == alarm.cameraID && $0.analysis != nil
+            && alarm.date.timeIntervalSince($0.date) < 10 }) {
+            // Usa a mesma foto também, para o cartão não ficar sem imagem.
+            let copied = previous.hasPhoto == true
+                && (try? FileManager.default.copyItem(at: AlarmPhotos.url(for: previous.id), to: AlarmPhotos.url(for: alarm.id))) != nil
+            update(alarm.id) { $0.analysis = previous.analysis; $0.hasPhoto = copied; $0.analyzing = nil }
+            return events.first { $0.id == alarm.id } ?? alarm
+        }
+        let image = await withTaskGroup(of: CGImage?.self) { group in
+            group.addTask { await AlarmPhotos.capture(camera: camera) }
+            group.addTask { try? await Task.sleep(for: .seconds(7)); return nil }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+        guard let image else {
+            update(alarm.id) { $0.analyzing = nil }
+            return events.first { $0.id == alarm.id } ?? alarm
+        }
+        let saved = AlarmPhotos.save(image, id: alarm.id) != nil
+        let analysis = await AlarmVision.analyze(image)
+        update(alarm.id) {
+            $0.hasPhoto = saved
+            $0.analysis = analysis
+            $0.analyzing = nil
+        }
+        return events.first { $0.id == alarm.id } ?? alarm
+    }
+
+    // MARK: - Gerenciar alertas (notas, gravidade, soneca)
+
+    func update(_ id: AlarmEvent.ID, _ change: (inout AlarmEvent) -> Void) {
+        guard let index = events.firstIndex(where: { $0.id == id }) else { return }
+        change(&events[index])
+    }
+
+    func setNote(_ note: String, for id: AlarmEvent.ID) {
+        let text = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        update(id) { $0.note = text.isEmpty ? nil : text }
+    }
+
+    func setSeverity(_ severity: AlarmSeverity?, for id: AlarmEvent.ID) {
+        update(id) { $0.severityOverride = severity }
+    }
+
+    static func snoozeKey(_ cameraID: Camera.ID, _ kind: AlarmKind?) -> String {
+        "\(cameraID.uuidString)|\(kind?.rawValue ?? "*")"
+    }
+
+    /// Soneca: a câmera (só este tipo ou todos) fica sem avisar até `until`. Os alertas continuam no histórico.
+    func snooze(_ cameraID: Camera.ID, kind: AlarmKind?, until: Date) {
+        snoozes[Self.snoozeKey(cameraID, kind)] = until
+    }
+
+    func cancelSnooze(_ key: String) {
+        snoozes[key] = nil
+    }
+
+    func isSnoozed(_ cameraID: Camera.ID, _ kind: AlarmKind) -> Bool {
+        let now = Date()
+        return [Self.snoozeKey(cameraID, kind), Self.snoozeKey(cameraID, nil)].contains { (snoozes[$0] ?? .distantPast) > now }
+    }
+
+    /// Sonecas que ainda valem, com a câmera e o tipo, para mostrar e cancelar em Eventos.
+    var activeSnoozes: [(key: String, cameraID: Camera.ID, kind: AlarmKind?, until: Date)] {
+        let now = Date()
+        return snoozes.filter { $0.value > now }.compactMap { key, until in
+            let parts = key.split(separator: "|").map(String.init)
+            guard parts.count == 2, let id = UUID(uuidString: parts[0]) else { return nil }
+            return (key, id, AlarmKind(rawValue: parts[1]), until)
+        }.sorted { $0.until < $1.until }
     }
 
     /// No máximo uma notificação por câmera e tipo a cada 60 s.
@@ -297,9 +468,21 @@ final class AlarmCenter: ObservableObject {
         lastNotified[throttleKey] = Date()
 
         let content = UNMutableNotificationContent()
-        content.title = alarm.kind == .other ? alarm.event : alarm.kind.label
-        content.body = "\(alarm.cameraName) · \(alarm.date.formatted(date: .omitted, time: .standard))"
+        content.title = alarm.title
+        var body = "\(alarm.cameraName) · \(alarm.date.formatted(date: .omitted, time: .standard))"
+        if let chips = alarm.analysis?.chips, !chips.isEmpty { body += "\n" + chips.joined(separator: " · ") }
+        if alarm.probablyFalse { body += "\n" + String(localized: "A IA não achou pessoa, veículo nem animal.") }
+        content.body = body
         content.sound = .default
+        // A foto vai junto (o macOS move o arquivo anexado, então anexa uma cópia).
+        if alarm.hasPhoto == true {
+            let copy = FileManager.default.temporaryDirectory.appendingPathComponent("\(alarm.id.uuidString).jpg")
+            try? FileManager.default.removeItem(at: copy)
+            if (try? FileManager.default.copyItem(at: AlarmPhotos.url(for: alarm.id), to: copy)) != nil,
+               let attachment = try? UNNotificationAttachment(identifier: "photo", url: copy) {
+                content.attachments = [attachment]
+            }
+        }
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: alarm.id.uuidString, content: content, trigger: nil))
     }
 }

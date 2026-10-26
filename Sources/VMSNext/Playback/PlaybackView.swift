@@ -10,6 +10,8 @@ final class RecordingBrowser: ObservableObject {
     @Published private(set) var searching = false
     @Published var message: String?
     @Published var selected: Recording.ID?
+    /// Horário do alerta aberto pelo ▶ (marca vermelha na linha do tempo).
+    @Published var alarmMarker: Date?
     @Published var diagnosticText: String?
     @Published private(set) var downloads: [RecordingDownload] = []
     /// Resultado da última foto do quadro.
@@ -133,6 +135,8 @@ final class PlaybackPopovers: ObservableObject {
     @Published var calendar = false
     @Published var list = false
     @Published var tags = false
+    /// Câmera com cartão e NVR: de qual buscar agora (começa pelo NVR).
+    @Published var useCard = false
 }
 
 struct PlaybackView: View {
@@ -151,9 +155,29 @@ struct PlaybackView: View {
     /// Vídeo em foco: espaço toca/pausa, ← e → voltam e avançam 10 s (sem atrapalhar a lista e os campos).
     @FocusState private var playerFocused: Bool
 
-    private var camera: Camera? {
+    private var selectedCamera: Camera? {
         store.cameras.first { $0.id == cameraID }
     }
+
+    /// Equipamento onde a busca é feita: a câmera escolhida ou, se ela grava no NVR, o canal ligado a ela.
+    /// Com cartão e NVR, segue a chave do cabeçalho.
+    private var camera: Camera? {
+        guard let selected = selectedCamera else { return nil }
+        guard let channel = store.linkedChannel(for: selected) else { return selected }
+        switch selected.recordingsFrom {
+        case .camera: return selected
+        case .nvr: return channel
+        case .both: return popovers.useCard ? selected : channel
+        }
+    }
+
+    /// Câmera com gravação nos dois lugares (e um canal do NVR ligado): mostra a chave Cartão | NVR.
+    private var hasBothSources: Bool {
+        guard let selected = selectedCamera else { return false }
+        return selected.recordingsFrom == .both && store.linkedChannel(for: selected) != nil
+    }
+
+    private var fromNVR: Bool { camera?.id != selectedCamera?.id }
 
     var body: some View {
         // Vídeo em cima e a linha do tempo do dia embaixo, na largura toda: nada de painel com largura fixa,
@@ -164,9 +188,13 @@ struct PlaybackView: View {
         }
         .onDisappear { session.stop() }
         // A câmera vem da lista ao lado: ao trocar de câmera ou de dia, busca de novo.
-        .task(id: "\(cameraID?.uuidString ?? "")-\(Calendar.current.startOfDay(for: browser.day).timeIntervalSince1970)") {
+        .task(id: "\(camera?.id.uuidString ?? "")-\(Calendar.current.startOfDay(for: browser.day).timeIntervalSince1970)") {
             guard let camera, !browser.openingRequest else { return }
             await browser.search(camera: camera)
+        }
+        .onChange(of: cameraID) {
+            popovers.useCard = false
+            browser.alarmMarker = nil
         }
         .onAppear(perform: openRequest)
         .onChange(of: request) { openRequest() }
@@ -184,6 +212,23 @@ struct PlaybackView: View {
             HStack(spacing: Space.s) {
                 if let camera {
                     Label { Text(camera.displayName) } icon: { CameraGlyph() }.font(.headline).lineLimit(1)
+                    if hasBothSources {
+                        Picker("Origem", selection: $popovers.useCard) {
+                            Text("NVR").tag(false)
+                            Text("Cartão").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .fixedSize()
+                        .controlSize(.small)
+                        .help("Buscar as gravações no NVR ou no cartão da câmera")
+                    } else if fromNVR, let selectedCamera {
+                        Text("gravações de \(selectedCamera.name) no NVR")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .help("Esta câmera está configurada para buscar as gravações no NVR (Editar câmera → Gravações).")
+                    }
                 } else {
                     Label("Escolha uma câmera ou canal na lista ao lado.", systemImage: "arrow.left")
                         .foregroundStyle(.secondary)
@@ -208,6 +253,7 @@ struct PlaybackView: View {
             }
             if let camera {
                 RecordingTimeline(day: browser.day, recordings: browser.recordings, playhead: session.clock,
+                                  alarm: browser.alarmMarker,
                                   tagged: tags.taggedFiles(in: browser.recordings, camera: camera),
                                   downloaded: downloaded.downloadedFiles(in: browser.recordings, camera: camera)) { date, kind in
                     play(at: date, preferring: kind)
@@ -426,19 +472,46 @@ struct PlaybackView: View {
     private func open(camera: Camera, at date: Date, exact: Bool) {
         browser.openingRequest = true
         browser.day = date
+        // Alerta: marca o horário na linha do tempo, e a agulha vai direto para ele.
+        browser.alarmMarker = exact ? nil : date
         Task {
             await browser.search(camera: camera)
             browser.openingRequest = false
-            let target = exact ? date.addingTimeInterval(1) : date.addingTimeInterval(-5)
-            let match = browser.recordings.first { $0.begin <= target && target <= $0.end }
-                ?? browser.recordings.first { $0.begin >= target }
-            guard let match else {
-                if browser.message == nil { browser.message = String(localized: "Nenhuma gravação neste momento.") }
+            if exact {
+                let target = date.addingTimeInterval(1)
+                guard let match = browser.recordings.first(where: { $0.begin <= target && target <= $0.end })
+                    ?? browser.recordings.first(where: { $0.begin >= target }) else {
+                    if browser.message == nil { browser.message = String(localized: "Nenhuma gravação neste momento.") }
+                    return
+                }
+                browser.selectWithoutPlaying(match.id)
+                await session.play(match, camera: camera, from: nil)
                 return
             }
-            browser.selectWithoutPlaying(match.id)
-            await session.play(match, camera: camera, from: exact ? nil : max(target, match.begin))
+            // Qualquer trecho que tenha o horário do alerta (contínua, movimento ou alarme), começando bem nele.
+            // A contínua vem primeiro: é a que tem também o que aconteceu antes e depois.
+            let covering = browser.recordings.filter { $0.begin <= date && date <= $0.end }
+            let order: [Recording.Kind] = [.regular, .alarm, .motion, .manual, .other]
+            let best = covering.min { (order.firstIndex(of: $0.kind) ?? 9) < (order.firstIndex(of: $1.kind) ?? 9) }
+            if let best {
+                browser.selectWithoutPlaying(best.id)
+                await session.play(best, camera: camera, from: max(date.addingTimeInterval(-2), best.begin))
+                return
+            }
+            // Sem gravação bem no horário: o trecho mais perto (antes ou depois), avisando.
+            guard let nearest = browser.recordings.min(by: { distance($0, to: date) < distance($1, to: date) }) else {
+                if browser.message == nil { browser.message = String(localized: "Nenhuma gravação neste dia.") }
+                return
+            }
+            browser.message = String(localized: "Sem gravação às \(date.formatted(date: .omitted, time: .standard)); tocando o trecho mais perto.")
+            browser.selectWithoutPlaying(nearest.id)
+            let start = nearest.end < date ? max(nearest.end.addingTimeInterval(-10), nearest.begin) : nearest.begin
+            await session.play(nearest, camera: camera, from: start)
         }
+    }
+
+    private func distance(_ recording: Recording, to date: Date) -> TimeInterval {
+        date < recording.begin ? recording.begin.timeIntervalSince(date) : date.timeIntervalSince(recording.end)
     }
 
     /// Foto do quadro atual (pausar antes ajuda a escolher o momento exato).
@@ -462,7 +535,8 @@ struct PlaybackView: View {
         VStack(spacing: 0) {
             ZStack {
                 GeometryReader { proxy in
-                    VideoLayerView(layer: session.displayLayer, zoom: zoom.scale, pan: zoom.pan)
+                    VideoLayerView(layer: session.displayLayer, zoom: zoom.scale, pan: zoom.pan,
+                                   onScrollZoom: session.recording == nil ? nil : { zoom.zoom(by: $0, at: $1, in: $2) })
                         .gesture(session.recording == nil ? nil : zoom.gesture)
                         .onAppear { zoom.viewSize = proxy.size }
                         .onChange(of: proxy.size) { zoom.viewSize = proxy.size }

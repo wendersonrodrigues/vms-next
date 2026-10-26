@@ -266,7 +266,8 @@ struct CameraTile: View {
     private var videoArea: some View {
         ZStack {
             VideoLayerView(layer: part == .bottom ? stream.mirrorLayer() : stream.displayLayer, crop: part,
-                           videoSize: stream.videoSize, zoom: zoom.scale, pan: zoom.pan)
+                           videoSize: stream.videoSize, zoom: zoom.scale, pan: zoom.pan,
+                           onScrollZoom: { zoom.zoom(by: $0, at: $1, in: $2) })
                 // Tela única: pinça e arrastar. Mosaico: pinça; arrastar só move a imagem quando ampliada
                 // (sem zoom, arrastar troca o quadro de lugar no modelo de tela).
                 .gesture(allowsZoom || zoom.scale > 1 ? zoom.gesture : nil)

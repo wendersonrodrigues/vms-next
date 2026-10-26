@@ -28,6 +28,22 @@ final class DigitalZoom: ObservableObject {
         basePan = pan
     }
 
+    /// Zoom mirando um ponto (posição do mouse dentro da imagem, eixo y para cima, como a camada): o que está
+    /// embaixo do mouse continua embaixo dele depois do zoom.
+    func zoom(by factor: CGFloat, at point: CGPoint, in area: CGSize) {
+        let old = scale
+        let new = min(max(old * factor, 1), Self.maximum)
+        guard new != old else { return }
+        if new < 1.02 { reset(); return }
+        let current = clampedPan(in: area)
+        let offset = CGPoint(x: point.x - area.width / 2, y: point.y - area.height / 2)
+        scale = new
+        pan = CGSize(width: offset.x - (offset.x - current.width) * new / old,
+                     height: offset.y - (offset.y - current.height) * new / old)
+        pan = clampedPan(in: area)
+        commit()
+    }
+
     func step(_ direction: Int) {
         scale = min(max(direction > 0 ? scale * 1.5 : scale / 1.5, 1), Self.maximum)
         if scale < 1.05 { reset() }
@@ -82,7 +98,7 @@ struct ZoomControls: View {
         VStack(spacing: compact ? 2 : 6) {
             Button { zoom.step(1) } label: { Image(systemName: "plus.magnifyingglass").frame(width: button.width, height: button.height) }
                 .disabled(!enabled || zoom.scale >= DigitalZoom.maximum)
-                .help("Zoom digital: amplia a imagem no Mac (qualquer câmera). Também: pinça no trackpad e arrastar para mover.")
+                .help("Zoom digital: amplia a imagem no Mac (qualquer câmera). Também: roda do mouse ou pinça no trackpad, mirando onde o mouse está; arraste para mover.")
                 .accessibilityLabel("Aumentar o zoom digital")
             Button { zoom.reset() } label: {
                 Text(String(format: "%.1f×", zoom.scale))

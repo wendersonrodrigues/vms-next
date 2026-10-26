@@ -12,6 +12,8 @@ struct VideoLayerView: NSViewRepresentable {
     /// Zoom digital (1 = sem zoom) e deslocamento da imagem ampliada, em pontos.
     var zoom: CGFloat = 1
     var pan: CGSize = .zero
+    /// Roda do mouse (ou rolagem no trackpad): fator de zoom, ponto do mouse dentro da imagem e tamanho dela.
+    var onScrollZoom: ((CGFloat, CGPoint, CGSize) -> Void)?
 
     func makeNSView(context: Context) -> LayerHostView {
         let view = LayerHostView()
@@ -24,6 +26,7 @@ struct VideoLayerView: NSViewRepresentable {
         view.videoSize = videoSize
         view.zoom = zoom
         view.pan = pan
+        view.onScrollZoom = onScrollZoom
         view.host(layer)
     }
 }
@@ -40,6 +43,20 @@ final class LayerHostView: NSView {
     }
     var pan: CGSize = .zero {
         didSet { if pan != oldValue { needsLayout = true } }
+    }
+
+    var onScrollZoom: ((CGFloat, CGPoint, CGSize) -> Void)?
+
+    /// Roda do mouse: para cima amplia, para baixo diminui, mirando onde o mouse está. Sem zoom, rolar para
+    /// baixo segue adiante (para quem estiver em volta poder rolar).
+    override func scrollWheel(with event: NSEvent) {
+        guard let onScrollZoom, event.scrollingDeltaY != 0 else { return super.scrollWheel(with: event) }
+        let delta = event.scrollingDeltaY * (event.isDirectionInvertedFromDevice ? -1 : 1)
+        // Mouse: cada "clique" da roda é um passo; trackpad: proporcional ao movimento.
+        let factor = event.hasPreciseScrollingDeltas ? exp(delta * 0.01) : (delta > 0 ? 1.2 : 1 / 1.2)
+        if zoom <= 1, factor < 1 { return super.scrollWheel(with: event) }
+        let point = convert(event.locationInWindow, from: nil)
+        onScrollZoom(factor, CGPoint(x: point.x - clip.frame.minX, y: point.y - clip.frame.minY), clip.bounds.size)
     }
 
     /// Recorte: só o que está dentro dele aparece (no split, a metade escolhida).

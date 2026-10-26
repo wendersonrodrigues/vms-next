@@ -23,6 +23,8 @@ struct Camera: Codable, Identifiable, Hashable {
     var split: CameraSplit?
     /// Se a câmera tem motor (PTZ): automático pelas capacidades ou escolhido em Editar câmera.
     var ptz: PTZSupport = .auto
+    /// De onde vêm as gravações desta câmera avulsa: do cartão dela ou do NVR (pelo canal ligado em "Mesma câmera").
+    var recordingsFrom: RecordingSource = .camera
 
     /// Nome completo para mosaico e listas: "NVR · Canal 2" ou "Frente".
     var displayName: String { group.map { "\($0) · \(name)" } ?? name }
@@ -57,6 +59,7 @@ struct Camera: Codable, Identifiable, Hashable {
         cloudID = try c.decodeIfPresent(String.self, forKey: .cloudID)
         split = try c.decodeIfPresent(CameraSplit.self, forKey: .split)
         ptz = try c.decodeIfPresent(PTZSupport.self, forKey: .ptz) ?? .auto
+        recordingsFrom = try c.decodeIfPresent(RecordingSource.self, forKey: .recordingsFrom) ?? .camera
     }
 
     func rtspURL(password: String, quality: StreamQuality) -> String {
@@ -67,6 +70,20 @@ struct Camera: Codable, Identifiable, Hashable {
             .replacingOccurrences(of: "{stream}", with: String(quality.rawValue))
         if !path.hasPrefix("/") { path = "/" + path }
         return "rtsp://\(host):\(rtspPort)\(path)"
+    }
+}
+
+/// Onde ficam as gravações de uma câmera avulsa: no cartão de memória dela, no HD do NVR ou nos dois
+/// (aí as Gravações mostram uma chave para trocar, começando pelo NVR).
+enum RecordingSource: String, Codable, CaseIterable {
+    case camera, nvr, both
+
+    var label: String {
+        switch self {
+        case .camera: return String(localized: "Cartão da câmera")
+        case .nvr: return String(localized: "NVR")
+        case .both: return String(localized: "Cartão e NVR")
+        }
     }
 }
 

@@ -38,6 +38,39 @@ struct CameraEditor: View {
                         }
                     }
                 }
+                if form.camera.group == nil, !store.groups.isEmpty {
+                    Section {
+                        Picker(selection: $form.camera.recordingsFrom) {
+                            ForEach(RecordingSource.allCases, id: \.self) { Text($0.label).tag($0) }
+                        } label: {
+                            FieldLabel(String(localized: "Gravações vêm de"),
+                                       detail: String(localized: "Sem cartão: Gravações e o ▶ dos alertas buscam o vídeo no NVR, no canal que mostra esta câmera. Com os dois, as Gravações começam pelo NVR e têm uma chave para trocar."))
+                        }
+                        if form.camera.recordingsFrom != .camera {
+                            Picker(selection: $form.nvrChannel) {
+                                Text("Escolha o canal").tag(Camera.ID?.none)
+                                ForEach(store.groups, id: \.self) { group in
+                                    Section(group) {
+                                        ForEach(store.channels(in: group)) { channel in
+                                            Text(channel.displayName).tag(Optional(channel.id))
+                                        }
+                                    }
+                                }
+                            } label: {
+                                FieldLabel(String(localized: "Canal do NVR"),
+                                           detail: String(localized: "O mesmo canal ligado em Eventos (\"Mesma câmera no NVR\"); também junta os alertas repetidos."))
+                            }
+                            if form.nvrChannel == nil {
+                                Label("Sem um canal escolhido, as gravações continuam vindo do cartão da câmera.",
+                                      systemImage: "exclamationmark.triangle")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.warning)
+                            }
+                        }
+                    } header: {
+                        Text("Gravações")
+                    }
+                }
                 Section {
                     TextField("Usuário", text: $form.camera.username)
                     HStack {
@@ -96,13 +129,18 @@ struct CameraEditor: View {
             .padding()
         }
         .frame(width: 460, height: 520)
-        .onAppear { form.password = store.password(for: form.camera) ?? "" }
+        .onAppear {
+            form.password = store.password(for: form.camera) ?? ""
+            form.originalChannel = store.linkedChannel(for: form.camera)?.id
+            form.nvrChannel = form.originalChannel
+        }
     }
 
     private func save() {
         form.camera.name = form.camera.name.trimmingCharacters(in: .whitespaces)
         form.camera.host = form.camera.host.trimmingCharacters(in: .whitespaces)
         store.upsert(form.camera)
+        if form.camera.group == nil, form.nvrChannel != form.originalChannel { store.link(form.camera, to: form.nvrChannel) }
         store.setPassword(form.password, for: form.camera)
         dismiss()
     }
@@ -112,6 +150,9 @@ final class EditorForm: ObservableObject {
     @Published var camera: Camera
     @Published var password = ""
     @Published var showPassword = false
+    /// Canal do NVR que é esta câmera (o link fica guardado no canal, por isso é editado à parte).
+    @Published var nvrChannel: Camera.ID?
+    var originalChannel: Camera.ID?
 
     init(camera: Camera) {
         self.camera = camera

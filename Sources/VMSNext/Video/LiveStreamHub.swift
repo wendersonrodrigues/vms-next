@@ -23,6 +23,11 @@ final class LiveStreamHub {
         return stream
     }
 
+    /// Vídeo já aberto por algum quadro (não cria um novo).
+    func existing(_ key: String) -> LiveStream? {
+        (users[key] ?? 0) > 0 ? streams[key] : nil
+    }
+
     /// Retorna true se este é o primeiro quadro usando o vídeo.
     func acquire(_ key: String, name: String) -> Bool {
         names[key] = names[key] ?? name

@@ -28,6 +28,8 @@ struct RecordingTimeline: View {
     let recordings: [Recording]
     /// Momento do vídeo que está tocando (nil = nada tocando).
     let playhead: Date?
+    /// Horário do alerta aberto pelo ▶: marca vermelha com sino.
+    var alarm: Date? = nil
     /// Arquivos com tag: ganham uma marquinha em cima do trecho.
     var tagged: Set<String> = []
     /// Arquivos já baixados no Mac: tom mais claro da cor do tipo, com contorno.
@@ -55,6 +57,25 @@ struct RecordingTimeline: View {
             let width = proxy.size.width
             ZStack(alignment: .topLeading) {
                 Canvas { context, size in draw(context, size: size) }
+                if let alarm, Calendar.current.isDate(alarm, inSameDayAs: day) {
+                    let x = CGFloat(alarm.timeIntervalSince(dayStart) / 86_400) * width
+                    ZStack(alignment: .top) {
+                        Rectangle()
+                            .fill(Color.red.opacity(0.8))
+                            .frame(width: 2, height: height - rulerHeight + 2)
+                            .offset(y: rulerHeight - 2)
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(3)
+                            .background(Circle().fill(Color.red))
+                            .offset(y: rulerHeight - 12)
+                    }
+                    .frame(width: 16)
+                    .offset(x: x - 8)
+                    .allowsHitTesting(false)
+                    .help(String(localized: "Alerta às \(alarm.formatted(date: .omitted, time: .standard))"))
+                }
                 if let x = playheadX(width: width) {
                     Rectangle()
                         .fill(Theme.accent)

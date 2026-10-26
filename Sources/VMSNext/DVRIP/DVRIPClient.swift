@@ -50,6 +50,8 @@ final class DVRIPClient: @unchecked Sendable {
     private var sequence: UInt32 = 0
     private var waiters: [(id: Int, code: UInt16, continuation: CheckedContinuation<[String: Any], Error>)] = []
     private var nextWaiterID = 0
+    /// Respostas em binário (foto do OPSNAP): o corpo vem cru, sem JSON.
+    private var rawWaiters: [(id: Int, code: UInt16, continuation: CheckedContinuation<Data, Error>)] = []
     private var keepAlive: DispatchSourceTimer?
     private var closed = false
 
@@ -177,6 +179,38 @@ final class DVRIPClient: @unchecked Sendable {
         queue.async { [self] in shutdown(.closed) }
     }
 
+    /// Foto da câmera agora (OPSNAP, código 1560, como o H264_DVR_CatchPic do SDK): a resposta 1561 traz o
+    /// JPEG cru. `channel` em base 0. Se o equipamento não responder, só esta espera falha; a sessão continua.
+    func snapshot(channel: Int, timeout: Double = 6) async throws -> Data {
+        let body = try JSONSerialization.data(withJSONObject: [
+            "Name": "OPSNAP", "SessionID": sessionString, "OPSNAP": ["Channel": channel],
+        ])
+        let data: Data = try await withCheckedThrowingContinuation { continuation in
+            queue.async { [self] in
+                guard !closed, let connection else {
+                    continuation.resume(throwing: DVRIPError.closed)
+                    return
+                }
+                nextWaiterID += 1
+                let id = nextWaiterID
+                rawWaiters.append((id, 1561, continuation))
+                connection.send(content: frame(code: 1560, body: body), completion: .contentProcessed { _ in })
+                queue.asyncAfter(deadline: .now() + timeout) { [weak self] in
+                    guard let self, let index = rawWaiters.firstIndex(where: { $0.id == id }) else { return }
+                    rawWaiters.remove(at: index).continuation.resume(throwing: DVRIPError.timeout)
+                }
+            }
+        }
+        // Começa com FF D8 (JPEG); se vier JSON, é um código de erro.
+        guard data.count > 2, data[data.startIndex] == 0xFF, data[data.startIndex + 1] == 0xD8 else {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let ret = json["Ret"] as? Int {
+                throw DVRIPError.device(ret)
+            }
+            throw DVRIPError.invalidResponse
+        }
+        return data
+    }
+
     // MARK: - Envio e recepção
 
     /// SessionID do login, usado também pela conexão de mídia da reprodução (Claim).
@@ -252,6 +286,11 @@ final class DVRIPClient: @unchecked Sendable {
             var body = Array(buffer[20 ..< 20 + length])
             buffer.removeFirst(20 + length)
 
+            if let index = rawWaiters.firstIndex(where: { $0.code == code }) {
+                rawWaiters.remove(at: index).continuation.resume(returning: Data(body))
+                continue
+            }
+
             while let last = body.last, last == 0x00 || last == 0x0A { body.removeLast() }
             guard let index = waiters.firstIndex(where: { $0.code == code }) else {
                 if let json = try? JSONSerialization.jsonObject(with: Data(body)) as? [String: Any] {
@@ -291,6 +330,9 @@ final class DVRIPClient: @unchecked Sendable {
         let pending = waiters
         waiters.removeAll()
         pending.forEach { $0.continuation.resume(throwing: error) }
+        let raw = rawWaiters
+        rawWaiters.removeAll()
+        raw.forEach { $0.continuation.resume(throwing: error) }
         connection?.stateUpdateHandler = nil
         connection?.cancel()
         connection = nil
