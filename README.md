@@ -1,32 +1,102 @@
-# VMS Next - iCSee/XMEye for MacOs
-
 <p align="center">
-  <img src="docs/images/capa.jpg" alt="VMS Next: Início e Câmeras ao vivo" width="100%">
+  <img src="docs/images/logo.png" alt="Logo do VMS Next" width="140">
 </p>
 
-App nativo para **Mac com Apple Silicon** dedicado a câmeras e NVRs (XMEye / iCSee), feito em Swift e SwiftUI.
+<h1 align="center">VMS Next</h1>
 
-Reúne num só lugar o ao vivo, as gravações, os alertas e todas as configurações dos equipamentos. Roda em arm64, decodifica vídeo pelo hardware do chip M e conversa direto com as câmeras pela rede local, sem nuvem e sem o SDK da fabricante. Cobre as funções do VMS para Mac (app para Intel, que depende do Rosetta) e acrescenta outras.
+<p align="center">
+  <b>Câmeras e NVRs Xiongmai (iCSee / XMEye) num app nativo para Mac com Apple Silicon.</b><br>
+  Ao vivo, gravações, alertas e todas as configurações dos equipamentos,<br>
+  feito em Swift e SwiftUI. Código aberto, sem nuvem e seu.
+</p>
 
-[![Versão](https://img.shields.io/github/v/release/wendersonrodrigues/vms-next?label=vers%C3%A3o)](https://github.com/wendersonrodrigues/vms-next/releases/latest)
-[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
-![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
-![Apple Silicon](https://img.shields.io/badge/Apple-Silicon-8A2BE2)
+<p align="center">
+  <a href="https://github.com/wendersonrodrigues/vms-next/releases/latest"><img src="https://img.shields.io/github/v/release/wendersonrodrigues/vms-next?label=vers%C3%A3o&color=3550D8" alt="Versão"></a>
+  <img src="https://img.shields.io/badge/100%25-Swift-F05138?logo=swift&logoColor=white" alt="100% Swift">
+  <img src="https://img.shields.io/badge/macOS%2014%2B-Apple%20Silicon-black?logo=apple&logoColor=white" alt="macOS 14+ Apple Silicon">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-555" alt="Licença MIT"></a>
+  <img src="https://img.shields.io/badge/idiomas-portugu%C3%AAs%20%C2%B7%20ingl%C3%AAs-2ea44f" alt="Português e inglês">
+</p>
+
+<p align="center">
+  <a href="#telas">Telas</a> ·
+  <a href="#desempenho">Desempenho</a> ·
+  <a href="#instalação">Instalação</a> ·
+  <a href="#primeiros-passos">Primeiros passos</a> ·
+  <a href="#funcionalidades">Funcionalidades</a> ·
+  <a href="#próximos-passos">Próximos passos</a> ·
+  <a href="#compilar-a-partir-do-código">Compilar</a>
+</p>
+
+<p align="center">
+  <img src="docs/images/inicio.jpg" alt="VMS Next: tela de Início no modo escuro" width="100%">
+  <br>
+  <sub>A tela de Início: temperatura, alertas de hoje, equipamentos conectados, discos e a conexão de cada câmera.</sub>
+</p>
+
+> [!NOTE]
+> **Substitui o VMS para Mac da Xiongmai**, que é um app para Intel e depende do Rosetta. O VMS Next roda em arm64,
+> decodifica o vídeo pelo hardware do chip M e conversa direto com as câmeras pela rede local, sem nuvem e sem o SDK
+> da fabricante. Cobre as funções do VMS antigo e acrescenta outras.
+
+<table>
+  <tr>
+    <td width="25%" valign="top">
+      <h3>🖥️ Nativo e leve</h3>
+      Swift e SwiftUI, vídeo H.264 e H.265 decodificado pelo chip da Apple. Cerca de 13 vezes menos memória que o VMS antigo.
+    </td>
+    <td width="25%" valign="top">
+      <h3>🔒 Tudo na sua rede</h3>
+      Fala direto com as câmeras e os NVRs. Senhas num cofre criptografado, só neste Mac. Nada vai para a nuvem.
+    </td>
+    <td width="25%" valign="top">
+      <h3>🎛️ Igual ao VMS antigo</h3>
+      Cada tela de configuração foi conferida no código do VMS antigo: as mesmas opções e os mesmos valores, só o que a câmera tem.
+    </td>
+    <td width="25%" valign="top">
+      <h3>♿ Feito para o macOS</h3>
+      Revisto pelas regras da Apple: modo claro e escuro, VoiceOver, atalhos de teclado, alto contraste, português e inglês.
+    </td>
+  </tr>
+</table>
 
 ## Telas
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/inicio.jpg" alt="Início"><br><sub><b>Início</b>: clima, alertas, discos e conexão dos equipamentos</sub></td>
-    <td width="50%"><img src="docs/images/ao-vivo-mosaico.jpg" alt="Câmeras ao vivo"><br><sub><b>Ao vivo</b>: modelos de tela, split virtual e rodízio</sub></td>
+    <td width="50%" valign="top">
+      <img src="docs/images/ao-vivo-mosaico.jpg" alt="Câmeras ao vivo no mosaico">
+      <p align="center"><sub>Mosaico com split virtual, PTZ na lateral e zoom em cada quadro.</sub></p>
+      <h3>Ao vivo, do seu jeito</h3>
+      <p>Modelos de tela prontos ou personalizados, arrastar câmeras para os quadros e rodízio de telas. Câmeras de
+      lente dupla viram dois quadros com um só vídeo. Cada quadro tem nome, <b>PTZ</b>, som e expandir; o controle de
+      PTZ fica no pé da lista, com presets e ronda.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/gravacoes.jpg" alt="Gravações com linha do tempo">
+      <p align="center"><sub>Linha do tempo do dia, com uma faixa para cada tipo de gravação.</sub></p>
+      <h3>Gravações na linha do tempo</h3>
+      <p>O dia inteiro numa régua de 0 h a 24 h: <b>movimento</b>, <b>alarme</b>, <b>manual</b> e <b>contínua</b>, cada
+      um na sua cor. Clique num ponto para assistir dali, use as setas para ir ao trecho anterior ou ao próximo de um
+      tipo e escolha o dia num calendário. Baixe em MP4 ou tire uma foto do quadro.</p>
+    </td>
   </tr>
   <tr>
-    <td><img src="docs/images/ao-vivo-camera.jpg" alt="Câmera em tela cheia"><br><sub><b>Câmera em tela cheia</b>: som, HD/SD, zoom, foto, gravar e PTZ</sub></td>
-    <td><img src="docs/images/gravacoes.jpg" alt="Gravações"><br><sub><b>Gravações</b>: busca por dia, player, zoom, foto e MP4</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/eventos.jpg" alt="Eventos"><br><sub><b>Eventos</b>: alertas com atalhos para o ao vivo e a gravação</sub></td>
-    <td><img src="docs/images/config-imagem.jpg" alt="Configurações da câmera"><br><sub><b>Configurações</b>: ajustes com prévia ilustrada</sub></td>
+    <td width="50%" valign="top">
+      <img src="docs/images/configuracoes.jpg" alt="Configurações da câmera">
+      <p align="center"><sub>Menu de configurações de uma câmera, agrupado por assunto.</sub></p>
+      <h3>Todas as configurações</h3>
+      <p>Imagem e visão noturna, exposição, texto na imagem, qualidade do vídeo, gravação, fotos, disco, detecção
+      inteligente, alarmes, rede, usuários e manutenção, para a câmera, o NVR ou cada canal. Só aparecem as opções que
+      o equipamento tem.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/inicio-claro.jpg" alt="Início no modo claro">
+      <p align="center"><sub>A mesma tela de Início no modo claro.</sub></p>
+      <h3>Claro, escuro e acessível</h3>
+      <p>Segue o tema do Mac ou o que você escolher, com cores que mantêm o contraste nos dois modos. Funciona com o
+      VoiceOver e pelo teclado, e fica na barra de menus avisando dos alertas mesmo com a janela fechada.</p>
+    </td>
   </tr>
 </table>
 
@@ -60,7 +130,7 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 1. **Adicionar câmeras:** vá em **Dispositivos → Procurar na rede**. Aparecem as câmeras e NVRs Xiongmai da sua rede; clique em **Adicionar…**, confira o nome e digite o **usuário e a senha do equipamento** (os mesmos do iCSee/XMEye). Também dá para adicionar pelo IP com **+ → Nova câmera**.
 2. **Ver ao vivo:** clique em **Ao vivo** (⌘2). Escolha o modelo de tela na barra de baixo e arraste câmeras da lista para os quadros. Cada quadro tem embaixo o nome, o **PTZ** (nas câmeras que têm), o som e o botão **expandir**, que abre a câmera em tela cheia (duplo clique também abre).
 3. **Câmera dupla** (duas imagens uma em cima da outra): botão direito → **Dividir em duas (split virtual)**.
-4. **Gravações:** clique em **Gravações**, escolha a câmera na lista e o dia. Clique numa gravação para assistir; **Baixar** salva em MP4.
+4. **Gravações:** clique em **Gravações** e escolha a câmera na lista. A linha do tempo mostra o dia; clique num ponto para assistir dali e use a data embaixo para escolher outro dia. **Baixar** salva em MP4.
 5. **Alertas:** em **Eventos → Ajustes dos alertas** escolha quais tipos notificam e tocam som. Cada alerta tem atalhos para o **ao vivo** e para a **gravação** daquele momento.
 6. **Configurar uma câmera:** clique em **Configurações** e escolha a câmera ou o NVR na lista. Só aparecem as opções que o equipamento tem.
 7. **Preferências (⌘,):** pastas de fotos e downloads, gravação no Mac, tema e segundo plano.
@@ -96,7 +166,10 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 
 ### Gravações
 - A câmera vem da lista ao lado e a busca do dia é automática.
-- Reprodução com pausa, saltos de 10 s, barra de progresso, velocidade de ½× a 8× e som.
+- **Linha do tempo** de 0 h a 24 h com uma faixa por tipo (alarme, movimento, manual e contínua), hora ao passar o mouse e clique para assistir daquele momento.
+- **Setas por tipo** (‹ Movimento ›, ‹ Contínua ›) para ir ao trecho anterior ou ao próximo.
+- Barra de data com **‹ ›** de dia em dia, **calendário** ao clicar na data, **Hoje** e a lista de **Arquivos** do dia.
+- Reprodução com pausa, saltos de 10 s, barra de progresso, velocidade de ½× a 8× e som; a barra se ajusta em janelas estreitas.
 - **Download em MP4** (vídeo sem recomprimir e som em AAC).
 - **Zoom digital** e **foto do quadro**, inteira ou só da parte ampliada.
 

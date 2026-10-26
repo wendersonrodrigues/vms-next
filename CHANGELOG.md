@@ -1,5 +1,16 @@
 # Novidades
 
+## 1.2.0 — 25/10/2026
+
+- **Gravações em linha do tempo**: o dia inteiro numa régua de 0 h a 24 h, com uma faixa e uma cor para cada tipo (alarme, movimento, manual e contínua). Passar o mouse mostra a hora; clicar toca dali.
+- **Setas por tipo**: ‹ Movimento › e ‹ Contínua › levam ao trecho anterior ou ao próximo daquele tipo.
+- **Barra de data**: ‹ › de dia em dia, calendário ao clicar na data, Hoje e a lista de arquivos do dia.
+- **Janela estreita**: a lista de câmeras não some mais nas Gravações, e a barra do player se ajusta à largura.
+- **Inglês** como segundo idioma, com a escolha nas Preferências (o app reinicia no idioma escolhido).
+- **Ícones da barra de menus** novos: normal, alertas novos e sem receber alertas.
+- **Ícone de câmera do app** na lista lateral, Dispositivos, Eventos, PTZ e Gravações.
+- README novo, com as telas atuais.
+
 ## 1.1.0 — 25/10/2026
 
 Versão oficial. Junta tudo das betas 1, 2 e 3 e acrescenta:
