@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -28,11 +29,17 @@ final class RecordingBrowser: ObservableObject {
         return suppressPlay
     }
 
-    /// Baixa a gravação em MP4 na pasta de downloads das Preferências (ou pergunta onde, se configurado).
+    /// Baixa a gravação em MP4 direto na pasta de downloads das Preferências, com a câmera, o dia, o horário e o
+    /// tipo no nome. Se já foi baixada (e o arquivo continua lá), mostra o arquivo no Finder em vez de baixar de novo.
     func download(_ recording: Recording, camera: Camera) {
+        if let existing = DownloadedRecordings.shared.file(of: recording, camera: camera) {
+            NSWorkspace.shared.activateFileViewerSelecting([existing])
+            return
+        }
+        if downloads.contains(where: { $0.state == .running && $0.recording.id == recording.id && $0.camera.id == camera.id }) { return }
         let prefs = AppPreferences.shared
-        guard let url = prefs.destination(named: "\(camera.displayName) \(AppPreferences.stamp(recording.begin))",
-                                          in: prefs.downloadFolder, type: .mpeg4Movie) else { return }
+        guard let url = prefs.destination(named: "\(camera.displayName) \(AppPreferences.stamp(recording.begin)) \(recording.kind.label)",
+                                          in: prefs.downloadFolder, type: .mpeg4Movie, ask: false) else { return }
         let job = RecordingDownload(recording: recording, camera: camera, url: url)
         downloads.insert(job, at: 0)
         AppLog.shared.add(.file, "Download de gravação: \(url.lastPathComponent)", device: camera.displayName)
@@ -140,6 +147,7 @@ struct PlaybackView: View {
     @StateObject private var zoom = DigitalZoom()
     @StateObject private var popovers = PlaybackPopovers()
     @ObservedObject private var tags = RecordingTags.shared
+    @ObservedObject private var downloaded = DownloadedRecordings.shared
     /// Vídeo em foco: espaço toca/pausa, ← e → voltam e avançam 10 s (sem atrapalhar a lista e os campos).
     @FocusState private var playerFocused: Bool
 
@@ -200,7 +208,8 @@ struct PlaybackView: View {
             }
             if let camera {
                 RecordingTimeline(day: browser.day, recordings: browser.recordings, playhead: session.clock,
-                                  tagged: tags.taggedFiles(camera: camera)) { date, kind in
+                                  tagged: tags.taggedFiles(in: browser.recordings, camera: camera),
+                                  downloaded: downloaded.downloadedFiles(in: browser.recordings, camera: camera)) { date, kind in
                     play(at: date, preferring: kind)
                 }
                 .padding(.top, Space.xs)
@@ -231,11 +240,18 @@ struct PlaybackView: View {
             }
             .help("Escolher o dia no calendário")
             .popover(isPresented: $popovers.calendar, arrowEdge: .top) {
-                DatePicker("Dia", selection: Binding(get: { browser.day }, set: { browser.day = $0; popovers.calendar = false }),
-                           in: ...Date(), displayedComponents: .date)
-                    .datePickerStyle(.graphical)
-                    .labelsHidden()
-                    .padding(Space.m)
+                if let camera {
+                    RecordingCalendar(camera: camera, selected: browser.day) { date in
+                        browser.day = date
+                        popovers.calendar = false
+                    }
+                } else {
+                    DatePicker("Dia", selection: Binding(get: { browser.day }, set: { browser.day = $0; popovers.calendar = false }),
+                               in: ...Date(), displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .padding(Space.m)
+                }
             }
             Button { shiftDay(1) } label: { Image(systemName: "chevron.right") }
                 .disabled(isToday)
@@ -280,12 +296,17 @@ struct PlaybackView: View {
 
     private var recordingList: some View {
         List(browser.recordings, selection: $browser.selected) { recording in
-            RecordingRow(recording: recording)
+            let saved = camera.flatMap { downloaded.file(of: recording, camera: $0) }
+            RecordingRow(recording: recording, downloaded: saved != nil)
                 .tag(recording.id)
                 .contextMenu {
                     Button("Reproduzir") { play(recording) }
-                    Button("Baixar em MP4…") {
-                        if let camera { browser.download(recording, camera: camera) }
+                    if let saved {
+                        Button("Mostrar no Finder") { NSWorkspace.shared.activateFileViewerSelecting([saved]) }
+                    } else {
+                        Button("Baixar em MP4") {
+                            if let camera { browser.download(recording, camera: camera) }
+                        }
                     }
                 }
         }
@@ -319,7 +340,21 @@ struct PlaybackView: View {
     /// Um ‹ tipo › para cada tipo de gravação que existe no dia.
     private var kindSteppers: some View {
         let present = Set(browser.recordings.map(\.kind))
+        let savedToday = camera.map { cam in
+            !downloaded.downloadedFiles(in: browser.recordings, camera: cam).isEmpty
+        } ?? false
         return HStack(spacing: Space.s) {
+            if savedToday {
+                // Legenda do tom dos trechos já baixados.
+                HStack(spacing: Space.xs) {
+                    Capsule().fill(Color.secondary.opacity(0.25)).overlay(Capsule().stroke(Color.secondary, lineWidth: 1.2))
+                        .frame(width: 14, height: 8)
+                    Text("Baixado")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .help("Trechos em tom mais claro, com contorno, já estão baixados no Mac")
+            }
             ForEach(Recording.Kind.timelineOrder.filter { present.contains($0) }, id: \.self) { kind in
                 RecordingKindStepper(kind: kind,
                                      canGoBack: neighbor(of: kind, forward: false) != nil,
@@ -369,6 +404,11 @@ struct PlaybackView: View {
     // MARK: - Player
 
     /// Busca o dia do alerta e toca a gravação que contém o momento (começando alguns segundos antes).
+    private var currentIsDownloaded: Bool {
+        guard let recording = session.recording, let camera = session.camera else { return false }
+        return downloaded.file(of: recording, camera: camera) != nil
+    }
+
     /// Vídeo que está tocando (ou o escolhido na lista), para as tags.
     private var currentRecording: Recording? {
         if let playing = session.recording, browser.recordings.contains(where: { $0.id == playing.id }) { return playing }
@@ -509,8 +549,10 @@ struct PlaybackView: View {
             BarButton(icon: "camera", title: compact ? nil : String(localized: "Foto"),
                       help: String(localized: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)")) { takePhoto() }
                 .disabled(!hasRecording)
-            BarButton(icon: "arrow.down.circle", title: compact ? nil : String(localized: "Baixar"),
-                      help: String(localized: "Baixar esta gravação em MP4 (⌘D)")) {
+            BarButton(icon: currentIsDownloaded ? "checkmark.circle" : "arrow.down.circle",
+                      title: compact ? nil : (currentIsDownloaded ? String(localized: "Baixado") : String(localized: "Baixar")),
+                      help: currentIsDownloaded ? String(localized: "Já está no Mac: mostrar o arquivo no Finder (⌘D)")
+                                                : String(localized: "Baixar esta gravação em MP4 na pasta das Preferências (⌘D)")) {
                 if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
             }
             .keyboardShortcut(compact ? nil : KeyboardShortcut("d"))
@@ -603,6 +645,7 @@ struct PlaybackView: View {
 
 private struct RecordingRow: View {
     let recording: Recording
+    var downloaded = false
 
     var body: some View {
         HStack {
@@ -613,6 +656,16 @@ private struct RecordingRow: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
+            if downloaded {
+                // Selo "No Mac": este vídeo já está baixado aqui.
+                Label("No Mac", systemImage: "internaldrive.fill")
+                    .font(.caption2.weight(.medium))
+                    .padding(.horizontal, Space.s).padding(.vertical, Space.xxs)
+                    .background(Theme.success.opacity(0.2), in: Capsule())
+                    .foregroundStyle(Theme.success)
+                    .help("Já baixado no Mac")
+                    .accessibilityLabel("Já baixado no Mac")
+            }
             Text(recording.kind.label)
                 .font(.caption2.weight(.medium))
                 .padding(.horizontal, Space.s).padding(.vertical, Space.xxs)

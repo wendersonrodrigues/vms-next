@@ -1312,3 +1312,17 @@
 "Nenhum vídeo desta câmera com esta tag." = "No videos from this camera with this tag.";
 "Abrir este vídeo" = "Open this video";
 "%@ · %@" = "%@ · %@";
+
+"Mês anterior" = "Previous month";
+"Próximo mês" = "Next month";
+"Com gravação" = "Has recordings";
+"Baixado no Mac" = "Downloaded to this Mac";
+"com gravação" = "has recordings";
+"baixado no Mac" = "downloaded to this Mac";
+"Baixar em MP4" = "Download as MP4";
+"Baixado" = "Downloaded";
+"Já está no Mac: mostrar o arquivo no Finder (⌘D)" = "Already on this Mac: show the file in Finder (⌘D)";
+"Baixar esta gravação em MP4 na pasta das Preferências (⌘D)" = "Download this recording as MP4 to the folder set in Preferences (⌘D)";
+"Já baixado no Mac" = "Already downloaded to this Mac";
+"Trechos em tom mais claro, com contorno, já estão baixados no Mac" = "Lighter clips with an outline are already downloaded to this Mac";
+"No Mac" = "On this Mac";

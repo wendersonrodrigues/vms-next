@@ -30,6 +30,8 @@ struct RecordingTimeline: View {
     let playhead: Date?
     /// Arquivos com tag: ganham uma marquinha em cima do trecho.
     var tagged: Set<String> = []
+    /// Arquivos já baixados no Mac: tom mais claro da cor do tipo, com contorno.
+    var downloaded: Set<String> = []
     /// Clique: o momento escolhido e, se o clique foi numa faixa, o tipo dela.
     let onSelect: (Date, Recording.Kind?) -> Void
 
@@ -112,8 +114,13 @@ struct RecordingTimeline: View {
                 guard end > start else { continue }
                 let x0 = CGFloat(start / 86_400) * width
                 let x1 = max(CGFloat(end / 86_400) * width, x0 + 2)
-                context.fill(Path(roundedRect: CGRect(x: x0, y: y, width: x1 - x0, height: laneHeight), cornerRadius: laneHeight / 2),
-                             with: .color(kind.color))
+                let bar = Path(roundedRect: CGRect(x: x0, y: y, width: x1 - x0, height: laneHeight), cornerRadius: laneHeight / 2)
+                if downloaded.contains(recording.fileName) {
+                    context.fill(bar, with: .color(kind.color.opacity(0.4)))
+                    context.stroke(bar, with: .color(kind.color), lineWidth: 1.5)
+                } else {
+                    context.fill(bar, with: .color(kind.color))
+                }
                 if tagged.contains(recording.fileName) {
                     // Marquinha de tag: um losango azul no meio do trecho, com borda para destacar da cor da faixa.
                     let mid = (x0 + x1) / 2

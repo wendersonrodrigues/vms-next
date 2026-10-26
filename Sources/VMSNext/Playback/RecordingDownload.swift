@@ -108,6 +108,7 @@ final class RecordingDownload: ObservableObject, Identifiable {
         } else {
             progress = 1
             end(.finished)
+            DownloadedRecordings.shared.mark(recording, camera: camera, url: url)
         }
     }
 

@@ -3,7 +3,7 @@ import SwiftUI
 /// Uma gravação com tags. Guarda o dia, o horário e o tipo, para achar o vídeo de novo depois,
 /// mesmo de outro dia (a busca no equipamento é por dia).
 struct TaggedRecording: Codable, Hashable, Identifiable {
-    var id: String { RecordingTags.key(cameraID, fileName) }
+    var id: String { RecordingTags.key(cameraID, begin) }
     let cameraID: Camera.ID
     let fileName: String
     let begin: Date
@@ -37,8 +37,10 @@ final class RecordingTags: ObservableObject {
         }
     }
 
-    nonisolated static func key(_ cameraID: Camera.ID, _ fileName: String) -> String {
-        "\(cameraID.uuidString)|\(fileName)"
+    /// Chave pela câmera e pelo início do trecho. O nome do arquivo não serve: enquanto a câmera ainda está
+    /// gravando o trecho, o fim (que faz parte do nome) muda a cada busca.
+    nonisolated static func key(_ cameraID: Camera.ID, _ begin: Date) -> String {
+        "\(cameraID.uuidString)|\(Int(begin.timeIntervalSince1970.rounded()))"
     }
 
     /// Todas as tags já usadas, em ordem alfabética, com quantos vídeos cada uma tem.
@@ -50,12 +52,12 @@ final class RecordingTags: ObservableObject {
     }
 
     func tags(of recording: Recording, camera: Camera) -> [String] {
-        items[Self.key(camera.id, recording.fileName)]?.tags ?? []
+        items[Self.key(camera.id, recording.begin)]?.tags ?? []
     }
 
-    /// Nomes dos arquivos com tag desta câmera (para marcar na linha do tempo).
-    func taggedFiles(camera: Camera) -> Set<String> {
-        Set(items.values.filter { $0.cameraID == camera.id && !$0.tags.isEmpty }.map(\.fileName))
+    /// Nomes dos arquivos do dia que têm tag (para marcar na linha do tempo).
+    func taggedFiles(in recordings: [Recording], camera: Camera) -> Set<String> {
+        Set(recordings.filter { !(items[Self.key(camera.id, $0.begin)]?.tags.isEmpty ?? true) }.map(\.fileName))
     }
 
     func add(_ tag: String, to recording: Recording, camera: Camera) {
@@ -64,7 +66,7 @@ final class RecordingTags: ObservableObject {
         // Reaproveita a grafia de uma tag que já existe ("Entrega" e "entrega" são a mesma).
         let existing = allTags.first { $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
         let finalName = existing?.name ?? name
-        let key = Self.key(camera.id, recording.fileName)
+        let key = Self.key(camera.id, recording.begin)
         var item = items[key] ?? TaggedRecording(cameraID: camera.id, fileName: recording.fileName,
                                                  begin: recording.begin, end: recording.end, tags: [])
         guard !item.tags.contains(finalName) else { return }
@@ -74,7 +76,7 @@ final class RecordingTags: ObservableObject {
     }
 
     func remove(_ tag: String, from recording: Recording, camera: Camera) {
-        let key = Self.key(camera.id, recording.fileName)
+        let key = Self.key(camera.id, recording.begin)
         guard var item = items[key] else { return }
         item.tags.removeAll { $0 == tag }
         items[key] = item.tags.isEmpty ? nil : item

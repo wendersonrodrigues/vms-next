@@ -82,10 +82,11 @@ final class AppPreferences: ObservableObject {
 
     /// Onde salvar um arquivo: direto na pasta (com nome único) ou perguntando, conforme a preferência.
     /// Devolve nil se a pessoa cancelar.
-    func destination(named name: String, in folder: URL, type: UTType) -> URL? {
+    /// `ask` = nil segue a preferência "perguntar onde salvar"; false salva direto na pasta.
+    func destination(named name: String, in folder: URL, type: UTType, ask: Bool? = nil) -> URL? {
         let clean = name.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
         let ext = type.preferredFilenameExtension ?? "dat"
-        if askWhereToSave {
+        if ask ?? askWhereToSave {
             let panel = NSSavePanel()
             panel.allowedContentTypes = [type]
             panel.canCreateDirectories = true
