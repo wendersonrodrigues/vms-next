@@ -40,6 +40,8 @@ struct ConfigField: Identifiable {
         case number(ClosedRange<Int>, unit: String?)
         case slider(ClosedRange<Int>)
         case text
+        /// Senha (escondida na tela; o diagnóstico também esconde).
+        case secret
         /// Somente leitura.
         case info
         /// Somente leitura, IPv4 em hex little-endian (um endereço ou uma lista).
@@ -73,6 +75,15 @@ struct ConfigSection: Identifiable {
     let fields: [ConfigField]
     /// Função que o equipamento precisa ter em SystemFunction, ex.: "NetServerFunction.NetNat".
     var requires: String?
+    /// Botão no fim da seção (ex.: testar o envio de e-mail com os valores da tela).
+    var action: ConfigAction?
+}
+
+/// Ação de uma seção: recebe o formulário (com os valores ainda não aplicados) e devolve o resultado.
+struct ConfigAction {
+    let title: String
+    var help: String?
+    let run: @MainActor (ConfigFormModel) async -> String
 }
 
 struct ConfigFormSpec {
@@ -102,6 +113,12 @@ final class ConfigFormModel: ObservableObject {
     /// O equipamento salvou, mas só aplica depois de reiniciar (resposta 603).
     @Published var askingRestart = false
     @Published private(set) var objects: [Int: Any] = [:]
+    /// Resultado da última ação de cada seção (pelo título) e a que está rodando.
+    @Published var actionResults: [String: String] = [:]
+    @Published var runningAction: String?
+
+    /// Configuração de uma fonte como está na tela (com as mudanças ainda não aplicadas).
+    func object(_ source: Int) -> Any? { objects[source] }
     /// Capacidades lidas com ABILITY_GET (1360), por nome.
     private(set) var abilities: [String: Any] = [:]
 
@@ -121,7 +138,8 @@ final class ConfigFormModel: ObservableObject {
             let fields = section.fields.filter { field in
                 value(source: field.source, path: field.path) != nil && (field.requires.map(supports) ?? true)
             }
-            return fields.isEmpty ? nil : ConfigSection(title: section.title, footer: section.footer, fields: fields)
+            return fields.isEmpty ? nil : ConfigSection(title: section.title, footer: section.footer, fields: fields,
+                                                        action: section.action)
         }
     }
 
@@ -434,6 +452,7 @@ struct ConfigFormView: View {
                             ForEach(section.fields) { field in
                                 row(field).disabled(!model.isEnabled(field) || model.saving)
                             }
+                            if let action = section.action { actionRow(action, section: section.title) }
                         } header: {
                             Text(section.title)
                         } footer: {
@@ -486,6 +505,28 @@ struct ConfigFormView: View {
     }
 
     @ViewBuilder
+    /// Botão da seção (testar e-mail/FTP) e o resultado da última vez, com os valores que estão na tela.
+    private func actionRow(_ action: ConfigAction, section: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.m) {
+            Button {
+                Task {
+                    model.runningAction = section
+                    model.actionResults[section] = await action.run(model)
+                    model.runningAction = nil
+                }
+            } label: {
+                Text(action.title)
+            }
+            .disabled(model.runningAction != nil || model.saving)
+            .help(action.help ?? "")
+            if model.runningAction == section { ProgressView().controlSize(.small) }
+            if let result = model.actionResults[section] {
+                Text(result).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @ViewBuilder
     private func row(_ field: ConfigField) -> some View {
         let label = FieldLabel(field.title, original: field.original, detail: field.detail)
         switch field.kind {
@@ -523,6 +564,8 @@ struct ConfigFormView: View {
             }
         case .text:
             TextField(text: model.text(field)) { label }
+        case .secret:
+            SecureField(text: model.text(field)) { label }
         case .info, .ipAddress:
             LabeledContent {
                 Text(model.infoText(field)).textSelection(.enabled)

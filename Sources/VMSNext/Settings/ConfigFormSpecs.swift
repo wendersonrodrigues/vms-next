@@ -406,6 +406,37 @@ enum ConfigFormSpecs {
             ])
     }
 
+    /// Serviços de DDNS que o equipamento aceita (capacidade DDNSService).
+    @MainActor
+    private static func ddnsServices(_ model: ConfigFormModel) -> [ConfigOption]? {
+        (model.abilities["DDNSService"] as? [String])?.map { ConfigOption($0, $0) }
+    }
+
+    /// Testes de e-mail e FTP do VMS antigo (OPMailTest / OPFTPTest), com a configuração que está na tela.
+    /// O código da mensagem não aparece no SDK (vem de uma tabela montada em tempo de execução): tenta o
+    /// CONFIG_SET e depois o código conhecido do teste de e-mail; um código recusado não muda nada na câmera.
+    @MainActor
+    private static func serviceTest(_ model: ConfigFormModel, source: Int, name: String) async -> String {
+        guard let object = model.object(source) else { return String(localized: "Sem configuração para testar.") }
+        do {
+            let client = try await DeviceSessions.shared.client(for: model.camera)
+            var last = 0
+            for code: UInt16 in [1040, 1636] {
+                do {
+                    try await client.command(code: code, name: name, payload: object, timeout: 30)
+                    return name == "OPMailTest" ? String(localized: "E-mail de teste enviado. Confira a caixa de entrada (e o spam).")
+                                                : String(localized: "A câmera conectou no servidor FTP.")
+                } catch let DVRIPError.device(ret) {
+                    last = ret
+                    if ret != 607 && ret != 102 { break }
+                }
+            }
+            return String(localized: "Falhou (código \(last)). Confira servidor, porta, usuário e senha.")
+        } catch {
+            return String(localized: "Falhou: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Serviços de rede (abas da "Rede")
 
     static func networkServices(camera: Camera) -> ConfigFormSpec {
@@ -419,6 +450,10 @@ enum ConfigFormSpecs {
                 ConfigSource(name: "NetWork.Wifi"),
                 ConfigSource(name: "NetWork.PMS"),
                 ConfigSource(name: "NetWork.OnvifPwdCheckout"),
+                ConfigSource(name: "NetWork.NetEmail"),
+                ConfigSource(name: "NetWork.NetFTP"),
+                ConfigSource(name: "NetWork.NetDDNS", element: 0),
+                ConfigSource(name: "NetWork.Upnp"),
             ],
             sections: [
                 ConfigSection(title: String(localized: "Transmissão (TCP/IP)"), fields: [
@@ -484,8 +519,69 @@ enum ConfigFormSpecs {
                     ConfigField(source: 5, path: ["ServName"], kind: .info, title: String(localized: "Servidor")),
                     ConfigField(source: 5, path: ["Port"], kind: .info, title: String(localized: "Porta")),
                 ], requires: "NetServerFunction.NetPMS"),
+                ConfigSection(title: String(localized: "E-mail de alarme (Email)"),
+                              footer: String(localized: "Para a ação \"Enviar e-mail\" das detecções. Gmail e outros pedem uma senha de app e conexão segura."),
+                              fields: [
+                    ConfigField(source: 7, path: ["Enable"], kind: .toggle, title: String(localized: "Enviar e-mails"), original: "Ativar"),
+                    ConfigField(source: 7, path: ["MailServer", "Name"], kind: .text, title: String(localized: "Servidor SMTP"), original: "Servidor SMTP",
+                                detail: String(localized: "Ex.: smtp.gmail.com")),
+                    ConfigField(source: 7, path: ["MailServer", "Port"], kind: .number(1 ... 65535, unit: nil), title: String(localized: "Porta"), original: "Porta",
+                                detail: String(localized: "Normalmente 465 (SSL) ou 587; 25 sem conexão segura.")),
+                    ConfigField(source: 7, path: ["UseSSL"], kind: .toggle, title: String(localized: "Conexão segura (SSL/TLS)"), original: "SSL"),
+                    ConfigField(source: 7, path: ["MailServer", "Anonymity"], kind: .toggle, title: String(localized: "Sem login"), original: "Anonymity",
+                                detail: String(localized: "Só para servidores que aceitam envio sem usuário e senha.")),
+                    ConfigField(source: 7, path: ["MailServer", "UserName"], kind: .text, title: String(localized: "Usuário"), original: "Nome de usuário"),
+                    ConfigField(source: 7, path: ["MailServer", "Password"], kind: .secret, title: String(localized: "Senha"), original: "Senha"),
+                    ConfigField(source: 7, path: ["SendAddr"], kind: .text, title: String(localized: "Remetente"), original: "Remetente"),
+                    ConfigField(source: 7, path: ["Recievers", 0], kind: .text, title: String(localized: "Destinatário 1"), original: "Destinatário"),
+                    ConfigField(source: 7, path: ["Recievers", 1], kind: .text, title: String(localized: "Destinatário 2")),
+                    ConfigField(source: 7, path: ["Recievers", 2], kind: .text, title: String(localized: "Destinatário 3")),
+                    ConfigField(source: 7, path: ["Title"], kind: .text, title: String(localized: "Assunto"), original: "Título"),
+                ], requires: "NetServerFunction.NetEmail",
+                action: ConfigAction(title: String(localized: "Testar e-mail"),
+                                     help: String(localized: "A câmera envia um e-mail de teste com os dados da tela (mesmo antes de aplicar)."),
+                                     run: { await serviceTest($0, source: 7, name: "OPMailTest") })),
+                ConfigSection(title: String(localized: "Servidor FTP (FTP)"),
+                              footer: String(localized: "Para a ação \"Enviar para servidor FTP\" das detecções: a câmera manda fotos e vídeos dos alarmes para lá."),
+                              fields: [
+                    ConfigField(source: 8, path: ["Enable"], kind: .toggle, title: String(localized: "Enviar para o FTP"), original: "Ativar"),
+                    ConfigField(source: 8, path: ["Server", "Name"], kind: .text, title: String(localized: "Servidor"), original: "Servidor"),
+                    ConfigField(source: 8, path: ["Server", "Port"], kind: .number(1 ... 65535, unit: nil), title: String(localized: "Porta"), original: "Porta",
+                                detail: String(localized: "Normalmente 21.")),
+                    ConfigField(source: 8, path: ["Server", "Anonymity"], kind: .toggle, title: String(localized: "Login anônimo"), original: "Anonymity"),
+                    ConfigField(source: 8, path: ["Server", "UserName"], kind: .text, title: String(localized: "Usuário"), original: "Nome de usuário"),
+                    ConfigField(source: 8, path: ["Server", "Password"], kind: .secret, title: String(localized: "Senha"), original: "Senha"),
+                    ConfigField(source: 8, path: ["Directory"], kind: .text, title: String(localized: "Pasta no servidor"), original: "Caminho"),
+                    ConfigField(source: 8, path: ["MaxFileLen"], kind: .number(0 ... 4096, unit: "MB"), title: String(localized: "Tamanho máximo de cada arquivo"),
+                                original: "Comprimento máx. do arquivo"),
+                ], requires: "NetServerFunction.NetFTP",
+                action: ConfigAction(title: String(localized: "Testar FTP"),
+                                     help: String(localized: "A câmera tenta entrar no servidor com os dados da tela (mesmo antes de aplicar)."),
+                                     run: { await serviceTest($0, source: 8, name: "OPFTPTest") })),
+                ConfigSection(title: String(localized: "Nome na internet (DDNS)"),
+                              footer: String(localized: "Um endereço fixo (ex.: minhacasa.no-ip.org) que acompanha o IP da sua internet. Precisa de conta no serviço escolhido."),
+                              fields: [
+                    ConfigField(source: 9, path: ["Enable"], kind: .toggle, title: String(localized: "Usar DDNS"), original: "Ativar"),
+                    ConfigField(source: 9, path: ["DDNSKey"], kind: .choice([]), title: String(localized: "Serviço"), original: "Tipo de DDNS",
+                                dynamicOptions: ddnsServices),
+                    ConfigField(source: 9, path: ["HostName"], kind: .text, title: String(localized: "Endereço"), original: "Nome do host",
+                                detail: String(localized: "O nome criado no site do serviço.")),
+                    ConfigField(source: 9, path: ["Server", "UserName"], kind: .text, title: String(localized: "Usuário do serviço"), original: "Nome de usuário"),
+                    ConfigField(source: 9, path: ["Server", "Password"], kind: .secret, title: String(localized: "Senha do serviço"), original: "Senha"),
+                    ConfigField(source: 9, path: ["Online"], kind: .info, title: String(localized: "Conectado ao serviço")),
+                ], requires: "NetServerFunction.NetDDNS"),
+                ConfigSection(title: "UPnP",
+                              footer: String(localized: "Pede ao roteador para abrir as portas da câmera sozinho. Só funciona se o UPnP estiver ligado no roteador."),
+                              fields: [
+                    ConfigField(source: 10, path: ["Enable"], kind: .toggle, title: String(localized: "Abrir as portas no roteador"), original: "UPnP"),
+                    ConfigField(source: 10, path: ["State"], kind: .info, title: String(localized: "Portas abertas agora")),
+                    ConfigField(source: 10, path: ["HTTPPort"], kind: .info, title: String(localized: "Porta web aberta")),
+                    ConfigField(source: 10, path: ["MediaPort"], kind: .info, title: String(localized: "Porta de vídeo aberta")),
+                    ConfigField(source: 10, path: ["MobilePort"], kind: .info, title: String(localized: "Porta do celular aberta")),
+                ], requires: "NetServerFunction.NetUPNP"),
             ],
-            confirmApply: String(localized: "Algumas destas opções podem cortar o acesso pelo celular ou o vídeo ao vivo. Confira antes de aplicar."))
+            confirmApply: String(localized: "Algumas destas opções podem cortar o acesso pelo celular ou o vídeo ao vivo. Confira antes de aplicar."),
+            abilities: ["DDNSService"])
     }
 }
 
