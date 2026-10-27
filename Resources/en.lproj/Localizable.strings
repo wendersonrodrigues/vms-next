@@ -1632,3 +1632,6 @@
 
 "Este equipamento não tem alarme manual." = "This device has no manual alarm.";
 "Este equipamento não tem alarme manual (NetAlarm). Nas câmeras com sirene, luz ou relé, use \"Saída de alarme\" no modo manual." = "This device has no manual alarm (NetAlarm). On cameras with a siren, light or relay, use \"Alarm output\" in manual mode.";
+
+"Reiniciar quando o cartão falhar" = "Restart when the card fails";
+"A câmera reinicia sozinha se o disco ou cartão parar de responder. Muitas vezes isso faz a gravação voltar." = "The camera restarts by itself if the disk or card stops responding. This often gets recording working again.";

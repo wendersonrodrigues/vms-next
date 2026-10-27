@@ -94,7 +94,11 @@ final class DiskModel: ObservableObject {
     }
 
     func diagnostic() async -> String {
-        await ConfigDiagnostics.dump(camera: camera, requests: [(1020, "StorageInfo"), (1042, "General.General")])
+        await ConfigDiagnostics.dump(camera: camera, requests: [
+            (1020, "StorageInfo"), (1042, "General.General"), (1042, "Storage.StorageFailure"), (1042, "Storage.StorageLowSpace"),
+            (1042, "Storage.StorageNotExist"), (1042, "Storage.StoragePosition"), (1042, "Status.RecordState"), (1020, "Status.RecordState"),
+            (1042, "NetWork.NetNAS"), (1042, "Record.[0]"),
+        ])
     }
 
     /// Executa a ação confirmada (código 1460, OPStorageManager) e lê o disco de novo.

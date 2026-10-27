@@ -237,6 +237,8 @@ final class EventConfigModel: ObservableObject {
         var loiter: Int?
         /// Campos da detecção de rosto (FaceMotionDetectConfig do VMS antigo), quando a câmera manda.
         var face: FaceFields?
+        /// Storage.StorageFailure.RebootEnable: reiniciar o equipamento quando o disco/cartão falha.
+        var rebootOnFailure: Bool?
         var hasHandler: Bool
         var handler: HandlerState
         var id: String { name }
@@ -506,6 +508,7 @@ final class EventConfigModel: ObservableObject {
         entry.supported = !(config["Enable"] is NSNull)
         entry.loiter = ConfigValue.int(config["LoiterLatch"])
         entry.face = FaceFields(config: config)
+        entry.rebootOnFailure = config["RebootEnable"].map { ($0 as? Bool) ?? (ConfigValue.int($0) == 1) }
         return entry
     }
 
@@ -516,6 +519,10 @@ final class EventConfigModel: ObservableObject {
         if let level = entry.level { ConfigValue.set(&config, "Level", level) }
         if let limit = entry.lowerLimit { ConfigValue.set(&config, "LowerLimit", limit) }
         entry.face?.write(into: &config)
+        if let reboot = entry.rebootOnFailure, let old = config["RebootEnable"] {
+            let isBool = (old as? NSNumber).map { CFGetTypeID($0) == CFBooleanGetTypeID() } ?? false
+            config["RebootEnable"] = isBool ? reboot as Any : (reboot ? 1 : 0) as Any
+        }
         if entry.hasHandler, var handler = config["EventHandler"] as? [String: Any] {
             entry.handler.write(into: &handler)
             config["EventHandler"] = handler
@@ -817,6 +824,12 @@ struct EventConfigView: View {
             if let limit = entry.wrappedValue.lowerLimit {
                 Stepper(value: Binding(get: { limit }, set: { entry.wrappedValue.lowerLimit = $0 }), in: 1 ... 99) {
                     FieldLabel(String(localized: "Avisar com menos de \(limit)% livre"), original: "Limite inferior")
+                }
+            }
+            if let reboot = entry.wrappedValue.rebootOnFailure {
+                Toggle(isOn: Binding(get: { reboot }, set: { entry.wrappedValue.rebootOnFailure = $0 })) {
+                    FieldLabel(String(localized: "Reiniciar quando o cartão falhar"), original: "RebootEnable",
+                               detail: String(localized: "A câmera reinicia sozinha se o disco ou cartão parar de responder. Muitas vezes isso faz a gravação voltar."))
                 }
             }
             // As opções avançadas (informação na imagem, filtro de oscilação) não valem para problemas no equipamento.
