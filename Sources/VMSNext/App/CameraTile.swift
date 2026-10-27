@@ -25,6 +25,8 @@ struct CameraTile: View {
     /// A câmera tem PTZ (lido das capacidades ou da escolha em Editar câmera). ObservableObject no lugar de
     /// @State, que precisa do Xcode.
     @StateObject private var ptzSupport = HoverFlag()
+    @StateObject private var talkSupport = HoverFlag()
+    @ObservedObject private var talk = TalkSession.shared
     private var hasPTZ: Bool { ptzSupport.on }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -76,6 +78,7 @@ struct CameraTile: View {
         .onChange(of: store.passwordRevision) { start(force: true) }
         .task(id: "\(camera.id)-\(camera.ptz)-\(camera.sameAs?.uuidString ?? "")") {
             ptzSupport.on = await DeviceCapabilities.hasPTZ(camera, in: store.cameras)
+            if single != nil { talkSupport.on = await DeviceCapabilities.hasTalk(camera) }
         }
     }
 
@@ -153,6 +156,9 @@ struct CameraTile: View {
                 SpeakerButton(id: stream.audioID, setAudio: stream.setAudio)
                     .buttonStyle(.hover)
                     .font(.system(size: 20))
+            }
+            if talkSupport.on {
+                talkButton
             }
             // HD = vídeo principal (qualidade máxima); SD = vídeo extra, mais leve para rede lenta.
             HStack(spacing: 4) {
@@ -261,6 +267,34 @@ struct CameraTile: View {
         if let onToggleSplit {
             Button(camera.split == nil ? String(localized: "Dividir em duas (split virtual)") : String(localized: "Desfazer divisão"), action: onToggleSplit)
         }
+    }
+
+    /// Falar pela câmera: clique liga e desliga. Vermelho enquanto fala, com o nível do microfone.
+    private var talkButton: some View {
+        let active = talk.isTalking(camera)
+        let failed: String? = { if case let .failed(message) = talk.status, talk.cameraID == camera.id { return message }; return nil }()
+        return Button {
+            talk.toggle(camera)
+        } label: {
+            ZStack {
+                if active, talk.status == .talking {
+                    Circle().fill(Color.red.opacity(0.25 + Double(min(talk.level * 3, 1)) * 0.5))
+                        .frame(width: 34, height: 34)
+                }
+                if talk.status == .connecting, talk.cameraID == camera.id {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: active ? "mic.fill" : "mic")
+                        .foregroundStyle(active ? Color.red : (failed != nil ? Theme.warning : Color.primary))
+                }
+            }
+            .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.hover)
+        .font(.system(size: 20))
+        .help(failed ?? (active ? String(localized: "Parar de falar") : String(localized: "Falar pela câmera: sua voz sai no alto-falante dela")))
+        .accessibilityLabel(active ? String(localized: "Parar de falar") : String(localized: "Falar pela câmera"))
+        .onDisappear { if talk.cameraID == camera.id { talk.stop() } }
     }
 
     private var videoArea: some View {

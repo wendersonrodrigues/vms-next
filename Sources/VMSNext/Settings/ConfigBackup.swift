@@ -14,7 +14,7 @@ enum ConfigBackup {
     /// Configurações por canal (".[n]" no fim).
     static let channelNames = [
         "Camera.Param", "Camera.ParamEx", "AVEnc.VideoColor", "AVEnc.VideoWidget", "Record", "Storage.Snapshot",
-        "Snap.SnapConfig", "Detect.MotionDetect", "Detect.HumanDetection", "Detect.BlindDetect", "Detect.LossDetect",
+        "Snap.SnapConfig", "Detect.MotionDetect", "Detect.HumanDetection", "Detect.FaceDetect", "Detect.FaceDetection", "Detect.BlindDetect", "Detect.LossDetect",
         "Detect.CarShapeDetection",
     ]
     /// Rede: só é restaurada se o usuário pedir (evita trocar o IP sem querer).

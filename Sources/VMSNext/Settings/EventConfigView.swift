@@ -99,6 +99,7 @@ enum EventScreen {
     case videoLoss
     case blind
     case vehicle
+    case face
     case abnormality
 
     struct Definition {
@@ -137,6 +138,10 @@ enum EventScreen {
         case .vehicle:
             return [Definition(names: { ["Detect.CarShapeDetection.[\($0)]"] }, title: String(localized: "Detecção de veículos"), original: "CarShape Detect",
                                detail: String(localized: "Alarme quando a câmera reconhece um carro ou moto. Só funciona em câmeras com essa função."))]
+        case .face:
+            return [Definition(names: { ["Detect.FaceDetection.[\($0)]", "Detect.FaceDetect.[\($0)]"] }, title: String(localized: "Detecção de rosto"),
+                               original: "Face Detection",
+                               detail: String(localized: "Alarme quando a própria câmera reconhece um rosto na imagem. Só funciona em câmeras com essa função."))]
         case .abnormality:
             return [
                 Definition(names: { _ in ["Storage.StorageNotExist", "Alarm.StorageNotExist"] }, title: String(localized: "Sem disco ou cartão"), original: "Nenhum disco",
@@ -162,6 +167,57 @@ enum EventScreen {
     }
 }
 
+/// Tamanho do rosto aceito (em 1/8192 da largura), mostrar o quadro em volta e a área onde procurar.
+struct FaceFields {
+    var minWidth: Int?
+    var maxWidth: Int?
+    var showTrack: Bool?
+    /// X1/Y1/X2/Y2 da FaceDetectArea, de 0 a 8191.
+    var area: [String: Int]?
+    /// Detect.FaceDetection (NVRs mais novos): números simples, por chave (MatchRate, sharpness, ângulos, tamanho).
+    var numbers: [String: Int] = [:]
+
+    /// Campos numéricos do Detect.FaceDetection, na ordem da tela.
+    static let numberKeys = ["MatchRate", "sharpness", "faceAngleYaw", "faceAnglePitch", "faceAngleRoll", "picWidth", "picHeight"]
+
+    init?(config: [String: Any]) {
+        minWidth = ConfigValue.int(config["FaceMinWid"])
+        maxWidth = ConfigValue.int(config["FaceMaxWid"])
+        showTrack = (config["ShowTrack"] as? Bool) ?? ConfigValue.int(config["ShowTrack"]).map { $0 != 0 }
+        if let box = config["FaceDetectArea"] as? [String: Any] {
+            area = Dictionary(uniqueKeysWithValues: ["X1", "Y1", "X2", "Y2"].compactMap { key in ConfigValue.int(box[key]).map { (key, $0) } })
+        }
+        for key in Self.numberKeys { if let value = ConfigValue.int(config[key]) { numbers[key] = value } }
+        if minWidth == nil, maxWidth == nil, area == nil, numbers.isEmpty { return nil }
+    }
+
+    func write(into config: inout [String: Any]) {
+        for (key, value) in numbers { ConfigValue.set(&config, key, value) }
+        if let minWidth { ConfigValue.set(&config, "FaceMinWid", minWidth) }
+        if let maxWidth { ConfigValue.set(&config, "FaceMaxWid", maxWidth) }
+        if let showTrack, config["ShowTrack"] != nil {
+            config["ShowTrack"] = config["ShowTrack"] is Bool ? showTrack as Any : (showTrack ? 1 : 0) as Any
+        }
+        if let area, var box = config["FaceDetectArea"] as? [String: Any] {
+            for (key, value) in area { box[key] = value }
+            config["FaceDetectArea"] = box
+        }
+    }
+
+    /// Área em 0…1 (para o desenho sobre a imagem).
+    var rect: CGRect {
+        let scale = RuleDraft.scale
+        let x1 = CGFloat(area?["X1"] ?? 0) / scale, y1 = CGFloat(area?["Y1"] ?? 0) / scale
+        let x2 = CGFloat(area?["X2"] ?? 8191) / scale, y2 = CGFloat(area?["Y2"] ?? 8191) / scale
+        return CGRect(x: x1, y: y1, width: max(x2 - x1, 0), height: max(y2 - y1, 0))
+    }
+
+    mutating func setRect(_ rect: CGRect) {
+        area = ["X1": RuleDraft.device(rect.minX), "Y1": RuleDraft.device(rect.minY),
+                "X2": min(RuleDraft.device(rect.maxX), 8191), "Y2": min(RuleDraft.device(rect.maxY), 8191)]
+    }
+}
+
 @MainActor
 final class EventConfigModel: ObservableObject {
     struct Entry: Identifiable {
@@ -174,6 +230,8 @@ final class EventConfigModel: ObservableObject {
         var level: Int?
         var lowerLimit: Int?
         var loiter: Int?
+        /// Campos da detecção de rosto (FaceMotionDetectConfig do VMS antigo), quando a câmera manda.
+        var face: FaceFields?
         var hasHandler: Bool
         var handler: HandlerState
         var id: String { name }
@@ -185,6 +243,8 @@ final class EventConfigModel: ObservableObject {
     @Published private(set) var notice: String?
     @Published var diagnosticText: String?
     @Published var entries: [Entry] = []
+    /// Desenho da área do rosto aberto (índice do item e o rascunho).
+    @Published var faceDraft: RuleDraft?
     /// Capacidades do equipamento: escondem as ações que ele não tem.
     @Published private(set) var profile = DeviceCapabilities.Profile.empty
     /// NVR: canal em edição (nil = todos os canais recebem a mesma configuração).
@@ -416,6 +476,7 @@ final class EventConfigModel: ObservableObject {
         )
         entry.supported = !(config["Enable"] is NSNull)
         entry.loiter = ConfigValue.int(config["LoiterLatch"])
+        entry.face = FaceFields(config: config)
         return entry
     }
 
@@ -425,6 +486,7 @@ final class EventConfigModel: ObservableObject {
         if let loiter = entry.loiter { ConfigValue.set(&config, "LoiterLatch", loiter) }
         if let level = entry.level { ConfigValue.set(&config, "Level", level) }
         if let limit = entry.lowerLimit { ConfigValue.set(&config, "LowerLimit", limit) }
+        entry.face?.write(into: &config)
         if entry.hasHandler, var handler = config["EventHandler"] as? [String: Any] {
             entry.handler.write(into: &handler)
             config["EventHandler"] = handler
@@ -612,6 +674,9 @@ struct EventConfigView: View {
             enableToggle(entry)
             levelPicker(entry).disabled(off)
         }
+        if entry.wrappedValue.face != nil {
+            faceSection(entry).disabled(off)
+        }
         maskSection(entry).disabled(off)
         ForEach([SmartAlertModel.ActionGroup.record, .notify, .external], id: \.self) { group in
             let actions = actionIndices(entry.wrappedValue, group: group)
@@ -682,6 +747,115 @@ struct EventConfigView: View {
                 allowedDelays.contains(entry.wrappedValue.handler.delays[$0].spec.key)
             })
         }
+    }
+
+    // MARK: - Rosto
+
+    /// Tamanhos em % da largura da imagem (no equipamento: 1/8192 da largura).
+    private static let minSizes = [2, 3, 4, 5, 6, 8, 10, 15, 20]
+    private static let maxSizes = [15, 20, 25, 30, 40, 50, 60, 80, 100]
+
+    private static func percent(_ device: Int) -> Int { Int((Double(device) / 8192 * 100).rounded()) }
+    private static func device(_ percent: Int) -> Int { min(Int((Double(percent) / 100 * 8192).rounded()), 8191) }
+
+    @ViewBuilder
+    private func faceSection(_ entry: Binding<EventConfigModel.Entry>) -> some View {
+        let face = entry.wrappedValue.face!
+        Section {
+            if let minWidth = face.minWidth {
+                sizePicker(String(localized: "Menor rosto"), original: "FaceMinWid",
+                           detail: String(localized: "Rostos menores que isso (mais longe da câmera) são ignorados."),
+                           value: minWidth, options: Self.minSizes) { entry.wrappedValue.face?.minWidth = $0 }
+            }
+            if let maxWidth = face.maxWidth {
+                sizePicker(String(localized: "Maior rosto"), original: "FaceMaxWid",
+                           detail: String(localized: "Evita confundir com rosto algo muito perto da lente."),
+                           value: maxWidth, options: Self.maxSizes) { entry.wrappedValue.face?.maxWidth = $0 }
+            }
+            if let showTrack = face.showTrack {
+                Toggle(isOn: Binding(get: { showTrack }, set: { entry.wrappedValue.face?.showTrack = $0 })) {
+                    FieldLabel(String(localized: "Mostrar o quadro do rosto"), original: "ShowTrack",
+                               detail: String(localized: "Desenha um quadro em volta do rosto no vídeo da câmera."))
+                }
+            }
+            ForEach(FaceFields.numberKeys.filter { face.numbers[$0] != nil }, id: \.self) { key in
+                faceNumberRow(key, value: face.numbers[key]!) { entry.wrappedValue.face?.numbers[key] = $0 }
+            }
+            if face.area != nil {
+                HStack {
+                    FieldLabel(String(localized: "Área de detecção"), original: "FaceDetectArea",
+                               detail: areaText(face.rect))
+                    Spacer()
+                    Button("Desenhar…") {
+                        let rect = face.rect
+                        let draft = RuleDraft(index: 0, kind: .area,
+                                              area: [CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.minY),
+                                                     CGPoint(x: rect.maxX, y: rect.maxY), CGPoint(x: rect.minX, y: rect.maxY)],
+                                              line: [], direction: 2)
+                        draft.rectangle = true
+                        model.faceDraft = draft
+                    }
+                }
+            }
+        } header: {
+            Text("Rosto")
+        } footer: {
+            Text("Os ajustes valem depois de Aplicar.").foregroundStyle(.secondary)
+        }
+        .sheet(item: $model.faceDraft) { draft in
+            RuleEditorView(draft: draft, camera: model.camera) { saved in
+                entry.wrappedValue.face?.setRect(saved.bounds)
+                return nil
+            }
+        }
+    }
+
+    /// Faixa, passo e textos de cada número do Detect.FaceDetection.
+    private static let numberSpecs: [String: (title: String, detail: String, range: ClosedRange<Int>, step: Int, unit: String)] = [
+        "MatchRate": (String(localized: "Semelhança para reconhecer"),
+                      String(localized: "Quanto um rosto precisa parecer com um rosto cadastrado no NVR para contar como a mesma pessoa. Mais alto = menos enganos, mas pode não reconhecer."),
+                      0 ... 100, 5, "%"),
+        "sharpness": (String(localized: "Nitidez mínima"),
+                      String(localized: "Ignora rostos borrados (pessoa em movimento, fora de foco). Mais alto = só fotos bem nítidas."),
+                      0 ... 100, 1, ""),
+        "faceAngleYaw": (String(localized: "Rosto virado para o lado, até"),
+                         String(localized: "Quanto a cabeça pode estar virada para a esquerda ou a direita e ainda contar como rosto."),
+                         0 ... 90, 5, "°"),
+        "faceAnglePitch": (String(localized: "Rosto para cima ou para baixo, até"),
+                           String(localized: "Quanto a cabeça pode estar levantada ou abaixada."),
+                           0 ... 90, 5, "°"),
+        "faceAngleRoll": (String(localized: "Cabeça inclinada, até"),
+                          String(localized: "Quanto a cabeça pode estar tombada para um lado."),
+                          0 ... 90, 5, "°"),
+        "picWidth": (String(localized: "Largura mínima do rosto"),
+                     String(localized: "Rostos menores que isso, em pixels, são ignorados (muito longe da câmera)."),
+                     20 ... 400, 10, " px"),
+        "picHeight": (String(localized: "Altura mínima do rosto"),
+                      String(localized: "Rostos menores que isso, em pixels, são ignorados (muito longe da câmera)."),
+                      20 ... 400, 10, " px"),
+    ]
+
+    private func faceNumberRow(_ key: String, value: Int, set: @escaping (Int) -> Void) -> some View {
+        let spec = Self.numberSpecs[key] ?? (key, "", 0 ... 1000, 1, "")
+        return Stepper(value: Binding(get: { value }, set: set), in: min(spec.range.lowerBound, value) ... max(spec.range.upperBound, value),
+                       step: spec.step) {
+            FieldLabel("\(spec.title): \(value)\(spec.unit)", original: key, detail: spec.detail)
+        }
+    }
+
+    private func sizePicker(_ title: String, original: String, detail: String, value: Int, options: [Int],
+                            set: @escaping (Int) -> Void) -> some View {
+        let current = Self.percent(value)
+        return Picker(selection: Binding(get: { current }, set: { set(Self.device($0)) })) {
+            ForEach(Array(Set(options + [current])).sorted(), id: \.self) { Text("\($0)% da largura").tag($0) }
+        } label: {
+            FieldLabel(title, original: original, detail: detail)
+        }
+    }
+
+    private func areaText(_ rect: CGRect) -> String {
+        if rect.width > 0.98, rect.height > 0.98 { return String(localized: "Imagem toda.") }
+        return String(localized: "\(Int(rect.width * 100))% × \(Int(rect.height * 100))% da imagem.")
     }
 
     // MARK: - Peças

@@ -33,6 +33,8 @@
 	<string>© 2026 Wenderson Rodrigues · Código aberto (licença MIT)</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>O VMS Next acessa as câmeras na sua rede local.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O VMS Next usa o microfone para você falar pelo alto-falante da câmera (conversa).</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

@@ -9,6 +9,15 @@ final class VersionModel: ObservableObject {
 
     let camera: Camera
     @Published var capabilitiesText: String?
+    /// Varredura completa em andamento: pedidos feitos e total.
+    @Published var scanProgress: (done: Int, total: Int)?
+
+    func scan() async {
+        scanProgress = (0, 1)
+        let text = await DeviceScan.run(camera: camera) { [weak self] done, total in self?.scanProgress = (done, total) }
+        scanProgress = nil
+        capabilitiesText = text
+    }
 
     /// Campos conhecidos, na ordem em que aparecem; os demais vêm depois com o nome original.
     private static let labels: [(key: String, label: String)] = [
@@ -107,7 +116,17 @@ struct VersionView: View {
 
             Divider()
             HStack {
+                if let progress = model.scanProgress {
+                    ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
+                        .frame(width: 140)
+                    Text("\(progress.done) de \(progress.total)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
                 Spacer()
+                Button("Varredura completa…") {
+                    Task { await model.scan() }
+                }
+                .disabled(model.scanProgress != nil)
+                .help("Pede ao equipamento todas as configurações que o VMS antigo conhece e mostra quais ele tem. Só leitura; leva cerca de um minuto.")
                 Button("Capacidades…") {
                     Task { capabilitiesText = await DeviceCapabilities.diagnostic(camera: model.camera) }
                 }

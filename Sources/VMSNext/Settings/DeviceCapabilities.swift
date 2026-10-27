@@ -89,6 +89,13 @@ enum DeviceCapabilities {
         return ptzFunctions.contains { supports(functions, $0) }
     }
 
+    /// Conversa (falar pela câmera): só câmeras avulsas que informam a função.
+    @MainActor
+    static func hasTalk(_ camera: Camera) async -> Bool {
+        guard camera.group == nil, let functions = await systemFunction(for: camera) else { return false }
+        return ["PreviewFunction.Talk", "OtherFunction.SupportTwoWayVoiceTalk"].contains { supports(functions, $0) }
+    }
+
     /// SystemFunction do equipamento (guardado por endereço). nil quando ele não informa.
     @MainActor
     static func systemFunction(for camera: Camera) async -> [String: Any]? {

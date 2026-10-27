@@ -374,6 +374,38 @@ enum ConfigFormSpecs {
             abilities: ["PTZProtocol", "UartProtocol"])
     }
 
+    // MARK: - Som (alto-falante e microfone da câmera)
+
+    /// Volume do alto-falante (fVideo.Volume, o "Volume" do VMS antigo) e, se a câmera tiver, do microfone.
+    static func volume(camera: Camera) -> ConfigFormSpec {
+        let channel = camera.channel - 1
+        return ConfigFormSpec(
+            intro: String(localized: "Volume do alto-falante da câmera (a voz da conversa e os avisos sonoros) e do microfone dela."),
+            sources: [
+                ConfigSource(name: "fVideo.Volume", element: channel),
+                // Microfone: nome do SDK do VMS Pro (Windows, 2026); o SDK do VMS antigo não conhece.
+                ConfigSource(name: "fVideo.VolumeIn", element: channel),
+                // Volume do aparelho de áudio (também só no VMS Pro): por enquanto só no Diagnóstico.
+                ConfigSource(name: "fVideo.AudioDeviceVolume", element: channel),
+            ],
+            sections: [
+                ConfigSection(title: String(localized: "Alto-falante"), fields: [
+                    ConfigField(source: 0, path: ["LeftVolume"], kind: .slider(0 ... 100),
+                                title: String(localized: "Volume do alto-falante"), original: "LeftVolume",
+                                detail: String(localized: "Quão alto sai a sua voz na conversa e os avisos da câmera.")),
+                    // Em AudioMode "Single" (um alto-falante) a câmera usa só o LeftVolume; o RightVolume fica como está.
+                ]),
+                ConfigSection(title: String(localized: "Microfone"), fields: [
+                    ConfigField(source: 1, path: ["LeftVolume"], kind: .slider(0 ... 100),
+                                title: String(localized: "Volume do microfone"), original: "VolumeIn",
+                                detail: String(localized: "Quão alto a câmera capta o som do ambiente.")),
+                    ConfigField(source: 1, path: ["AnrOpen"], kind: .toggle,
+                                title: String(localized: "Redução de ruído"), original: "AnrOpen",
+                                detail: String(localized: "Diminui chiado, vento e barulho de fundo no som da câmera (ao vivo e nas gravações).")),
+                ]),
+            ])
+    }
+
     // MARK: - Serviços de rede (abas da "Rede")
 
     static func networkServices(camera: Camera) -> ConfigFormSpec {

@@ -13,7 +13,12 @@ final class RuleDraft: ObservableObject, Identifiable {
     let id = UUID()
     let index: Int
     @Published var kind: Kind
-    @Published var area: [CGPoint]
+    @Published var area: [CGPoint] {
+        didSet { if rectangle { keepRectangle(old: oldValue) } }
+    }
+    /// Só retângulo (área do rosto): mover um canto leva junto os dois vizinhos.
+    var rectangle = false
+    private var adjusting = false
     @Published var line: [CGPoint]
     @Published var direction: Int
 
@@ -35,6 +40,26 @@ final class RuleDraft: ObservableObject, Identifiable {
             let angle = -Double.pi / 2 + Double(i) * 2 * Double.pi / Double(sides)
             return CGPoint(x: 0.5 + 0.32 * cos(angle), y: 0.5 + 0.32 * sin(angle))
         }
+    }
+
+    /// Cantos em ordem: 0 em cima à esquerda, 1 em cima à direita, 2 embaixo à direita, 3 embaixo à esquerda.
+    private func keepRectangle(old: [CGPoint]) {
+        guard !adjusting, area.count == 4, old.count == 4,
+              let moved = area.indices.first(where: { area[$0] != old[$0] }) else { return }
+        adjusting = true
+        defer { adjusting = false }
+        let point = area[moved]
+        let sameX = [3, 2, 1, 0][moved]
+        let sameY = [1, 0, 3, 2][moved]
+        area[sameX].x = point.x
+        area[sameY].y = point.y
+    }
+
+    /// Retângulo que cobre os pontos (0…1), para gravar como X1/Y1/X2/Y2.
+    var bounds: CGRect {
+        let xs = area.map(\.x), ys = area.map(\.y)
+        guard let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max() else { return .zero }
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
     func coverWholeImage() {
@@ -74,11 +99,19 @@ struct RuleEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Área ou linha de aviso · \(camera.displayName)").font(.headline)
+            Text(draft.rectangle ? String(localized: "Área de detecção de rosto · \(camera.displayName)")
+                                 : String(localized: "Área ou linha de aviso · \(camera.displayName)")).font(.headline)
 
             canvas
                 .frame(maxWidth: .infinity)
 
+            if draft.rectangle {
+                HStack(spacing: 8) {
+                    Button("Imagem toda") { draft.coverWholeImage() }
+                    Text("A câmera só procura rostos dentro do retângulo. Arraste os cantos brancos para ajustar.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
             Picker(selection: $draft.kind) {
                 Text("Área de aviso").tag(RuleDraft.Kind.area)
                 Text("Linha de aviso").tag(RuleDraft.Kind.line)
@@ -112,6 +145,7 @@ struct RuleEditorView: View {
                 Text("Alerta quando uma pessoa cruzar a linha. Arraste as pontas para ajustar.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            }
 
             if let error = state.error {
                 Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
@@ -121,7 +155,7 @@ struct RuleEditorView: View {
                 Spacer()
                 Button("Cancelar") { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("Salvar na câmera") {
+                Button(draft.rectangle ? String(localized: "Usar esta área") : String(localized: "Salvar na câmera")) {
                     Task {
                         state.saving = true
                         state.error = await onSave(draft)

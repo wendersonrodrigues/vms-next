@@ -14,6 +14,9 @@ final class DVRIPMediaConnection: @unchecked Sendable {
         static let monitor = Kind(name: "OPMonitor", claimCode: 1413, dataCode: 1412)
         /// Reprodução/download: Claim 1424 (resposta 1425), dados 1426.
         static let playback = Kind(name: "OPPlayBack", claimCode: 1424, dataCode: 1426)
+        /// Conversa: Claim 1434 (resposta 1435); o áudio da câmera chega em 1433 e o do Mac vai em 1432
+        /// (TALK_CU_PU_DATA, o mesmo código do H264_DVR_VoiceComSendData do SDK).
+        static let talk = Kind(name: "OPTalk", claimCode: 1434, dataCode: 1433)
     }
 
     var onData: ((Data) -> Void)?
@@ -31,6 +34,8 @@ final class DVRIPMediaConnection: @unchecked Sendable {
     private var receiving = false
     private var finished = false
     private(set) var bytesReceived = 0
+    private var session: UInt32 = 0
+    private var sequence: UInt32 = 1
 
     init(host: String, port: Int, kind: Kind = .playback) {
         self.host = host
@@ -46,6 +51,7 @@ final class DVRIPMediaConnection: @unchecked Sendable {
             "Name": kind.name, "SessionID": sessionString, kind.name: payload,
         ])
         let claimCode = kind.claimCode
+        queue.sync { self.session = session }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [self] in
                 claimContinuation = continuation
@@ -70,6 +76,16 @@ final class DVRIPMediaConnection: @unchecked Sendable {
                     fail(.timeout)
                 }
             }
+        }
+    }
+
+    /// Envia uma mensagem nesta conexão (o áudio do Mac na conversa).
+    func send(code: UInt16, body: Data) {
+        queue.async { [self] in
+            guard !finished, let connection else { return }
+            let frame = DVRIPClient.makeFrame(session: session, sequence: sequence, code: code, body: body)
+            sequence &+= 1
+            connection.send(content: frame, completion: .contentProcessed { _ in })
         }
     }
 

@@ -5,6 +5,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case imageParams
     case exposure
     case encoding
+    case volume
     case overlay
     case recording
     case snapshot
@@ -12,6 +13,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case videoLoss
     case blind
     case vehicle
+    case face
     case abnormality
     case alarmOutput
     case disk
@@ -34,6 +36,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams: return String(localized: "Imagem e visão noturna")
         case .exposure: return String(localized: "Exposição e ajustes finos")
         case .encoding: return String(localized: "Qualidade do vídeo e som")
+        case .volume: return String(localized: "Volume")
         case .netServices: return String(localized: "Serviços de rede")
         case .ptzSerial: return String(localized: "PTZ por cabo")
         case .overlay: return String(localized: "Texto na imagem")
@@ -43,6 +46,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .videoLoss: return String(localized: "Perda de vídeo")
         case .blind: return String(localized: "Câmera bloqueada")
         case .vehicle: return String(localized: "Detecção de veículos")
+        case .face: return String(localized: "Detecção de rosto")
         case .abnormality: return String(localized: "Problemas no equipamento")
         case .alarmOutput: return String(localized: "Saída de alarme")
         case .disk: return String(localized: "Disco / cartão")
@@ -64,6 +68,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams: return "Parâmetros da cam"
         case .exposure: return "Parâmetros da cam"
         case .encoding: return "Mídia"
+        case .volume: return "Volume"
         case .netServices: return "Rede (Nuvem, RTSP, Wifi…)"
         case .ptzSerial: return "Config. de PTZ"
         case .overlay: return "Sobrepor"
@@ -73,6 +78,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .videoLoss: return "Video Loss"
         case .blind: return "Video Blind"
         case .vehicle: return "CarShape Detect"
+        case .face: return "Face Detection"
         case .abnormality: return "Anormalidade"
         case .alarmOutput: return "Saída de alarme"
         case .disk: return "Gerenciamento de disco"
@@ -93,6 +99,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams: return String(localized: "Brilho, cores, espelhar e modo noturno")
         case .exposure: return String(localized: "Exposição, ganho, ruído e filtro IR")
         case .encoding: return String(localized: "Resolução, compressão, FPS e áudio")
+        case .volume: return String(localized: "Alto-falante e microfone da câmera")
         case .netServices: return String(localized: "Nuvem, RTSP, filtro de IP, Wi-Fi e alertas no celular")
         case .ptzSerial: return String(localized: "Protocolo e porta serial RS485 do motor")
         case .overlay: return String(localized: "Nome do canal e data/hora sobre o vídeo")
@@ -102,6 +109,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .videoLoss: return String(localized: "Aviso quando a imagem do canal some")
         case .blind: return String(localized: "Aviso quando a lente é coberta")
         case .vehicle: return String(localized: "Aviso quando aparece um carro ou moto")
+        case .face: return String(localized: "Aviso quando a câmera vê um rosto")
         case .abnormality: return String(localized: "Disco, rede e conflito de IP")
         case .alarmOutput: return String(localized: "Sirene, luz ou relé ligados ao equipamento")
         case .disk: return String(localized: "Espaço livre, estado e disco cheio")
@@ -120,8 +128,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var group: SettingsGroup {
         switch self {
         case .imageParams, .exposure, .overlay: return .image
-        case .encoding, .recording, .snapshot, .disk: return .storage
-        case .smartAlert, .videoLoss, .blind, .vehicle, .abnormality, .alarmOutput: return .alarms
+        case .encoding, .volume, .recording, .snapshot, .disk: return .storage
+        case .smartAlert, .videoLoss, .blind, .vehicle, .face, .abnormality, .alarmOutput: return .alarms
         case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version,
              .digitalChannels, .channelMode, .channelStatus: return .device
         }
@@ -133,6 +141,9 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .videoLoss: return ["AlarmFunction.LossDetect"]
         case .blind: return ["AlarmFunction.BlindDetect"]
         case .vehicle: return ["AlarmFunction.CarShapeDetection"]
+        case .volume: return ["OtherFunction.SupportSetVolume", "OtherFunction.SupportSetInVolume"]
+        // Como no VMS antigo: só nas câmeras que informam a detecção de rosto.
+        case .face: return ["AlarmFunction.FaceDetect", "OtherFunction.SupportFaceDetect", "OtherFunction.SupportFaceDetectV2"]
         case .abnormality: return ["AlarmFunction.StorageNotExist", "AlarmFunction.StorageFailure",
                                    "AlarmFunction.NetAbort", "AlarmFunction.NetIpConflict"]
         case .ptzSerial: return ["CommFunction.CommRS485", "CommFunction.CommRS232"]
@@ -152,6 +163,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams: return "camera.aperture"
         case .exposure: return "sun.max"
         case .encoding: return "film"
+        case .volume: return "speaker.wave.2"
         case .netServices: return "antenna.radiowaves.left.and.right"
         case .ptzSerial: return "cable.connector"
         case .overlay: return "textformat"
@@ -161,6 +173,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .videoLoss: return "video.slash"
         case .blind: return "eye.slash"
         case .vehicle: return "car"
+        case .face: return "face.dashed"
         case .abnormality: return "exclamationmark.triangle"
         case .alarmOutput: return "light.beacon.max"
         case .disk: return "internaldrive"
@@ -185,9 +198,9 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .blind, .videoLoss, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version]
-        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version, .digitalChannels, .channelMode, .channelStatus]
-        case .channel: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle]
+        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .volume, .recording, .snapshot, .smartAlert, .face, .blind, .videoLoss, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version]
+        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .face, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version, .digitalChannels, .channelMode, .channelStatus]
+        case .channel: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle, .face]
         }
     }
 }
@@ -238,6 +251,8 @@ struct SettingsContent: View {
             ConfigFormView(camera: camera, spec: ConfigFormSpecs.exposure(camera: camera))
         case .encoding:
             perChannel { ConfigFormView(camera: $0, spec: ConfigFormSpecs.encoding(camera: $0)) }
+        case .volume:
+            ConfigFormView(camera: camera, spec: ConfigFormSpecs.volume(camera: camera))
         case .netServices:
             ConfigFormView(camera: camera, spec: ConfigFormSpecs.networkServices(camera: camera))
         case .ptzSerial:
@@ -258,6 +273,8 @@ struct SettingsContent: View {
             }
         case .vehicle:
             EventConfigView(camera: camera, screen: .vehicle, allChannels: target.scope == .recorder)
+        case .face:
+            EventConfigView(camera: camera, screen: .face, allChannels: target.scope == .recorder)
         case .videoLoss:
             EventConfigView(camera: camera, screen: .videoLoss, allChannels: target.scope == .recorder)
         case .blind:
