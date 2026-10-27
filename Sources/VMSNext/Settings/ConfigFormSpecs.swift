@@ -441,7 +441,7 @@ enum ConfigFormSpecs {
 
     static func networkServices(camera: Camera) -> ConfigFormSpec {
         ConfigFormSpec(
-            intro: String(localized: "As outras abas da Rede do VMS antigo. Endereço IP, DNS e portas ficam em \"Rede\"."),
+            intro: String(localized: "As outras abas da Rede do VMS antigo. TCP/IP (endereço, DNS, portas, ONVIF e transmissão) fica em \"Rede\"; o Wi-Fi tem tela própria."),
             sources: [
                 ConfigSource(name: "NetWork.NetCommon"),
                 ConfigSource(name: "NetWork.Nat"),
@@ -456,18 +456,6 @@ enum ConfigFormSpecs {
                 ConfigSource(name: "NetWork.Upnp"),
             ],
             sections: [
-                ConfigSection(title: String(localized: "Transmissão (TCP/IP)"), fields: [
-                    ConfigField(source: 0, path: ["UseHSDownLoad"], kind: .toggle,
-                                title: String(localized: "Download rápido"), original: "Habilitar alta velocidade de download",
-                                detail: String(localized: "Baixa gravações mais rápido, usando mais da rede.")),
-                    ConfigField(source: 0, path: ["TransferPlan"], kind: .choice([
-                        ConfigOption("Quality", String(localized: "Prioriza a qualidade (Pré qualidade)")),
-                        ConfigOption("Fluency", String(localized: "Prioriza a fluidez (Pré fluência)")),
-                        ConfigOption("AutoAdapt", String(localized: "Automático (Adaptativo)")),
-                        ConfigOption("Transmission", String(localized: "Prioriza a transmissão")),
-                    ]), title: String(localized: "Política de transmissão"), original: "Política de transmissão de rede",
-                    detail: String(localized: "Em rede lenta, a fluidez reduz a qualidade para o vídeo não travar.")),
-                ]),
                 ConfigSection(title: String(localized: "Nuvem (Nuvem)"), fields: [
                     ConfigField(source: 1, path: ["NatEnable"], kind: .toggle,
                                 title: String(localized: "Acesso pela nuvem"), original: "Nuvem",
@@ -477,17 +465,6 @@ enum ConfigFormSpecs {
                                 detail: String(localized: "Padrão 1280. Só mude se o acesso pela nuvem ficar travando."),
                                 enabledWhen: ConfigCondition(source: 1, path: ["NatEnable"], values: ["1"])),
                 ], requires: "NetServerFunction.NetNat"),
-                ConfigSection(title: "ONVIF", fields: [
-                    ConfigField(source: 6, path: ["OnvifPort"], kind: .number(1 ... 65535, unit: nil),
-                                title: String(localized: "Porta ONVIF"), original: "Porta onvif",
-                                detail: String(localized: "Usada por NVRs e programas de outras marcas para achar a câmera.")),
-                    ConfigField(source: 6, path: ["Port"], kind: .number(1 ... 65535, unit: nil),
-                                title: String(localized: "Porta ONVIF"), original: "Porta onvif",
-                                detail: String(localized: "Usada por NVRs e programas de outras marcas para achar a câmera.")),
-                    ConfigField(source: 6, path: ["Enable"], kind: .toggle,
-                                title: String(localized: "Exigir senha no ONVIF"), original: "OnvifProtect",
-                                detail: String(localized: "Desligado, qualquer aparelho da rede consegue ver a câmera pelo ONVIF sem senha.")),
-                ]),
                 ConfigSection(title: "RTSP (RTSP)",
                               footer: String(localized: "O VMS Next usa o RTSP para o vídeo ao vivo das câmeras avulsas. Se mudar a porta, ajuste também \"Porta RTSP\" em Editar câmera."),
                               fields: [
@@ -505,13 +482,6 @@ enum ConfigFormSpecs {
                                   ConfigField(source: 3, path: ["BannedList"], kind: .ipAddress, title: String(localized: "Endereços bloqueados"), original: "Lista negra"),
                                   ConfigField(source: 3, path: ["Banned"], kind: .ipAddress, title: String(localized: "Endereços bloqueados"), original: "Lista negra"),
                               ], requires: "NetServerFunction.NetIPFilter"),
-                ConfigSection(title: String(localized: "Wi-Fi (Wifi)"),
-                              footer: String(localized: "Somente leitura: uma rede ou senha errada desconecta a câmera. Para trocar o Wi-Fi, use o iCSee."),
-                              fields: [
-                                  ConfigField(source: 4, path: ["Enable"], kind: .info, title: String(localized: "Wi-Fi ligado")),
-                                  ConfigField(source: 4, path: ["SSID"], kind: .info, title: String(localized: "Rede (SSID)")),
-                                  ConfigField(source: 4, path: ["HostIP"], kind: .ipAddress, title: String(localized: "IP no Wi-Fi")),
-                              ], requires: "NetServerFunction.NetWifi"),
                 ConfigSection(title: String(localized: "Notificações no celular (Pms)"), fields: [
                     ConfigField(source: 5, path: ["Enable"], kind: .toggle,
                                 title: String(localized: "Enviar alertas ao celular"), original: "Pms",

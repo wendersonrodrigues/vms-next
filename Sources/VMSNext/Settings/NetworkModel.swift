@@ -27,6 +27,12 @@ final class NetworkModel: ObservableObject {
     @Published private(set) var tcpPort = 34567
     @Published private(set) var mac = ""
     @Published private(set) var hostName = ""
+    /// "Habilitar alta velocidade de download" e "Política de transmissão de rede" (NetCommon).
+    @Published var highSpeedDownload: Bool?
+    @Published var transferPlan: String?
+    /// "Porta onvif" e "OnvifProtect" (NetWork.OnvifPwdCheckout).
+    @Published var onvifPort: Int?
+    @Published var onvifProtect: Bool?
 
     /// Wi-Fi (NetWork.Wifi), como na aba "Wifi" do VMS antigo. Câmeras como a Sala ficam no Wi-Fi e o
     /// IP do cabo (NetCommon) é outro; o app reconhece a interface em uso em vez de bloquear tudo.
@@ -50,12 +56,15 @@ final class NetworkModel: ObservableObject {
     private var dhcpRaw: [Any]?
     private var dnsRaw: [String: Any]?
     private var wifiRaw: [String: Any]?
+    private var onvifRaw: [String: Any]?
     private var loaded: (dhcp: Bool, ip: String) = (false, "")
 
     private let commonName = "NetWork.NetCommon"
     private let dhcpName = "NetWork.NetDHCP"
     private let dnsName = "NetWork.NetDNS"
     private let wifiName = "NetWork.Wifi"
+    private let onvifName = "NetWork.OnvifPwdCheckout"
+    private static let onvifPortKeys = ["OnvifPort", "Port"]
 
     init(camera: Camera) {
         self.camera = camera
@@ -78,6 +87,7 @@ final class NetworkModel: ObservableObject {
             }
         }
         if !(1 ... 65535).contains(httpPort) { return String(localized: "Porta HTTP inválida") }
+        if let onvifPort, !(1 ... 65535).contains(onvifPort) { return String(localized: "Porta ONVIF inválida") }
         return nil
     }
 
@@ -92,6 +102,7 @@ final class NetworkModel: ObservableObject {
             dhcpRaw = try await optional(client, dhcpName) as? [Any]
             dnsRaw = ConfigValue.object(in: try await optional(client, dnsName))
             wifiRaw = ConfigValue.object(in: try await optional(client, wifiName))
+            onvifRaw = ConfigValue.object(in: try await optional(client, onvifName))
             read()
         } catch {
             self.error = error.localizedDescription
@@ -121,9 +132,20 @@ final class NetworkModel: ObservableObject {
                 dnsRaw = dns
             }
 
+            if var onvif = onvifRaw {
+                if let onvifPort, let key = Self.onvifPortKeys.first(where: { onvif[$0] != nil }) {
+                    ConfigValue.set(&onvif, key, onvifPort)
+                }
+                if let onvifProtect { Self.setFlag(&onvif, "Enable", onvifProtect) }
+                try await client.setConfig(onvifName, onvif)
+                onvifRaw = onvif
+            }
+
             // O endereço é gravado por último: depois dele a conexão atual pode cair.
             var common = commonRaw ?? [:]
             ConfigValue.set(&common, "HttpPort", httpPort)
+            if let highSpeedDownload { Self.setFlag(&common, "UseHSDownLoad", highSpeedDownload) }
+            if let transferPlan { common["TransferPlan"] = transferPlan }
             if !dhcp {
                 common["HostIP"] = Self.ipToHex(ip)
                 common["Submask"] = Self.ipToHex(mask)
@@ -164,7 +186,7 @@ final class NetworkModel: ObservableObject {
 
     func diagnostic() async -> String {
         await ConfigDiagnostics.dump(camera: camera, requests: [
-            (1042, commonName), (1042, dhcpName), (1042, dnsName), (1042, wifiName),
+            (1042, commonName), (1042, dhcpName), (1042, dnsName), (1042, wifiName), (1042, onvifName),
         ])
     }
 
@@ -188,6 +210,15 @@ final class NetworkModel: ObservableObject {
         tcpPort = ConfigValue.int(common["TCPPort"]) ?? 34567
         mac = common["MAC"] as? String ?? ""
         hostName = common["HostName"] as? String ?? ""
+        highSpeedDownload = common["UseHSDownLoad"].map { ($0 as? Bool) ?? (ConfigValue.int($0) == 1) }
+        transferPlan = common["TransferPlan"] as? String
+        if let onvif = onvifRaw {
+            onvifPort = Self.onvifPortKeys.lazy.compactMap { ConfigValue.int(onvif[$0]) }.first
+            onvifProtect = onvif["Enable"].map { ($0 as? Bool) ?? (ConfigValue.int($0) == 1) }
+        } else {
+            onvifPort = nil
+            onvifProtect = nil
+        }
 
         if let index = dhcpIndex, let entry = dhcpRaw?[index] as? [String: Any] {
             hasDHCP = true
@@ -227,6 +258,13 @@ final class NetworkModel: ObservableObject {
         } catch DVRIPError.device, DVRIPError.invalidResponse {
             return nil
         }
+    }
+
+    /// Liga/desliga mantendo o tipo do campo (true/false ou 0/1).
+    private static func setFlag(_ dict: inout [String: Any], _ key: String, _ value: Bool) {
+        guard let old = dict[key] else { return }
+        let isBool = (old as? NSNumber).map { CFGetTypeID($0) == CFBooleanGetTypeID() } ?? false
+        dict[key] = isBool ? value : (value ? 1 : 0)
     }
 
     // MARK: - Endereços IPv4

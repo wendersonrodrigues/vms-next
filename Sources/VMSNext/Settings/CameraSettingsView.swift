@@ -23,6 +23,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case defaults
     case network
     case netServices
+    case wifi
     case ptzSerial
     case version
     // Só no NVR, como no VMS antigo.
@@ -38,6 +39,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .encoding: return String(localized: "Qualidade do vídeo e som")
         case .volume: return String(localized: "Volume")
         case .netServices: return String(localized: "Serviços de rede")
+        case .wifi: return String(localized: "Wi-Fi")
         case .ptzSerial: return String(localized: "PTZ por cabo")
         case .overlay: return String(localized: "Texto na imagem")
         case .recording: return String(localized: "Gravação")
@@ -70,6 +72,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .encoding: return "Mídia"
         case .volume: return "Volume"
         case .netServices: return "Rede (Nuvem, RTSP, Wifi…)"
+        case .wifi: return "Wifi"
         case .ptzSerial: return "Config. de PTZ"
         case .overlay: return "Sobrepor"
         case .recording: return "Config. de gravação"
@@ -100,7 +103,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .exposure: return String(localized: "Exposição, ganho, ruído e filtro IR")
         case .encoding: return String(localized: "Resolução, compressão, FPS e áudio")
         case .volume: return String(localized: "Alto-falante e microfone da câmera")
-        case .netServices: return String(localized: "Nuvem, RTSP, filtro de IP, Wi-Fi e alertas no celular")
+        case .netServices: return String(localized: "Nuvem, RTSP, filtro de IP, e-mail, FTP e alertas no celular")
+        case .wifi: return String(localized: "Procurar redes e trocar o Wi-Fi da câmera")
         case .ptzSerial: return String(localized: "Protocolo e porta serial RS485 do motor")
         case .overlay: return String(localized: "Nome do canal e data/hora sobre o vídeo")
         case .recording: return String(localized: "Quando gravar e tamanho dos arquivos")
@@ -130,7 +134,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams, .exposure, .overlay: return .image
         case .encoding, .volume, .recording, .snapshot, .disk: return .storage
         case .smartAlert, .videoLoss, .blind, .vehicle, .face, .abnormality, .alarmOutput: return .alarms
-        case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version,
+        case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version,
              .digitalChannels, .channelMode, .channelStatus: return .device
         }
     }
@@ -142,6 +146,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .blind: return ["AlarmFunction.BlindDetect"]
         case .vehicle: return ["AlarmFunction.CarShapeDetection"]
         case .volume: return ["OtherFunction.SupportSetVolume", "OtherFunction.SupportSetInVolume"]
+        case .wifi: return ["NetServerFunction.NetWifi"]
         // Como no VMS antigo: só nas câmeras que informam a detecção de rosto.
         case .face: return ["AlarmFunction.FaceDetect", "OtherFunction.SupportFaceDetect", "OtherFunction.SupportFaceDetectV2"]
         case .abnormality: return ["AlarmFunction.StorageNotExist", "AlarmFunction.StorageFailure",
@@ -165,6 +170,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .encoding: return "film"
         case .volume: return "speaker.wave.2"
         case .netServices: return "antenna.radiowaves.left.and.right"
+        case .wifi: return "wifi"
         case .ptzSerial: return "cable.connector"
         case .overlay: return "textformat"
         case .recording: return "record.circle"
@@ -198,7 +204,7 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .volume, .recording, .snapshot, .smartAlert, .face, .blind, .videoLoss, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .ptzSerial, .version]
+        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .volume, .recording, .snapshot, .smartAlert, .face, .blind, .videoLoss, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version]
         case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .face, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version, .digitalChannels, .channelMode, .channelStatus]
         case .channel: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle, .face]
         }
@@ -255,6 +261,8 @@ struct SettingsContent: View {
             ConfigFormView(camera: camera, spec: ConfigFormSpecs.volume(camera: camera))
         case .netServices:
             ConfigFormView(camera: camera, spec: ConfigFormSpecs.networkServices(camera: camera))
+        case .wifi:
+            WiFiView(camera: camera)
         case .ptzSerial:
             ConfigFormView(camera: camera, spec: ConfigFormSpecs.ptzSerial(camera: camera))
         case .overlay:

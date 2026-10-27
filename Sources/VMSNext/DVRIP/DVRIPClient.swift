@@ -293,18 +293,32 @@ final class DVRIPClient: @unchecked Sendable {
 
             while let last = body.last, last == 0x00 || last == 0x0A { body.removeLast() }
             guard let index = waiters.firstIndex(where: { $0.code == code }) else {
-                if let json = try? JSONSerialization.jsonObject(with: Data(body)) as? [String: Any] {
+                if let json = Self.decodeJSON(body) {
                     onPush?(code, json)
                 }
                 continue
             }
             let waiter = waiters.remove(at: index)
-            if let json = try? JSONSerialization.jsonObject(with: Data(body)) as? [String: Any] {
+            if let json = Self.decodeJSON(body) {
                 waiter.continuation.resume(returning: json)
             } else {
                 waiter.continuation.resume(throwing: DVRIPError.invalidResponse)
             }
         }
+    }
+
+    /// JSON das respostas, tolerante: nomes de redes Wi-Fi e títulos às vezes vêm com bytes que não são
+    /// UTF-8 válido (Latin-1, GBK) ou com caracteres de controle soltos, e o JSONSerialization recusa a
+    /// resposta inteira. Tenta como veio, depois com os bytes inválidos trocados e os controles removidos.
+    static func decodeJSON(_ body: [UInt8]) -> [String: Any]? {
+        if let json = try? JSONSerialization.jsonObject(with: Data(body)) as? [String: Any] { return json }
+        let cleaned = body.map { $0 < 0x20 ? 0x20 : $0 }
+        let lossy = String(decoding: cleaned, as: UTF8.self)
+        if let data = lossy.data(using: .utf8), let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] { return json }
+        if let latin = String(bytes: cleaned, encoding: .isoLatin1), let data = latin.data(using: .utf8) {
+            return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        }
+        return nil
     }
 
     private func startKeepAlive(every seconds: Int) {

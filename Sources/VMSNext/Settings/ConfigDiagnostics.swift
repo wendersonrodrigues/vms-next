@@ -26,7 +26,8 @@ enum ConfigDiagnostics {
     }
 
     /// Campos com senha ou hash de senha nunca saem no diagnóstico.
-    private static let secretKeys: Set<String> = ["password", "passwordv2", "newpassword", "deraup", "nomd5", "passwd", "pwd"]
+    private static let secretKeys: Set<String> = ["password", "passwordv2", "newpassword", "deraup", "nomd5", "passwd", "pwd",
+                                                   "keys", "wifipwd", "secret"]
 
     static func redacted(_ value: Any) -> Any {
         if let dict = value as? [String: Any] {

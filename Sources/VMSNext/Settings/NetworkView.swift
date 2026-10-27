@@ -17,58 +17,94 @@ struct NetworkView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Form {
-                    if let wifi = model.wifi, wifi.enabled {
-                        Section {
-                            LabeledContent("Rede (SSID)", value: wifi.ssid.isEmpty ? "—" : wifi.ssid)
-                            if let dhcp = wifi.dhcp {
-                                LabeledContent("IP automático (DHCP)", value: dhcp ? String(localized: "Ligado") : String(localized: "Desligado"))
-                            }
-                            LabeledContent("Endereço IP", value: wifi.ip.isEmpty ? "—" : wifi.ip)
-                            LabeledContent("Máscara de sub-rede", value: wifi.mask.isEmpty ? "—" : wifi.mask)
-                            LabeledContent("Gateway", value: wifi.gateway.isEmpty ? "—" : wifi.gateway)
-                        } header: {
-                            Text(model.connectedByWifi ? String(localized: "Wi-Fi (em uso pelo VMS Next)") : "Wi-Fi")
-                        } footer: {
-                            Text("Para trocar a rede Wi-Fi, use o iCSee: uma rede ou senha errada desconecta a câmera.")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
                     Section {
+                        Picker(selection: .constant(model.connectedByWifi ? 1 : 0)) {
+                            Text("Interface cabeada").tag(0)
+                            Text("Wi-Fi").tag(1)
+                        } label: {
+                            FieldLabel(String(localized: "Interface"), original: "Interface",
+                                       detail: String(localized: "Por onde o VMS Next está falando com a câmera agora."))
+                        }
+                        .disabled(true)
                         if model.hasDHCP {
                             Toggle(isOn: $model.dhcp) {
-                                FieldLabel(String(localized: "Obter IP automaticamente"), original: "DHCP",
+                                FieldLabel(String(localized: "Habilitar DHCP"), original: "Habilitar DHCP",
                                            detail: String(localized: "O roteador escolhe o endereço. Pode mudar sozinho, o que faz o app perder a câmera."))
                             }
+                            .disabled(!editable)
                         }
                         field(String(localized: "Endereço IP"), text: $model.ip)
                         field(String(localized: "Máscara de sub-rede"), text: $model.mask)
                         field("Gateway", text: $model.gateway)
-                    } header: {
-                        Text(model.connectedByWifi ? String(localized: "Cabo de rede (Interface cabeada, sem uso agora)") : String(localized: "Endereço"))
-                    } footer: {
-                        Text("Com DHCP o roteador escolhe o IP e ele pode mudar. Para câmeras de segurança, um IP fixo é mais confiável.")
-                            .foregroundStyle(.secondary)
-                    }
-                    .disabled(!editable)
-
-                    if model.hasDNS {
-                        Section("DNS") {
+                        if model.hasDNS {
                             TextField("DNS primário", text: $model.dns1)
+                                .font(.system(.body, design: .monospaced))
+                                .disabled(!editable)
                             TextField("DNS secundário", text: $model.dns2)
+                                .font(.system(.body, design: .monospaced))
+                                .disabled(!editable)
                         }
-                        .disabled(!editable)
+                    } header: {
+                        Text("TCP/IP")
+                    } footer: {
+                        Text(model.connectedByWifi
+                            ? String(localized: "Estes endereços são do cabo de rede. Os do Wi-Fi ficam na tela Wi-Fi.")
+                            : String(localized: "Com DHCP o roteador escolhe o IP e ele pode mudar. Para câmeras de segurança, um IP fixo é mais confiável."))
+                            .foregroundStyle(.secondary)
                     }
 
                     Section("Portas") {
+                        LabeledContent("Porta TCP (DVRIP)", value: String(model.tcpPort))
                         TextField("Porta HTTP", value: $model.httpPort, format: .number.grouping(.never))
                             .disabled(!editable)
-                        LabeledContent("Porta de controle (DVRIP)", value: String(model.tcpPort))
+                        if model.onvifPort != nil {
+                            TextField("Porta ONVIF", value: Binding(get: { model.onvifPort ?? 0 }, set: { model.onvifPort = $0 }),
+                                      format: .number.grouping(.never))
+                                .disabled(!editable)
+                        } else if model.onvifProtect != nil {
+                            // A Frente só manda o Enable; a porta fica no padrão da Xiongmai e não pode ser trocada.
+                            LabeledContent {
+                                Text("8899")
+                            } label: {
+                                FieldLabel(String(localized: "Porta ONVIF"), original: "Porta onvif",
+                                           detail: String(localized: "Padrão da câmera; este modelo não deixa trocar."))
+                            }
+                        }
                     }
 
-                    Section("Equipamento") {
+                    Section {
                         LabeledContent("Endereço MAC", value: model.mac.isEmpty ? "—" : model.mac)
-                        LabeledContent("Nome", value: model.hostName.isEmpty ? "—" : model.hostName)
+                        if model.onvifProtect != nil {
+                            Toggle(isOn: Binding(get: { model.onvifProtect ?? false }, set: { model.onvifProtect = $0 })) {
+                                FieldLabel(String(localized: "Exigir senha no ONVIF"), original: "OnvifProtect",
+                                           detail: String(localized: "Desligado, qualquer aparelho da rede consegue ver a câmera pelo ONVIF sem senha."))
+                            }
+                        }
+                        if model.highSpeedDownload != nil {
+                            Toggle(isOn: Binding(get: { model.highSpeedDownload ?? false }, set: { model.highSpeedDownload = $0 })) {
+                                FieldLabel(String(localized: "Download rápido"), original: "Habilitar alta velocidade de download",
+                                           detail: String(localized: "Baixa gravações mais rápido, usando mais da rede."))
+                            }
+                        }
+                        if model.transferPlan != nil {
+                            Picker(selection: Binding(get: { model.transferPlan ?? "" }, set: { model.transferPlan = $0 })) {
+                                Text("Prioriza a qualidade (Pré qualidade)").tag("Quality")
+                                Text("Prioriza a fluidez (Pré fluência)").tag("Fluency")
+                                Text("Automático (Adaptativo)").tag("AutoAdapt")
+                                Text("Prioriza a transmissão").tag("Transmission")
+                                if let plan = model.transferPlan, !Self.plans.contains(plan) {
+                                    Text(plan).tag(plan)
+                                }
+                            } label: {
+                                FieldLabel(String(localized: "Política de transmissão"), original: "Política de transmissão de rede",
+                                           detail: String(localized: "Em rede lenta, a fluidez reduz a qualidade para o vídeo não travar."))
+                            }
+                        }
+                        if !model.hostName.isEmpty {
+                            LabeledContent("Nome", value: model.hostName)
+                        }
                     }
+                    .disabled(!editable)
 
                     if let message = model.error ?? (editable ? model.validationError : nil) {
                         Section {
@@ -114,9 +150,11 @@ struct NetworkView: View {
         }
     }
 
+    private static let plans: Set<String> = ["Quality", "Fluency", "AutoAdapt", "Transmission"]
+
     private func field(_ title: String, text: Binding<String>) -> some View {
         TextField(title, text: text)
             .font(.system(.body, design: .monospaced))
-            .disabled(model.dhcp)
+            .disabled(model.dhcp || !editable)
     }
 }
