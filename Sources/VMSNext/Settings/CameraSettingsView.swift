@@ -16,6 +16,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     case face
     case abnormality
     case alarmOutput
+    case manualAlarm
     case disk
     case dateTime
     case maintenance
@@ -46,6 +47,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .snapshot: return String(localized: "Fotos automáticas")
         case .smartAlert: return String(localized: "Detecção inteligente")
         case .videoLoss: return String(localized: "Perda de vídeo")
+        case .manualAlarm: return String(localized: "Alarme manual")
         case .blind: return String(localized: "Câmera bloqueada")
         case .vehicle: return String(localized: "Detecção de veículos")
         case .face: return String(localized: "Detecção de rosto")
@@ -84,6 +86,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .face: return "Face Detection"
         case .abnormality: return "Anormalidade"
         case .alarmOutput: return "Saída de alarme"
+        case .manualAlarm: return "Alarme de rede (NetAlarm)"
         case .disk: return "Gerenciamento de disco"
         case .dateTime: return "Config. do sistema"
         case .maintenance: return "Manutenção"
@@ -116,6 +119,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .face: return String(localized: "Aviso quando a câmera vê um rosto")
         case .abnormality: return String(localized: "Disco, rede e conflito de IP")
         case .alarmOutput: return String(localized: "Sirene, luz ou relé ligados ao equipamento")
+        case .manualAlarm: return String(localized: "Disparar o alarme pelo Mac e o que ele faz")
         case .disk: return String(localized: "Espaço livre, estado e disco cheio")
         case .dateTime: return String(localized: "Relógio, fuso, nome e idioma do equipamento")
         case .maintenance: return String(localized: "Reiniciar e reinício automático")
@@ -133,7 +137,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .imageParams, .exposure, .overlay: return .image
         case .encoding, .volume, .recording, .snapshot, .disk: return .storage
-        case .smartAlert, .videoLoss, .blind, .vehicle, .face, .abnormality, .alarmOutput: return .alarms
+        case .smartAlert, .videoLoss, .blind, .vehicle, .face, .abnormality, .alarmOutput, .manualAlarm: return .alarms
         case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version,
              .digitalChannels, .channelMode, .channelStatus: return .device
         }
@@ -182,6 +186,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .face: return "face.dashed"
         case .abnormality: return "exclamationmark.triangle"
         case .alarmOutput: return "light.beacon.max"
+        case .manualAlarm: return "bell.and.waves.left.and.right"
         case .disk: return "internaldrive"
         case .dateTime: return "clock"
         case .maintenance: return "wrench.and.screwdriver"
@@ -204,8 +209,8 @@ enum SettingsScope {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .volume, .recording, .snapshot, .smartAlert, .face, .blind, .videoLoss, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version]
-        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .face, .abnormality, .alarmOutput, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version, .digitalChannels, .channelMode, .channelStatus]
+        case .camera: return [.imageParams, .exposure, .overlay, .encoding, .volume, .recording, .snapshot, .smartAlert, .face, .blind, .videoLoss, .abnormality, .alarmOutput, .manualAlarm, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version]
+        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .face, .abnormality, .alarmOutput, .manualAlarm, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version, .digitalChannels, .channelMode, .channelStatus]
         case .channel: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle, .face]
         }
     }
@@ -291,6 +296,8 @@ struct SettingsContent: View {
             EventConfigView(camera: camera, screen: .abnormality)
         case .alarmOutput:
             AlarmOutputView(camera: camera)
+        case .manualAlarm:
+            EventConfigView(camera: camera, screen: .manualAlarm)
         case .disk:
             DiskView(camera: camera)
         case .dateTime:

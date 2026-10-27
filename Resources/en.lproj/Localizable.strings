@@ -1615,3 +1615,20 @@
 "Porta TCP (DVRIP)" = "TCP port (DVRIP)";
 "Porta ONVIF inválida" = "Invalid ONVIF port";
 "Padrão da câmera; este modelo não deixa trocar." = "Camera default; this model doesn't allow changing it.";
+
+/* Alarme manual */
+"Alarme manual" = "Manual alarm";
+"Disparar o alarme pelo Mac e o que ele faz" = "Trigger the alarm from the Mac and what it does";
+"Quando você dispara o alarme pelo VMS Next, a câmera faz as ações escolhidas abaixo: voz, sirene, gravar, foto." = "When you trigger the alarm from VMS Next, the camera performs the actions chosen below: voice, siren, recording, photo.";
+"Alarme disparado." = "Alarm triggered.";
+"Alarme parado." = "Alarm stopped.";
+"Alarme manual disparado" = "Manual alarm triggered";
+"Alarme manual parado" = "Manual alarm stopped";
+"A câmera não aceitou o alarme: %@" = "The camera didn't accept the alarm: %@";
+"Disparar alarme" = "Trigger alarm";
+"Alarme ligado" = "Alarm on";
+"Disparar agora" = "Trigger now";
+"Use para testar a voz de alarme, a sirene ou a luz. As ações e o tempo do alarme ficam nas seções abaixo; aplique antes de disparar." = "Use it to test the alarm voice, siren or light. The alarm's actions and timing are in the sections below; apply before triggering.";
+
+"Este equipamento não tem alarme manual." = "This device has no manual alarm.";
+"Este equipamento não tem alarme manual (NetAlarm). Nas câmeras com sirene, luz ou relé, use \"Saída de alarme\" no modo manual." = "This device has no manual alarm (NetAlarm). On cameras with a siren, light or relay, use \"Alarm output\" in manual mode.";

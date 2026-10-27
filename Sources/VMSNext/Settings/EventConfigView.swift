@@ -101,6 +101,8 @@ enum EventScreen {
     case vehicle
     case face
     case abnormality
+    /// Alarme de rede (Alarm.NetAlarm): disparado pelo app com OPNetAlarm, faz o que o EventHandler mandar.
+    case manualAlarm
 
     struct Definition {
         /// Nomes tentados em ordem (modelos diferentes usam prefixos diferentes).
@@ -142,6 +144,9 @@ enum EventScreen {
             return [Definition(names: { ["Detect.FaceDetection.[\($0)]", "Detect.FaceDetect.[\($0)]"] }, title: String(localized: "Detecção de rosto"),
                                original: "Face Detection",
                                detail: String(localized: "Alarme quando a própria câmera reconhece um rosto na imagem. Só funciona em câmeras com essa função."))]
+        case .manualAlarm:
+            return [Definition(names: { ["Alarm.NetAlarm.[\($0)]", "Alarm.NetAlarm"] }, title: String(localized: "Alarme manual"), original: "NetAlarm",
+                               detail: String(localized: "Quando você dispara o alarme pelo VMS Next, a câmera faz as ações escolhidas abaixo: voz, sirene, gravar, foto."))]
         case .abnormality:
             return [
                 Definition(names: { _ in ["Storage.StorageNotExist", "Alarm.StorageNotExist"] }, title: String(localized: "Sem disco ou cartão"), original: "Nenhum disco",
@@ -270,6 +275,28 @@ final class EventConfigModel: ObservableObject {
 
     var availableChannels: [Int] { perChannel.keys.sorted() }
 
+    @Published private(set) var triggering = false
+    @Published private(set) var alarmActive = false
+
+    /// OPNetAlarm (código 1506, como H264_DVR_SendNetAlarmMsg do SDK): State 1 dispara, 0 para.
+    func setNetAlarm(_ on: Bool) async {
+        triggering = true
+        error = nil
+        notice = nil
+        defer { triggering = false }
+        do {
+            let client = try await DeviceSessions.shared.client(for: camera)
+            try await client.command(code: 1506, name: "OPNetAlarm", payload: ["Event": 0, "State": on ? 1 : 0])
+            alarmActive = on
+            notice = on ? String(localized: "Alarme disparado.") : String(localized: "Alarme parado.")
+            AppLog.record(.device, on ? String(localized: "Alarme manual disparado") : String(localized: "Alarme manual parado"), device: camera.host)
+        } catch DVRIPError.device(102) {
+            self.error = String(localized: "Este equipamento não tem alarme manual.")
+        } catch {
+            self.error = String(localized: "A câmera não aceitou o alarme: \(error.localizedDescription)")
+        }
+    }
+
     /// O canal tem a função: respondeu com a configuração e o "Enable" não veio vazio.
     func isSupported(_ channel: Int) -> Bool {
         perChannel[channel]?.supported ?? false
@@ -330,7 +357,9 @@ final class EventConfigModel: ObservableObject {
                 result.append(entry)
             }
             entries = result
-            if entries.isEmpty {
+            // Sem Alarm.NetAlarm o equipamento recusa o OPNetAlarm (código 102), mesmo dizendo
+            // AlarmFunction.NetAlarm = true (Frente e Sala); a tela explica isso em vez de dar erro.
+            if entries.isEmpty, screen != .manualAlarm {
                 error = String(localized: "Este equipamento não informou essas configurações. Use \"Diagnóstico…\" e me envie o resultado.")
             }
         } catch {
@@ -533,6 +562,9 @@ struct EventConfigView: View {
                     if model.allChannels, !model.entries.isEmpty {
                         channelPicker
                     }
+                    if model.screen == .manualAlarm {
+                        manualAlarmSection
+                    }
                     if model.screen.isSingle, !model.entries.isEmpty {
                         singleSections($model.entries[0])
                     } else {
@@ -558,6 +590,55 @@ struct EventConfigView: View {
         .task { await model.load() }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")
+        }
+    }
+
+    // MARK: - Alarme manual
+
+    @ViewBuilder
+    private var manualAlarmSection: some View {
+        if model.entries.isEmpty {
+            Section {
+                Label("Este equipamento não tem alarme manual (NetAlarm). Nas câmeras com sirene, luz ou relé, use \"Saída de alarme\" no modo manual.",
+                      systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Disparar agora")
+            }
+        } else {
+            manualAlarmControls
+        }
+    }
+
+    private var manualAlarmControls: some View {
+        Section {
+            HStack(spacing: 10) {
+                Button {
+                    Task { await model.setNetAlarm(true) }
+                } label: {
+                    Label("Disparar alarme", systemImage: "bell.and.waves.left.and.right.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.warning)
+                Button {
+                    Task { await model.setNetAlarm(false) }
+                } label: {
+                    Label("Parar", systemImage: "bell.slash")
+                }
+                if model.triggering { ProgressView().controlSize(.small) }
+                Spacer()
+                if model.alarmActive {
+                    Label("Alarme ligado", systemImage: "circle.fill")
+                        .foregroundStyle(Theme.warning)
+                        .font(.callout)
+                }
+            }
+            .disabled(model.triggering)
+        } header: {
+            Text("Disparar agora")
+        } footer: {
+            Text("Use para testar a voz de alarme, a sirene ou a luz. As ações e o tempo do alarme ficam nas seções abaixo; aplique antes de disparar.")
+                .foregroundStyle(.secondary)
         }
     }
 
