@@ -1,5 +1,19 @@
 # Novidades
 
+## 1.4.0 — 27/10/2026
+
+- **Conversa pela câmera**: botão de microfone na câmera em tela única; o que você fala no Mac sai no alto-falante da câmera.
+- **Volume**: alto-falante e microfone da câmera, com redução de ruído.
+- **Voz do aviso** na Detecção inteligente: escolher a voz que a câmera toca (sino, "Você entrou na área monitorada" ou personalizada), o intervalo de repetição e os horários da semana em que ela pode tocar.
+- **Detecção de rosto**: semelhança, nitidez, ângulos e tamanho do rosto no NVR, e a área desenhada sobre a imagem nas câmeras.
+- **Alarme manual**: botões Disparar e Parar e o que o equipamento faz quando o alarme dispara (no NVR; as câmeras avulsas não têm essa função).
+- **Wi-Fi completo**: procurar redes com o sinal de cada uma, trocar de rede com segurança (o app acha a câmera de novo pelo número de série), ligar e desligar o Wi-Fi e o DHCP dele.
+- **Rede no formato TCP/IP** do VMS antigo: interface em uso, DHCP, IP, máscara, gateway, DNS, portas TCP, HTTP e ONVIF, MAC, senha no ONVIF, download rápido e política de transmissão.
+- **Serviços de rede**: e-mail de alarme e FTP (com botões de teste), DDNS e UPnP.
+- **Cartão**: opção de reiniciar a câmera quando o cartão falhar.
+- **Varredura completa** em Informações, para descobrir o que cada equipamento tem.
+- Correções: câmeras que davam "Resposta inválida" (Quintal, Frente) agora são lidas, e as senhas do Wi-Fi não aparecem mais no Diagnóstico.
+
 ## 1.3.0 — 26/10/2026
 
 - **Eventos com IA no Mac**: antes de avisar, o app pega uma foto da câmera e o Vision do macOS procura pessoas, rostos, veículos, cães e gatos (e placas). O alerta diz o que apareceu, a notificação leva a foto e movimento sem nada vira provável falso alarme. Tudo no Mac, sem internet.

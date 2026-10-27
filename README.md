@@ -159,7 +159,7 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **Split virtual** para câmeras duplas: uma imagem vira dois quadros (cima e baixo) com um só vídeo da câmera, nomes próprios e o nome oficial sempre junto.
 - Barra embaixo de cada quadro do mosaico: nome (e a câmera ligada, nas metades do split), **PTZ**, **som** e **expandir**.
 - **Zoom digital** em cada quadro e na câmera em tela cheia: **roda do mouse** mirando onde o mouse está, botões, pinça no trackpad e arrastar.
-- Câmera em tela cheia com barra de baixo: **som**, **HD/SD**, **foto**, **Gravar** e **PTZ**.
+- Câmera em tela cheia com barra de baixo: **som**, **conversa pela câmera** (microfone do Mac no alto-falante dela), **HD/SD**, **foto**, **Gravar** e **PTZ**.
 - **PTZ** no pé da lista de câmeras, uma câmera por vez, no arranjo do VMS antigo: 8 direções, zoom óptico, íris, foco, passo, **presets** e **ronda** (com janela de edição), escolhidos numa lista. Inverter esquerda/direita e cima/baixo por câmera. O botão só aparece nas câmeras com PTZ (automático ou escolhido em Editar câmera).
 - **Áudio** G.711 das câmeras, um som por vez.
 - Lista de câmeras **reordenável** arrastando; NVR como grupo com seus canais.
@@ -205,10 +205,11 @@ Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido 
 - **Exposição e ajustes finos**: modo de exposição com os tempos da câmera, ganho, faixa dinâmica (WDR), ruído, estilo e filtro IR.
 - **Texto na imagem** e máscaras de privacidade.
 - **Qualidade do vídeo e som**: seletor de canal (câmeras de lente dupla), compressão (H.265X/H.265), resolução, qualidade, FPS, CBR/VBR, taxa de bits, intervalo de quadro, áudio, perfil e Smart Encode (H265AI), com aviso para reiniciar.
+- **Volume** do alto-falante e do microfone da câmera, com redução de ruído.
 - **Gravação** com agenda semanal pintável, **Fotos automáticas** e **Disco / cartão**.
-- **Alarmes**: detecção inteligente com área e linha de aviso, perda de vídeo, câmera bloqueada, veículos, problemas no equipamento e saída de alarme.
-- **Equipamento**: sistema e horário (com fuso horário e servidor de horário), manutenção, usuários, restaurar padrão, rede, serviços de rede (nuvem, RTSP, filtro de IP, Wi-Fi, notificações no celular), **PTZ por cabo** (RS485) e informações.
-- **Diagnóstico** em JSON (sem senhas) em cada tela, e **Capacidades…** em Informações.
+- **Alarmes**: detecção inteligente com área e linha de aviso e a **voz do aviso** (qual voz, repetição e horários), **detecção de rosto**, perda de vídeo, câmera bloqueada, veículos, problemas no equipamento (com reiniciar quando o cartão falhar), saída de alarme e **alarme manual**.
+- **Equipamento**: sistema e horário (com fuso horário e servidor de horário), manutenção, usuários, restaurar padrão, **rede** no formato TCP/IP do VMS antigo (interface, DHCP, DNS, portas TCP/HTTP/ONVIF, download rápido e política de transmissão), **Wi-Fi** (procurar redes e trocar de rede com segurança), serviços de rede (nuvem, RTSP, filtro de IP, **e-mail e FTP com teste**, **DDNS**, **UPnP**, notificações no celular), **PTZ por cabo** (RS485) e informações.
+- **Diagnóstico** em JSON (sem senhas) em cada tela, e **Capacidades…** e **Varredura completa…** em Informações.
 
 ### Acessibilidade e teclado
 Interface revista pelas regras da Apple para o macOS ([docs/REVISAO-INTERFACE-MACOS.md](docs/REVISAO-INTERFACE-MACOS.md)).
@@ -241,7 +242,6 @@ O que está nos planos (ideias e pedidos são bem-vindos nas *Issues*):
 - PTZ pelas setas do teclado e **Return** para abrir a câmera escolhida no mosaico.
 - **Delete** para apagar itens nas configurações (máscaras, usuários, passos do rodízio).
 - Opção **H265+** da codificação inteligente e conferência do perfil de codificação em mais modelos.
-- Aba **Wi-Fi** completa (procurar redes e trocar de rede com segurança).
 - **Filtro de IP** e **horário de verão** editáveis.
 - Trocar o IP de uma câmera pelo NVR e **atualizar o firmware** pelo app.
 - Mais preferências do VMS antigo (conectar sozinho, trocar HD/SD automático).

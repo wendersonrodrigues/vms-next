@@ -25,7 +25,7 @@ struct HelpView: View {
                     String(localized: "As senhas ficam num cofre criptografado só deste Mac. Para levar a lista a outro Mac, use + → Exportar câmeras (as senhas não vão junto)."),
                 ])
                 section(String(localized: "Ao vivo"), [
-                    String(localized: "Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, HD/SD, foto e Gravar."),
+                    String(localized: "Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, conversa (o microfone do Mac sai no alto-falante da câmera), HD/SD, foto e Gravar."),
                     String(localized: "Embaixo do mosaico: modelo de tela (arraste câmeras da lista para os quadros) e rodízio de telas."),
                     String(localized: "Zoom digital: roda do mouse em cima do quadro (amplia onde o mouse está), pinça no trackpad ou os botões da lateral; arraste para mover."),
                     String(localized: "PTZ: o botão PTZ do quadro abre o controle no pé da lista de câmeras, com setas, zoom, foco, presets e ronda."),
@@ -44,6 +44,8 @@ struct HelpView: View {
                 ])
                 section(String(localized: "Configurações e preferências"), [
                     String(localized: "Configurações: ajustes da câmera ou do NVR escolhido na lista, organizados por assunto. Só aparecem as opções que o equipamento tem."),
+                    String(localized: "Rede e Wi-Fi: endereço, DNS e portas como no VMS antigo; o Wi-Fi procura redes e troca de rede com segurança, achando a câmera de novo depois."),
+                    String(localized: "Alarmes: a voz que a câmera toca e em que horários, detecção de rosto e o alarme manual (disparar e parar pelo Mac, no NVR)."),
                     String(localized: "Preferências (⌘,): idioma, pastas, aparência, gravação no Mac, sons e segundo plano. Ajustes dos alertas (em Eventos): notificações, sons e a IA."),
                 ])
                 Text("O VMS Next fala direto com os equipamentos na sua rede, sem nuvem e sem o SDK da fabricante. É um projeto independente, sem ligação com a Xiongmai.")

@@ -1635,3 +1635,8 @@
 
 "Reiniciar quando o cartão falhar" = "Restart when the card fails";
 "A câmera reinicia sozinha se o disco ou cartão parar de responder. Muitas vezes isso faz a gravação voltar." = "The camera restarts by itself if the disk or card stops responding. This often gets recording working again.";
+
+/* Ajuda 1.4.0 */
+"Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, conversa (o microfone do Mac sai no alto-falante da câmera), HD/SD, foto e Gravar." = "Double-click a camera to open it full screen; the bottom bar has sound, talk (the Mac's microphone plays on the camera's speaker), HD/SD, photo and Record.";
+"Rede e Wi-Fi: endereço, DNS e portas como no VMS antigo; o Wi-Fi procura redes e troca de rede com segurança, achando a câmera de novo depois." = "Network and Wi-Fi: address, DNS and ports as in the old VMS; Wi-Fi scans for networks and switches safely, finding the camera again afterwards.";
+"Alarmes: a voz que a câmera toca e em que horários, detecção de rosto e o alarme manual (disparar e parar pelo Mac, no NVR)." = "Alarms: which voice the camera plays and when, face detection and the manual alarm (trigger and stop it from the Mac, on the NVR).";
