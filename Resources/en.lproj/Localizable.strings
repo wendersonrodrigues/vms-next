@@ -1498,3 +1498,16 @@
 "Falar pela câmera" = "Talk through the camera";
 "Redução de ruído" = "Noise reduction";
 "Diminui chiado, vento e barulho de fundo no som da câmera (ao vivo e nas gravações)." = "Reduces hiss, wind and background noise in the camera's sound (live and in recordings).";
+
+"Sino de alarme" = "Alarm bell";
+"\"Você entrou na área monitorada\"" = "\"You have entered the monitored area\"";
+"Personalizada (gravada no app do celular)" = "Custom (recorded in the phone app)";
+"Outra (%lld)" = "Other (%lld)";
+"Voz do aviso" = "Alert voice";
+"O som que a câmera toca pelo alto-falante quando detecta." = "The sound the camera plays through its speaker when it detects.";
+"Repetir a voz: sem repetir" = "Repeat the voice: no repeat";
+"Repetir a voz a cada %lld s" = "Repeat the voice every %lld s";
+"Enquanto o alarme continuar, a câmera repete a voz nesse intervalo. 0 = toca uma vez." = "While the alarm continues, the camera repeats the voice at this interval. 0 = plays once.";
+"Horários em que a câmera pode tocar a voz de alarme" = "Times when the camera may play the alarm voice";
+"Fora dos horários marcados a câmera continua detectando e avisando, mas fica em silêncio. Útil para não tocar de dia, com gente em casa." = "Outside the marked times the camera still detects and alerts, but stays silent. Useful to avoid playing during the day with people at home.";
+"Ligue \"Aviso sonoro na câmera\" acima para escolher a voz." = "Turn on \"Sound alert on the camera\" above to choose the voice.";

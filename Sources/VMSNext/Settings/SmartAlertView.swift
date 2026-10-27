@@ -162,6 +162,26 @@ final class SmartAlertModel: ObservableObject {
     @Published private(set) var hasPeriod = false
     @Published var period: [[Int]] = ScheduleCodec.emptyWeek()
 
+    // Voz do alarme (câmeras novas): qual som tocar, de quanto em quanto tempo e em que horários.
+    /// Vozes que a câmera tem (Ability.VoiceTipType): número e nome.
+    @Published private(set) var voices: [(id: Int, name: String)] = []
+    @Published var voiceType: Int?
+    @Published var voiceInterval: Int?
+    /// Detect.AlarmVoicePeriod: horários em que a voz pode tocar (nil = a câmera não tem).
+    @Published private(set) var hasVoicePeriod = false
+    @Published var voicePeriod: [[Int]] = ScheduleCodec.emptyWeek()
+    private var voicePeriodRaw: Any?
+    private var voicePeriodName: String { "Detect.AlarmVoicePeriod.[\(camera.channel - 1)]" }
+
+    /// Nomes em português das vozes que as câmeras mandam em inglês.
+    nonisolated static let voiceNames: [String: String] = [
+        "Bell Alarm": String(localized: "Sino de alarme"),
+        "You have entered the monitoring area": String(localized: "\"Você entrou na área monitorada\""),
+        "The custom": String(localized: "Personalizada (gravada no app do celular)"),
+    ]
+
+    var voiceEnabled: Bool { actions.contains { $0.spec.key == "VoiceEnable" && $0.isOn } }
+
     let camera: Camera
     private var motionRaw: Any?
     private var humanRaw: Any?
@@ -174,7 +194,8 @@ final class SmartAlertModel: ObservableObject {
     }
 
     var validationError: String? {
-        hasPeriod ? ScheduleCodec.validate(period, maxSections: sectionsPerDay) : nil
+        (hasPeriod ? ScheduleCodec.validate(period, maxSections: sectionsPerDay) : nil)
+            ?? (hasVoicePeriod ? ScheduleCodec.validate(voicePeriod, maxSections: 6) : nil)
     }
 
     var levelOptions: [Int] { Array(Set(Array(1 ... 6) + [motionLevel])).sorted() }
@@ -204,6 +225,7 @@ final class SmartAlertModel: ObservableObject {
             humanRaw = try await optional(client, humanName)
             readMotion()
             readHuman()
+            await readVoice(client)
             if !hasMotion && !hasHuman {
                 error = String(localized: "Este equipamento não informou detecção de movimento nem de pessoas para o canal \(camera.channel). Use \"Diagnóstico…\" e me envie o resultado.")
             }
@@ -230,6 +252,8 @@ final class SmartAlertModel: ObservableObject {
                     for action in actions { handler[action.spec.key] = action.isOn }
                     for delay in delays { ConfigValue.set(&handler, delay.spec.key, delay.seconds) }
                     Self.writePTZLink(ptzLink, into: &handler, index: 0)
+                    if let voiceType { ConfigValue.set(&handler, "VoiceType", voiceType) }
+                    if let voiceInterval { ConfigValue.set(&handler, "VoiceTipInterval", voiceInterval) }
                     if hasPeriod, var sections = handler["TimeSection"] as? [[String]] {
                         var noMasks: [[Any]]? = nil
                         ScheduleCodec.encode(period, sections: &sections, masks: &noMasks)
@@ -250,6 +274,12 @@ final class SmartAlertModel: ObservableObject {
                 try await client.setConfig(humanName, updated)
                 humanRaw = updated
             }
+            if hasVoicePeriod, let raw = voicePeriodRaw, var sections = raw as? [[String]] {
+                var noMasks: [[Any]]? = nil
+                ScheduleCodec.encode(voicePeriod, sections: &sections, masks: &noMasks)
+                try await client.setConfig(voicePeriodName, sections)
+                voicePeriodRaw = sections
+            }
             notice = String(localized: "Detecção inteligente aplicada.")
         } catch {
             self.error = error.localizedDescription
@@ -261,6 +291,7 @@ final class SmartAlertModel: ObservableObject {
         return await ConfigDiagnostics.dump(camera: camera, requests: [
             (1042, motionName), (1042, humanName),
             (1042, "Detect.BlindDetect.[\(ch)]"), (1042, "Detect.LossDetect.[\(ch)]"),
+            (1042, "Ability.VoiceTipType"), (1042, voicePeriodName),
         ])
     }
 
@@ -291,6 +322,35 @@ final class SmartAlertModel: ObservableObject {
             hasPeriod = true
             sectionsPerDay = sections.first?.count ?? 6
             period = ScheduleCodec.decode(sections: sections, masks: nil)
+        }
+    }
+
+    /// Vozes (Ability.VoiceTipType, nome do VMS Pro), o tipo e o intervalo escolhidos no EventHandler do
+    /// movimento e os horários da voz (Detect.AlarmVoicePeriod). Só com as funções que a câmera informa.
+    private func readVoice(_ client: DVRIPClient) async {
+        let handler = ConfigValue.object(in: motionRaw)?["EventHandler"] as? [String: Any] ?? [:]
+        voices = []
+        voiceType = nil
+        voiceInterval = nil
+        if profile.functions == nil || profile.has("OtherFunction.SupportAlarmVoiceTipsType"),
+           let value = try? await optional(client, "Ability.VoiceTipType"),
+           let list = (value as? [String: Any])?["VoiceTip"] as? [[String: Any]] {
+            voices = list.compactMap { item in
+                guard let id = ConfigValue.int(item["VoiceEnum"]) else { return nil }
+                let text = item["VoiceText"] as? String ?? "\(id)"
+                return (id, Self.voiceNames[text] ?? text)
+            }
+            if !voices.isEmpty { voiceType = ConfigValue.int(handler["VoiceType"]) }
+        }
+        if profile.functions == nil || profile.has("OtherFunction.SupportAlarmVoiceTipInterval") {
+            voiceInterval = ConfigValue.int(handler["VoiceTipInterval"])
+        }
+        hasVoicePeriod = false
+        if profile.has("OtherFunction.SupportControlAlarmVoicePeriod"),
+           let value = try? await optional(client, voicePeriodName), let sections = value as? [[String]] {
+            voicePeriodRaw = sections
+            voicePeriod = ScheduleCodec.decode(sections: sections, masks: nil)
+            hasVoicePeriod = true
         }
     }
 
@@ -425,6 +485,7 @@ struct SmartAlertView: View {
                         actionSection(group).disabled(off)
                     }
                     if model.hasPeriod { periodSection.disabled(off) }
+                    if model.hasVoicePeriod { voicePeriodSection.disabled(off || !model.voiceEnabled) }
                     legacySection
                     if let message = model.error ?? model.validationError {
                         Section {
@@ -521,11 +582,46 @@ struct SmartAlertView: View {
                         FieldLabel("\(delay.spec.title): \(delay.seconds) s", original: delay.spec.original, detail: delay.spec.detail)
                     }
                 }
+                // Sempre à vista (apagadas com o aviso sonoro desligado), para a escolha da voz ser fácil de achar.
+                if group == .notify { voiceRows.disabled(!model.voiceEnabled) }
                 if group == .external, let link = model.ptzLink,
                    model.actions.contains(where: { $0.spec.key == "PtzEnable" && $0.isOn }) {
                     PTZLinkRow(link: Binding(get: { link }, set: { model.ptzLink = $0 }))
                 }
             }
+        }
+    }
+
+    /// Qual voz a câmera toca e de quanto em quanto tempo (aparece com "Aviso sonoro na câmera" ligado).
+    @ViewBuilder
+    private var voiceRows: some View {
+        if let type = model.voiceType, !model.voices.isEmpty {
+            Picker(selection: Binding(get: { type }, set: { model.voiceType = $0 })) {
+                ForEach(model.voices, id: \.id) { Text($0.name).tag($0.id) }
+                if !model.voices.contains(where: { $0.id == type }) { Text(String(localized: "Outra (\(type))")).tag(type) }
+            } label: {
+                FieldLabel(String(localized: "Voz do aviso"), original: "VoiceType",
+                           detail: model.voiceEnabled ? String(localized: "O som que a câmera toca pelo alto-falante quando detecta.")
+                                                      : String(localized: "Ligue \"Aviso sonoro na câmera\" acima para escolher a voz."))
+            }
+        }
+        if let interval = model.voiceInterval {
+            Stepper(value: Binding(get: { interval }, set: { model.voiceInterval = $0 }), in: 0 ... 600) {
+                FieldLabel(interval == 0 ? String(localized: "Repetir a voz: sem repetir") : String(localized: "Repetir a voz a cada \(interval) s"),
+                           original: "VoiceTipInterval",
+                           detail: String(localized: "Enquanto o alarme continuar, a câmera repete a voz nesse intervalo. 0 = toca uma vez."))
+            }
+        }
+    }
+
+    private var voicePeriodSection: some View {
+        Section {
+            ScheduleGrid(slots: $model.voicePeriod, rows: ScheduleRow.period)
+        } header: {
+            Text("Horários em que a câmera pode tocar a voz de alarme")
+        } footer: {
+            Text("Fora dos horários marcados a câmera continua detectando e avisando, mas fica em silêncio. Útil para não tocar de dia, com gente em casa.")
+                .foregroundStyle(.secondary)
         }
     }
 
