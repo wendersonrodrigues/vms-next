@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 extension Recording.Kind {
@@ -21,6 +22,108 @@ final class TimelineHover: ObservableObject {
     @Published var x: CGFloat?
 }
 
+/// Parte do dia mostrada na linha do tempo (zoom). Compartilhada pelas linhas dos canais do NVR.
+@MainActor
+final class TimelineZoom: ObservableObject {
+    static let day: TimeInterval = 86_400
+    static let minimumSpan: TimeInterval = 10 * 60
+
+    /// Início e duração da janela visível, em segundos desde a meia-noite.
+    @Published private(set) var start: TimeInterval = 0
+    @Published private(set) var span: TimeInterval = day
+
+    var isZoomed: Bool { span < Self.day - 1 }
+    var end: TimeInterval { start + span }
+
+    /// Amplia (fator > 1) ou reduz mantendo parado o ponto `anchor` (0…1 da largura).
+    func zoom(by factor: Double, anchor: Double = 0.5) {
+        let newSpan = min(max(span / factor, Self.minimumSpan), Self.day)
+        let pivot = start + span * anchor
+        set(start: pivot - newSpan * anchor, span: newSpan)
+    }
+
+    func pan(by seconds: TimeInterval) { set(start: start + seconds, span: span) }
+
+    func reset() { set(start: 0, span: Self.day) }
+
+    /// Mantém o momento à vista (a agulha saiu da janela ampliada).
+    func reveal(_ second: TimeInterval) {
+        guard isZoomed, second < start || second > end else { return }
+        set(start: second - span * 0.25, span: span)
+    }
+
+    private func set(start: TimeInterval, span: TimeInterval) {
+        self.span = span
+        self.start = min(max(start, 0), Self.day - span)
+    }
+}
+
+/// Recebe a roda do mouse sobre a linha do tempo sem roubar cliques e o passar do mouse (só responde a rolagem).
+struct TimelineScrollCatcher: NSViewRepresentable {
+    let onScroll: (_ deltaX: CGFloat, _ deltaY: CGFloat, _ fractionX: CGFloat) -> Void
+
+    func makeNSView(context: Context) -> CatcherView {
+        let view = CatcherView()
+        view.onScroll = onScroll
+        return view
+    }
+
+    func updateNSView(_ view: CatcherView, context: Context) { view.onScroll = onScroll }
+
+    final class CatcherView: NSView {
+        var onScroll: ((CGFloat, CGFloat, CGFloat) -> Void)?
+
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            NSApp.currentEvent?.type == .scrollWheel ? super.hitTest(point) : nil
+        }
+
+        override func scrollWheel(with event: NSEvent) {
+            let point = convert(event.locationInWindow, from: nil)
+            let fraction = bounds.width > 0 ? min(max(point.x / bounds.width, 0), 1) : 0.5
+            let scale: CGFloat = event.hasPreciseScrollingDeltas ? 1 : 8
+            onScroll?(event.scrollingDeltaX * scale, event.scrollingDeltaY * scale, fraction)
+        }
+    }
+}
+
+/// − / + do zoom da linha do tempo e "dia inteiro".
+struct TimelineZoomControls: View {
+    @ObservedObject var zoom: TimelineZoom
+
+    var body: some View {
+        HStack(spacing: Space.xxs) {
+            button("minus.magnifyingglass", help: String(localized: "Reduzir a linha do tempo")) { zoom.zoom(by: 0.5) }
+                .disabled(!zoom.isZoomed)
+            Text(Self.spanText(zoom.span))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 44)
+            button("plus.magnifyingglass", help: String(localized: "Ampliar a linha do tempo (ou role a roda do mouse em cima dela)")) { zoom.zoom(by: 2) }
+                .disabled(zoom.span <= TimelineZoom.minimumSpan)
+            button("arrow.left.and.right", help: String(localized: "Mostrar o dia inteiro")) { zoom.reset() }
+                .disabled(!zoom.isZoomed)
+        }
+        .padding(Space.xxs)
+        .background(RoundedRectangle(cornerRadius: Radius.small + 2).fill(Color.primary.opacity(0.05)))
+    }
+
+    static func spanText(_ span: TimeInterval) -> String {
+        span >= 3600 ? String(format: "%.0f h", (span / 3600).rounded()) : String(format: "%.0f min", (span / 60).rounded())
+    }
+
+    private func button(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .frame(width: 22, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+}
+
 /// Linha do tempo do dia: régua de 0 h a 24 h e uma faixa por tipo de gravação (alarme, movimento, manual,
 /// contínua). Passar o mouse mostra a hora; clicar toca a partir dali. Uma linha marca onde o vídeo está.
 struct RecordingTimeline: View {
@@ -34,21 +137,35 @@ struct RecordingTimeline: View {
     var tagged: Set<String> = []
     /// Arquivos já baixados no Mac: tom mais claro da cor do tipo, com contorno.
     var downloaded: Set<String> = []
-    /// Clique: o momento escolhido e, se o clique foi numa faixa, o tipo dela.
-    let onSelect: (Date, Recording.Kind?) -> Void
+    /// Parte do dia à vista; nil = o dia inteiro, sem zoom.
+    var zoom: TimelineZoom? = nil
+    /// Uma faixa só com todos os tipos (linhas dos canais do NVR).
+    var merged = false
+    /// Régua das horas em cima (desligada nas linhas de baixo do NVR).
+    var showsRuler = true
+    /// Clique: o momento, o tipo da faixa clicada (nil fora das faixas) e quantos segundos valem ~8 px, para
+    /// acertar trechos curtos (um movimento de poucos segundos) sem precisar de mira perfeita.
+    let onSelect: (Date, Recording.Kind?, TimeInterval) -> Void
 
     @StateObject private var hover = TimelineHover()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let rulerHeight: CGFloat = 20
+    private var rulerHeight: CGFloat { showsRuler ? 20 : 0 }
     private let laneHeight: CGFloat = 12
     private let laneGap: CGFloat = 6
 
     private var dayStart: Date { Calendar.current.startOfDay(for: day) }
     private var lanes: [Recording.Kind] {
+        if merged { return [.other] }
         let present = Set(recordings.map(\.kind))
         let kinds = Recording.Kind.timelineOrder.filter { present.contains($0) }
         return kinds.isEmpty ? [.regular] : kinds
+    }
+    private var visibleStart: TimeInterval { zoom?.start ?? 0 }
+    private var visibleSpan: TimeInterval { zoom?.span ?? TimelineZoom.day }
+
+    private func x(for second: TimeInterval, width: CGFloat) -> CGFloat {
+        CGFloat((second - visibleStart) / visibleSpan) * width
     }
     private var height: CGFloat { rulerHeight + CGFloat(lanes.count) * (laneHeight + laneGap) + laneGap }
 
@@ -57,8 +174,8 @@ struct RecordingTimeline: View {
             let width = proxy.size.width
             ZStack(alignment: .topLeading) {
                 Canvas { context, size in draw(context, size: size) }
-                if let alarm, Calendar.current.isDate(alarm, inSameDayAs: day) {
-                    let x = CGFloat(alarm.timeIntervalSince(dayStart) / 86_400) * width
+                if let alarm, Calendar.current.isDate(alarm, inSameDayAs: day),
+                   case let x = x(for: alarm.timeIntervalSince(dayStart), width: width), x >= 0, x <= width {
                     ZStack(alignment: .top) {
                         Rectangle()
                             .fill(Color.red.opacity(0.8))
@@ -87,7 +204,17 @@ struct RecordingTimeline: View {
                 if let x = hover.x {
                     hoverMarker(x: x, width: width)
                 }
+                if let zoom {
+                    TimelineScrollCatcher { dx, dy, fraction in
+                        if abs(dx) > abs(dy) {
+                            zoom.pan(by: -Double(dx) / Double(max(width, 1)) * zoom.span)
+                        } else if dy != 0 {
+                            zoom.zoom(by: pow(1.01, Double(dy)), anchor: Double(fraction))
+                        }
+                    }
+                }
             }
+            .clipped()
             .contentShape(Rectangle())
             .onContinuousHover { phase in
                 switch phase {
@@ -96,8 +223,9 @@ struct RecordingTimeline: View {
                 }
             }
             .gesture(DragGesture(minimumDistance: 0).onEnded { value in
-                let lane = laneIndex(at: value.location.y)
-                onSelect(time(at: value.location.x, width: width), lane.map { lanes[$0] })
+                let lane = merged ? nil : laneIndex(at: value.location.y)
+                onSelect(time(at: value.location.x, width: width), lane.map { lanes[$0] },
+                         visibleSpan * 8 / Double(max(width, 1)))
             })
         }
         .frame(height: height)
@@ -110,31 +238,20 @@ struct RecordingTimeline: View {
 
     private func draw(_ context: GraphicsContext, size: CGSize) {
         let width = size.width
-        // Régua: marca a cada hora, número a cada 2 h (a cada 4 h se estiver estreito).
-        let labelStep = width < 520 ? 4 : 2
-        for hour in 0 ... 24 {
-            let x = CGFloat(hour) / 24 * width
-            var tick = Path()
-            tick.move(to: CGPoint(x: x, y: rulerHeight - (hour % labelStep == 0 ? 6 : 3)))
-            tick.addLine(to: CGPoint(x: x, y: rulerHeight))
-            context.stroke(tick, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
-            if hour % labelStep == 0 {
-                let label = Text(String(format: "%02d:00", hour)).font(.caption2).foregroundStyle(.secondary)
-                let anchor: UnitPoint = hour == 0 ? .topLeading : (hour == 24 ? .topTrailing : .top)
-                context.draw(label, at: CGPoint(x: x, y: 0), anchor: anchor)
-            }
-        }
+        if showsRuler { drawRuler(context, width: width) }
         for (index, kind) in lanes.enumerated() {
             let y = laneY(index)
             // Fundo da faixa e os trechos gravados.
             context.fill(Path(roundedRect: CGRect(x: 0, y: y, width: width, height: laneHeight), cornerRadius: laneHeight / 2),
                          with: .color(Color.primary.opacity(0.06)))
-            for recording in recordings where recording.kind == kind {
+            for recording in recordings where merged || recording.kind == kind {
                 let start = max(recording.begin.timeIntervalSince(dayStart), 0)
                 let end = min(recording.end.timeIntervalSince(dayStart), 86_400)
-                guard end > start else { continue }
-                let x0 = CGFloat(start / 86_400) * width
-                let x1 = max(CGFloat(end / 86_400) * width, x0 + 2)
+                guard end >= start, end >= visibleStart, start <= visibleStart + visibleSpan else { continue }
+                let kind = recording.kind
+                let x0 = x(for: start, width: width)
+                // Fotos (início = fim) e trechos curtos ficam com pelo menos 3 px.
+                let x1 = max(x(for: end, width: width), x0 + 3)
                 let bar = Path(roundedRect: CGRect(x: x0, y: y, width: x1 - x0, height: laneHeight), cornerRadius: laneHeight / 2)
                 if downloaded.contains(recording.fileName) {
                     context.fill(bar, with: .color(kind.color.opacity(0.4)))
@@ -158,10 +275,37 @@ struct RecordingTimeline: View {
         }
     }
 
+    /// Régua: o passo das marcas acompanha o zoom (de 2 h no dia inteiro até 1 min bem ampliado).
+    private func drawRuler(_ context: GraphicsContext, width: CGFloat) {
+        let steps: [TimeInterval] = [60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 14400]
+        // Números com pelo menos ~70 px entre eles; marcas menores a cada metade (ou quarto) do passo.
+        let labelStep = steps.first { CGFloat($0 / visibleSpan) * width >= 70 } ?? 14400
+        let tickStep = steps.last { $0 <= labelStep / 2 && CGFloat($0 / visibleSpan) * width >= 12 } ?? labelStep
+        var second = (visibleStart / tickStep).rounded(.down) * tickStep
+        while second <= visibleStart + visibleSpan + 0.5 {
+            let x = x(for: second, width: width)
+            let major = second.truncatingRemainder(dividingBy: labelStep) == 0
+            if x >= -0.5, x <= width + 0.5 {
+                var tick = Path()
+                tick.move(to: CGPoint(x: x, y: rulerHeight - (major ? 6 : 3)))
+                tick.addLine(to: CGPoint(x: x, y: rulerHeight))
+                context.stroke(tick, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+                if major {
+                    let total = Int(second)
+                    let label = Text(String(format: "%02d:%02d", total / 3600, (total % 3600) / 60)).font(.caption2).foregroundStyle(.secondary)
+                    let anchor: UnitPoint = x < 20 ? .topLeading : (x > width - 20 ? .topTrailing : .top)
+                    context.draw(label, at: CGPoint(x: x, y: 0), anchor: anchor)
+                }
+            }
+            second += tickStep
+        }
+    }
+
     /// Onde o vídeo está: fora do Canvas para deslizar até o novo ponto num salto, em vez de pular.
     private func playheadX(width: CGFloat) -> CGFloat? {
         guard let playhead, Calendar.current.isDate(playhead, inSameDayAs: day) else { return nil }
-        return CGFloat(playhead.timeIntervalSince(dayStart) / 86_400) * width
+        let x = x(for: playhead.timeIntervalSince(dayStart), width: width)
+        return x >= 0 && x <= width ? x : nil
     }
 
     private func hoverMarker(x: CGFloat, width: CGFloat) -> some View {
@@ -169,7 +313,7 @@ struct RecordingTimeline: View {
         return ZStack(alignment: .topLeading) {
             Rectangle()
                 .fill(Color.primary.opacity(0.5))
-                .frame(width: 1, height: height - rulerHeight)
+                .frame(width: 1, height: max(height - rulerHeight, 1))
                 .offset(x: x, y: rulerHeight)
             Text(label)
                 .font(.caption2.monospacedDigit().weight(.semibold))
@@ -193,12 +337,12 @@ struct RecordingTimeline: View {
 
     private func time(at x: CGFloat, width: CGFloat) -> Date {
         let fraction = width > 0 ? min(max(x / width, 0), 1) : 0
-        return dayStart.addingTimeInterval(Double(fraction) * 86_399)
+        return dayStart.addingTimeInterval(min(visibleStart + Double(fraction) * visibleSpan, 86_399))
     }
 
     /// Para o VoiceOver: quantos trechos de cada tipo.
     private var summary: String {
-        let parts = lanes.compactMap { kind -> String? in
+        let parts = (merged ? Recording.Kind.timelineOrder : lanes).compactMap { kind -> String? in
             let count = recordings.filter { $0.kind == kind }.count
             return count > 0 ? "\(kind.label): \(count)" : nil
         }

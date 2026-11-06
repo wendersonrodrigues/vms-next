@@ -1640,3 +1640,32 @@
 "Duplo clique numa câmera abre em tela cheia; na barra de baixo ficam som, conversa (o microfone do Mac sai no alto-falante da câmera), HD/SD, foto e Gravar." = "Double-click a camera to open it full screen; the bottom bar has sound, talk (the Mac's microphone plays on the camera's speaker), HD/SD, photo and Record.";
 "Rede e Wi-Fi: endereço, DNS e portas como no VMS antigo; o Wi-Fi procura redes e troca de rede com segurança, achando a câmera de novo depois." = "Network and Wi-Fi: address, DNS and ports as in the old VMS; Wi-Fi scans for networks and switches safely, finding the camera again afterwards.";
 "Alarmes: a voz que a câmera toca e em que horários, detecção de rosto e o alarme manual (disparar e parar pelo Mac, no NVR)." = "Alarms: which voice the camera plays and when, face detection and the manual alarm (trigger and stop it from the Mac, on the NVR).";
+
+/* Gravações: stream, fotos, baixar de novo, zoom e NVR */
+"A foto veio num formato que o Mac não abre." = "The photo came in a format the Mac can't open.";
+"Abrindo foto…" = "Opening photo…";
+"Ampliar a linha do tempo (ou role a roda do mouse em cima dela)" = "Zoom in on the timeline (or scroll the mouse wheel over it)";
+"Baixado enquanto ainda gravava; baixe de novo para ter o trecho todo" = "Downloaded while it was still recording; download again to get the whole clip";
+"Baixar de novo" = "Download again";
+"Baixar de novo (outra cópia na pasta das Preferências)" = "Download again (another copy in the Preferences folder)";
+"Baixar esta gravação na pasta das Preferências (⌘D)" = "Download this recording to the Preferences folder (⌘D)";
+"Escolher %@: a lista de arquivos, as setas e o download passam a ser deste canal" = "Choose %@: the file list, the arrows and the download switch to this channel";
+"Extra" = "Extra";
+"Fechar a foto" = "Close the photo";
+"Foi baixada enquanto ainda gravava; baixar de novo com o trecho todo (⌘D)" = "It was downloaded while still recording; download again with the whole clip (⌘D)";
+"Gravações do stream principal (Main, alta qualidade) ou do extra (Extra, menor), como no VMS antigo" = "Recordings of the main stream (Main, high quality) or the extra one (Extra, smaller), as in the old VMS";
+"Incompleto" = "Incomplete";
+"Já baixado: mostrar no Finder ou baixar de novo" = "Already downloaded: show in Finder or download again";
+"Main" = "Main";
+"Mostrar o dia inteiro" = "Show the whole day";
+"Mostrar os vídeos ou as fotos guardadas no equipamento" = "Show the videos or the photos stored on the device";
+"Nenhuma foto neste dia." = "No photos on this day.";
+"O equipamento não mandou a foto." = "The device didn't send the photo.";
+"Opções do arquivo baixado" = "Downloaded file options";
+"Reduzir a linha do tempo" = "Zoom out on the timeline";
+"Stream" = "Stream";
+"Tipo de arquivo" = "File type";
+"Vídeo" = "Video";
+"Abrir" = "Open";
+"Baixar a foto" = "Download the photo";
+"Baixar de novo, com o trecho todo" = "Download again, with the whole clip";

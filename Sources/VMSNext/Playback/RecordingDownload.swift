@@ -77,7 +77,7 @@ final class RecordingDownload: ObservableObject, Identifiable {
 
             let parameters: [String: Any] = [
                 "Parameter": [
-                    "PlayMode": "ByName", "FileName": recording.fileName, "StreamType": 0,
+                    "PlayMode": "ByName", "FileName": recording.fileName, "StreamType": recording.stream,
                     "Value": 0, "TransMode": "TCP", "IntelligentPlayBack": 0,
                 ] as [String: Any],
                 "StartTime": DeviceTime.string(recording.begin),

@@ -16,12 +16,18 @@ struct Recording: Identifiable, Hashable {
         }
     }
 
-    var id: String { fileName }
+    /// O mesmo arquivo pode existir no stream principal e no extra: os dois entram no id.
+    var id: String { stream == 0 ? fileName : "\(fileName)|\(stream)" }
     let fileName: String
     let begin: Date
     let end: Date
     let sizeKB: Int
     let channel: Int
+    /// 0 = principal (Main), 1 = extra (Extra), como o "StreamType" do OPFileQuery.
+    var stream = 0
+
+    /// Foto (Type "jpg" no OPFileQuery) em vez de vídeo.
+    var isPhoto: Bool { fileName.lowercased().hasSuffix(".jpg") }
 
     /// O tipo vem entre colchetes no nome: ".../00.00.00-00.15.00[R][@a1b][0].h264".
     var kind: Kind {
@@ -48,7 +54,7 @@ enum DeviceTime {
 extension DVRIPClient {
     /// Lista as gravações de um canal (base 0) em um intervalo. O equipamento devolve no máximo
     /// 64 itens por consulta, então a busca continua a partir do fim do último arquivo.
-    func findRecordings(channel: Int, from start: Date, to end: Date, type: String = "h264") async throws -> [Recording] {
+    func findRecordings(channel: Int, from start: Date, to end: Date, type: String = "h264", stream: Int = 0) async throws -> [Recording] {
         var results: [Recording] = []
         var cursor = start
         for _ in 0 ..< 50 {
@@ -59,7 +65,7 @@ extension DVRIPClient {
                 "DriverTypeMask": "0x0000FFFF",
                 "Event": "*",
                 "Type": type,
-                "StreamType": "0x00000000",
+                "StreamType": String(format: "0x%08X", stream),
             ], accepted: [100, 101]) // 101 = nenhum arquivo no intervalo
             let items = response["OPFileQuery"] as? [[String: Any]] ?? []
             let page = items.compactMap { item -> Recording? in
@@ -67,7 +73,7 @@ extension DVRIPClient {
                       let begin = (item["BeginTime"] as? String).flatMap(DeviceTime.date),
                       let finish = (item["EndTime"] as? String).flatMap(DeviceTime.date) else { return nil }
                 return Recording(fileName: name, begin: begin, end: finish,
-                                 sizeKB: ConfigValue.int(item["FileLength"]) ?? 0, channel: channel)
+                                 sizeKB: ConfigValue.int(item["FileLength"]) ?? 0, channel: channel, stream: stream)
             }
             let known = Set(results.map(\.fileName))
             let fresh = page.filter { !known.contains($0.fileName) }

@@ -11,6 +11,20 @@ final class DownloadedRecordings: ObservableObject {
         let begin: Date
         let end: Date
         let path: String
+        /// Stream e foto entram na chave; arquivos antigos (sem esses campos) eram todos do principal.
+        var stream: Int? = nil
+        var photo: Bool? = nil
+
+        var key: String { DownloadedRecordings.key(cameraID, begin, stream: stream ?? 0, photo: photo ?? false) }
+    }
+
+    /// Mesma chave das tags (câmera + início), com o stream extra e as fotos à parte.
+    nonisolated static func key(_ cameraID: Camera.ID, _ begin: Date, stream: Int, photo: Bool) -> String {
+        RecordingTags.key(cameraID, begin) + (stream == 0 ? "" : "|s\(stream)") + (photo ? "|jpg" : "")
+    }
+
+    private static func key(_ recording: Recording, _ camera: Camera) -> String {
+        key(camera.id, recording.begin, stream: recording.stream, photo: recording.isPhoto)
     }
 
     static let shared = DownloadedRecordings()
@@ -30,22 +44,29 @@ final class DownloadedRecordings: ObservableObject {
         {
             // Esquece os arquivos que foram apagados ou movidos.
             let existing = saved.filter { FileManager.default.fileExists(atPath: $0.path) }
-            items = Dictionary(existing.map { (RecordingTags.key($0.cameraID, $0.begin), $0) }, uniquingKeysWith: { _, last in last })
+            items = Dictionary(existing.map { ($0.key, $0) }, uniquingKeysWith: { _, last in last })
             if existing.count != saved.count { save() }
         }
     }
 
     func mark(_ recording: Recording, camera: Camera, url: URL) {
-        items[RecordingTags.key(camera.id, recording.begin)] = Item(cameraID: camera.id, fileName: recording.fileName,
-                                                                      begin: recording.begin, end: recording.end, path: url.path)
+        items[Self.key(recording, camera)] = Item(cameraID: camera.id, fileName: recording.fileName,
+                                                  begin: recording.begin, end: recording.end, path: url.path,
+                                                  stream: recording.stream, photo: recording.isPhoto)
         save()
     }
 
     /// Arquivo baixado desta gravação, se ainda existir no Mac.
     func file(of recording: Recording, camera: Camera) -> URL? {
-        guard let item = items[RecordingTags.key(camera.id, recording.begin)],
+        guard let item = items[Self.key(recording, camera)],
               FileManager.default.fileExists(atPath: item.path) else { return nil }
         return URL(fileURLWithPath: item.path)
+    }
+
+    /// Baixada quando ainda estava gravando: o arquivo do equipamento cresceu depois, e vale baixar de novo.
+    func isPartial(_ recording: Recording, camera: Camera) -> Bool {
+        guard !recording.isPhoto, let item = items[Self.key(recording, camera)], file(of: recording, camera: camera) != nil else { return false }
+        return recording.end.timeIntervalSince(item.end) > 2
     }
 
     /// Nomes dos arquivos do dia que já estão no Mac (para o tom mais claro na linha do tempo).

@@ -16,6 +16,18 @@ final class RecordingBrowser: ObservableObject {
     @Published private(set) var downloads: [RecordingDownload] = []
     /// Resultado da última foto do quadro.
     @Published var photoMessage: String?
+    /// Stream buscado: 0 = principal (Main), 1 = extra (Extra), como no VMS antigo.
+    @Published var stream = 0
+    /// Buscar fotos (Type "jpg") em vez de vídeos.
+    @Published var photos = false
+    /// Foto aberta no lugar do vídeo.
+    @Published private(set) var photo: NSImage?
+    @Published private(set) var photoRecording: Recording?
+    @Published private(set) var photoLoading = false
+    private var photoData: Data?
+    /// NVR inteiro: gravações do dia de cada canal e o canal escolhido (o que toca, lista e baixa).
+    @Published private(set) var channelRecordings: [Camera.ID: [Recording]] = [:]
+    @Published private(set) var groupChannel: Camera.ID?
     /// Abrindo um alerta de Eventos: a busca automática espera.
     var openingRequest = false
     /// Marca a gravação na lista sem disparar a reprodução do início (ela já toca no momento do alerta).
@@ -31,16 +43,23 @@ final class RecordingBrowser: ObservableObject {
         return suppressPlay
     }
 
-    /// Baixa a gravação em MP4 direto na pasta de downloads das Preferências, com a câmera, o dia, o horário e o
-    /// tipo no nome. Se já foi baixada (e o arquivo continua lá), mostra o arquivo no Finder em vez de baixar de novo.
-    func download(_ recording: Recording, camera: Camera) {
-        if let existing = DownloadedRecordings.shared.file(of: recording, camera: camera) {
+    /// Baixa a gravação em MP4 (ou a foto em JPEG) direto na pasta de downloads das Preferências, com a câmera, o dia,
+    /// o horário e o tipo no nome. Já baixada por inteiro, mostra o arquivo no Finder; `again` baixa outra cópia.
+    /// Uma gravação baixada enquanto ainda gravava (o arquivo cresceu depois) é baixada de novo sem perguntar.
+    func download(_ recording: Recording, camera: Camera, again: Bool = false) {
+        let saved = DownloadedRecordings.shared
+        if !again, !saved.isPartial(recording, camera: camera), let existing = saved.file(of: recording, camera: camera) {
             NSWorkspace.shared.activateFileViewerSelecting([existing])
+            return
+        }
+        if recording.isPhoto {
+            Task { await savePhoto(recording, camera: camera) }
             return
         }
         if downloads.contains(where: { $0.state == .running && $0.recording.id == recording.id && $0.camera.id == camera.id }) { return }
         let prefs = AppPreferences.shared
-        guard let url = prefs.destination(named: "\(camera.displayName) \(AppPreferences.stamp(recording.begin)) \(recording.kind.label)",
+        let extra = recording.stream == 1 ? " Extra" : ""
+        guard let url = prefs.destination(named: "\(camera.displayName) \(AppPreferences.stamp(recording.begin)) \(recording.kind.label)\(extra)",
                                           in: prefs.downloadFolder, type: .mpeg4Movie, ask: false) else { return }
         let job = RecordingDownload(recording: recording, camera: camera, url: url)
         downloads.insert(job, at: 0)
@@ -50,6 +69,100 @@ final class RecordingBrowser: ObservableObject {
 
     func removeFinishedDownloads() {
         downloads.removeAll { $0.state != .running }
+    }
+
+    // MARK: - Fotos
+
+    /// Abre a foto no lugar do vídeo.
+    func showPhoto(_ recording: Recording, camera: Camera) async {
+        photoRecording = recording
+        photo = nil
+        photoData = nil
+        photoMessage = nil
+        photoLoading = true
+        defer { photoLoading = false }
+        do {
+            let data = try await RecordingPhoto.fetch(recording, camera: camera)
+            guard photoRecording?.id == recording.id else { return }
+            photoData = data
+            photo = NSImage(data: data)
+            if photo == nil { photoMessage = String(localized: "A foto veio num formato que o Mac não abre.") }
+        } catch {
+            if photoRecording?.id == recording.id { photoMessage = error.localizedDescription }
+        }
+    }
+
+    func closePhoto() {
+        photoRecording = nil
+        photo = nil
+        photoData = nil
+    }
+
+    private func savePhoto(_ recording: Recording, camera: Camera) async {
+        do {
+            let data = photoRecording?.id == recording.id && photoData != nil ? photoData! : try await RecordingPhoto.fetch(recording, camera: camera)
+            let prefs = AppPreferences.shared
+            guard let url = prefs.destination(named: "\(camera.displayName) \(AppPreferences.stamp(recording.begin)) \(recording.kind.label)",
+                                              in: prefs.downloadFolder, type: .jpeg, ask: false) else { return }
+            try data.write(to: url, options: .atomic)
+            DownloadedRecordings.shared.mark(recording, camera: camera, url: url)
+            AppLog.shared.add(.file, "Download de foto: \(url.lastPathComponent)", device: camera.displayName)
+            photoMessage = String(localized: "Foto salva: \(url.lastPathComponent)")
+        } catch {
+            photoMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - NVR inteiro
+
+    /// Busca o dia de todos os canais do NVR, um depois do outro na mesma sessão. Canais sem gravação ou que
+    /// recusam a busca ficam com a linha vazia.
+    func searchGroup(channels: [Camera]) async {
+        searching = true
+        message = nil
+        recordings = []
+        channelRecordings = [:]
+        defer { searching = false }
+        guard let first = channels.first else { return }
+        let start = Calendar.current.startOfDay(for: day)
+        let end = start.addingTimeInterval(86_399)
+        do {
+            let client = try await DeviceSessions.shared.client(for: first)
+            for channel in channels {
+                var found: [Recording] = []
+                for type in photos ? ["jpg"] : ["h264", "h265", "*"] {
+                    do {
+                        found = try await client.findRecordings(channel: channel.channel - 1, from: start, to: end, type: type, stream: stream)
+                        break
+                    } catch DVRIPError.device {
+                        continue
+                    }
+                }
+                channelRecordings[channel.id] = found
+            }
+        } catch {
+            message = error.localizedDescription
+        }
+        if groupChannel == nil || !channels.contains(where: { $0.id == groupChannel }) {
+            groupChannel = channels.first { !(channelRecordings[$0.id] ?? []).isEmpty }?.id ?? first.id
+        }
+        recordings = groupChannel.flatMap { channelRecordings[$0] } ?? []
+        if channelRecordings.values.allSatisfy(\.isEmpty), message == nil {
+            message = photos ? String(localized: "Nenhuma foto neste dia.") : String(localized: "Nenhuma gravação neste dia.")
+        }
+    }
+
+    /// Escolhe o canal do NVR cuja linha foi clicada: a lista, as setas e o download passam a ser dele.
+    func selectChannel(_ id: Camera.ID) {
+        guard groupChannel != id else { return }
+        groupChannel = id
+        recordings = channelRecordings[id] ?? []
+        selected = nil
+    }
+
+    func leaveGroup() {
+        channelRecordings = [:]
+        groupChannel = nil
     }
 
     /// Testa variações da busca no dia escolhido e lê os discos do equipamento,
@@ -110,9 +223,9 @@ final class RecordingBrowser: ObservableObject {
             // Alguns NVRs recusam o tipo "h264" para canais H.265; tenta as variantes e
             // mostra os códigos de cada uma se todas forem recusadas.
             var refusals: [String] = []
-            for type in ["h264", "h265", "*"] {
+            for type in photos ? ["jpg"] : ["h264", "h265", "*"] {
                 do {
-                    recordings = try await client.findRecordings(channel: camera.channel - 1, from: start, to: end, type: type)
+                    recordings = try await client.findRecordings(channel: camera.channel - 1, from: start, to: end, type: type, stream: stream)
                     refusals.removeAll()
                     break
                 } catch let DVRIPError.device(code) {
@@ -122,7 +235,7 @@ final class RecordingBrowser: ObservableObject {
             if !refusals.isEmpty {
                 message = String(localized: "O equipamento recusou a busca no canal \(camera.channel) (códigos — \(refusals.joined(separator: ", ")).")
             } else if recordings.isEmpty {
-                message = String(localized: "Nenhuma gravação neste dia.")
+                message = photos ? String(localized: "Nenhuma foto neste dia.") : String(localized: "Nenhuma gravação neste dia.")
             }
         } catch {
             message = error.localizedDescription
@@ -142,6 +255,8 @@ final class PlaybackPopovers: ObservableObject {
 struct PlaybackView: View {
     /// Câmera escolhida na lista ao lado da janela principal.
     let cameraID: Camera.ID?
+    /// NVR escolhido na lista (o grupo, sem um canal): linha do tempo de todos os canais.
+    var recorder: String? = nil
     /// Vindo de Eventos: abre a gravação que contém este momento.
     @Binding var request: PlaybackRequest?
 
@@ -150,14 +265,20 @@ struct PlaybackView: View {
     @StateObject private var session = PlaybackSession()
     @StateObject private var zoom = DigitalZoom()
     @StateObject private var popovers = PlaybackPopovers()
+    @StateObject private var timelineZoom = TimelineZoom()
     @ObservedObject private var tags = RecordingTags.shared
     @ObservedObject private var downloaded = DownloadedRecordings.shared
     /// Vídeo em foco: espaço toca/pausa, ← e → voltam e avançam 10 s (sem atrapalhar a lista e os campos).
     @FocusState private var playerFocused: Bool
 
     private var selectedCamera: Camera? {
-        store.cameras.first { $0.id == cameraID }
+        if isGroup { return groupChannels.first { $0.id == browser.groupChannel } }
+        return store.cameras.first { $0.id == cameraID }
     }
+
+    /// NVR inteiro escolhido na lista.
+    private var isGroup: Bool { cameraID == nil && recorder != nil }
+    private var groupChannels: [Camera] { recorder.map { store.channels(in: $0) } ?? [] }
 
     /// Equipamento onde a busca é feita: a câmera escolhida ou, se ela grava no NVR, o canal ligado a ela.
     /// Com cartão e NVR, segue a chave do cabeçalho.
@@ -188,13 +309,22 @@ struct PlaybackView: View {
         }
         .onDisappear { session.stop() }
         // A câmera vem da lista ao lado: ao trocar de câmera ou de dia, busca de novo.
-        .task(id: "\(camera?.id.uuidString ?? "")-\(Calendar.current.startOfDay(for: browser.day).timeIntervalSince1970)") {
-            guard let camera, !browser.openingRequest else { return }
-            await browser.search(camera: camera)
+        .task(id: searchKey) {
+            guard !browser.openingRequest else { return }
+            browser.closePhoto()
+            if isGroup {
+                await browser.searchGroup(channels: groupChannels)
+            } else if let camera {
+                await browser.search(camera: camera)
+            }
         }
         .onChange(of: cameraID) {
             popovers.useCard = false
             browser.alarmMarker = nil
+        }
+        .onChange(of: recorder) { if !isGroup { browser.leaveGroup() } }
+        .onChange(of: session.clock) {
+            if let clock = session.clock { timelineZoom.reveal(clock.timeIntervalSince(Calendar.current.startOfDay(for: browser.day))) }
         }
         .onAppear(perform: openRequest)
         .onChange(of: request) { openRequest() }
@@ -203,15 +333,53 @@ struct PlaybackView: View {
         }
     }
 
+    /// Muda a câmera (ou o NVR inteiro), o dia, o stream ou vídeo/foto: busca de novo. No NVR, trocar de canal
+    /// não busca (as linhas de todos já estão carregadas).
+    private var searchKey: String {
+        let target = isGroup ? "nvr:\(recorder ?? "")" : (camera?.id.uuidString ?? "")
+        return "\(target)-\(Calendar.current.startOfDay(for: browser.day).timeIntervalSince1970)-\(browser.stream)-\(browser.photos)"
+    }
+
     // MARK: - Linha do tempo e data
 
     private var isToday: Bool { Calendar.current.isDateInToday(browser.day) }
 
+    /// Main | Extra e Vídeo | Foto, como na busca do VMS antigo.
+    private var sourcePickers: some View {
+        HStack(spacing: Space.s) {
+            Picker("Stream", selection: $browser.stream) {
+                Text("Main").tag(0)
+                Text("Extra").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .controlSize(.small)
+            .help("Gravações do stream principal (Main, alta qualidade) ou do extra (Extra, menor), como no VMS antigo")
+            Picker("Tipo de arquivo", selection: $browser.photos) {
+                Text("Vídeo").tag(false)
+                Text("Foto").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .controlSize(.small)
+            .help("Mostrar os vídeos ou as fotos guardadas no equipamento")
+        }
+    }
+
     private var timelinePanel: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack(spacing: Space.s) {
-                if let camera {
+                if isGroup, let recorder {
+                    Label { Text(recorder) } icon: { Image(systemName: "server.rack") }.font(.headline).lineLimit(1)
+                    if let camera {
+                        Text(camera.name).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    sourcePickers
+                } else if let camera {
                     Label { Text(camera.displayName) } icon: { CameraGlyph() }.font(.headline).lineLimit(1)
+                    sourcePickers
                     if hasBothSources {
                         Picker("Origem", selection: $popovers.useCard) {
                             Text("NVR").tag(false)
@@ -251,12 +419,16 @@ struct PlaybackView: View {
                     }
                 }
             }
-            if let camera {
+            if isGroup {
+                channelTimelines
+                    .padding(.top, Space.xs)
+            } else if let camera {
                 RecordingTimeline(day: browser.day, recordings: browser.recordings, playhead: session.clock,
                                   alarm: browser.alarmMarker,
                                   tagged: tags.taggedFiles(in: browser.recordings, camera: camera),
-                                  downloaded: downloaded.downloadedFiles(in: browser.recordings, camera: camera)) { date, kind in
-                    play(at: date, preferring: kind)
+                                  downloaded: downloaded.downloadedFiles(in: browser.recordings, camera: camera),
+                                  zoom: timelineZoom) { date, kind, tolerance in
+                    play(at: date, preferring: kind, tolerance: tolerance)
                 }
                 .padding(.top, Space.xs)
             }
@@ -270,6 +442,41 @@ struct PlaybackView: View {
         .padding(.vertical, Space.m)
         .background(Theme.surface)
         .overlay(alignment: .top) { Divider() }
+    }
+
+    /// NVR inteiro: uma linha por canal, todas na mesma régua e no mesmo zoom. Clicar numa linha escolhe o canal
+    /// e toca dali (um canal por vez).
+    private var channelTimelines: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(groupChannels.enumerated()), id: \.element.id) { index, channel in
+                let chosen = channel.id == browser.groupChannel
+                HStack(alignment: .bottom, spacing: Space.s) {
+                    Button {
+                        browser.selectChannel(channel.id)
+                    } label: {
+                        Text(channel.name)
+                            .font(.caption.weight(chosen ? .semibold : .regular))
+                            .foregroundStyle(chosen ? Theme.accent : .secondary)
+                            .lineLimit(1)
+                            .frame(width: 130, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 4)
+                    .help("Escolher \(channel.name): a lista de arquivos, as setas e o download passam a ser deste canal")
+                    let list = browser.channelRecordings[channel.id] ?? []
+                    RecordingTimeline(day: browser.day, recordings: list, playhead: chosen ? session.clock : nil,
+                                      alarm: chosen ? browser.alarmMarker : nil,
+                                      tagged: tags.taggedFiles(in: list, camera: channel),
+                                      downloaded: downloaded.downloadedFiles(in: list, camera: channel),
+                                      zoom: timelineZoom, merged: true, showsRuler: index == 0) { date, kind, tolerance in
+                        browser.selectChannel(channel.id)
+                        play(at: date, preferring: kind, tolerance: tolerance)
+                    }
+                }
+                .padding(.horizontal, Space.xs)
+                .background(RoundedRectangle(cornerRadius: Radius.small).fill(chosen ? Theme.accent.opacity(0.08) : .clear))
+            }
+        }
     }
 
     /// ‹ dia ›, a data (clique abre o calendário) e Hoje; à direita, buscar de novo e mais opções.
@@ -307,13 +514,19 @@ struct PlaybackView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(isToday)
             Spacer(minLength: Space.s)
+            TimelineZoomControls(zoom: timelineZoom)
             Button {
-                guard let camera else { return }
-                Task { await browser.search(camera: camera) }
+                Task {
+                    if isGroup {
+                        await browser.searchGroup(channels: groupChannels)
+                    } else if let camera {
+                        await browser.search(camera: camera)
+                    }
+                }
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .disabled(camera == nil || browser.searching)
+            .disabled((camera == nil && !isGroup) || browser.searching)
             .help("Buscar de novo")
             .accessibilityLabel("Buscar de novo")
             Button {
@@ -343,21 +556,27 @@ struct PlaybackView: View {
     private var recordingList: some View {
         List(browser.recordings, selection: $browser.selected) { recording in
             let saved = camera.flatMap { downloaded.file(of: recording, camera: $0) }
-            RecordingRow(recording: recording, downloaded: saved != nil)
+            let partial = camera.map { downloaded.isPartial(recording, camera: $0) } ?? false
+            RecordingRow(recording: recording, downloaded: saved != nil, partial: partial,
+                         onDownload: { again in if let camera { browser.download(recording, camera: camera, again: again) } },
+                         onReveal: { if let saved { NSWorkspace.shared.activateFileViewerSelecting([saved]) } })
                 .tag(recording.id)
                 .contextMenu {
-                    Button("Reproduzir") { play(recording) }
+                    Button(recording.isPhoto ? "Abrir" : "Reproduzir") { play(recording) }
                     if let saved {
                         Button("Mostrar no Finder") { NSWorkspace.shared.activateFileViewerSelecting([saved]) }
+                        Button("Baixar de novo") {
+                            if let camera { browser.download(recording, camera: camera, again: true) }
+                        }
                     } else {
-                        Button("Baixar em MP4") {
+                        Button(recording.isPhoto ? "Baixar a foto" : "Baixar em MP4") {
                             if let camera { browser.download(recording, camera: camera) }
                         }
                     }
                 }
         }
         .listStyle(.inset)
-        .frame(width: 340, height: 360)
+        .frame(width: 380, height: 360)
         .onChange(of: browser.selected) {
             if browser.consumeSuppressedPlay() { return }
             if let id = browser.selected, let recording = browser.recordings.first(where: { $0.id == id }) {
@@ -428,21 +647,50 @@ struct PlaybackView: View {
         return ofKind.filter { $0.begin < (reference ?? .distantFuture) }.max { $0.begin < $1.begin }
     }
 
-    /// Clique na linha do tempo: toca o trecho que tem esse momento (do tipo da faixa clicada, se houver);
-    /// num vão sem gravação, começa no próximo trecho.
-    private func play(at date: Date, preferring kind: Recording.Kind?) {
+    /// Clique na linha do tempo. Numa faixa, toca o trecho daquele tipo (mesmo que outro tipo esteja tocando:
+    /// clicar em Movimento durante a Contínua troca para o vídeo do movimento), com ~8 px de folga para acertar
+    /// trechos curtos. Fora das faixas (ou na linha única do NVR), o trecho que tem o momento; num vão, o próximo.
+    private func play(at date: Date, preferring kind: Recording.Kind?, tolerance: TimeInterval = 0) {
         guard let camera else { return }
-        let covering = browser.recordings.filter { $0.begin <= date && date <= $0.end }
-        let match = covering.first { $0.kind == kind } ?? covering.first
-            ?? browser.recordings.filter { $0.begin > date }.min { $0.begin < $1.begin }
+        let list = browser.recordings
+        var match: Recording?
+        if let kind {
+            let ofKind = list.filter { $0.kind == kind }
+            match = ofKind.first { $0.begin <= date && date <= $0.end }
+                ?? ofKind.filter { $0.begin.addingTimeInterval(-tolerance) <= date && date <= $0.end.addingTimeInterval(tolerance) }
+                    .min { distance($0, to: date) < distance($1, to: date) }
+        }
+        if match == nil {
+            // Na linha única, o evento (alarme, movimento) vem antes da contínua quando os dois cobrem o momento.
+            let order: [Recording.Kind] = [.alarm, .motion, .manual, .regular, .other]
+            let near = list.filter { $0.begin.addingTimeInterval(-tolerance) <= date && date <= $0.end.addingTimeInterval(tolerance) }
+            match = near.filter { $0.begin <= date && date <= $0.end }.min { rank($0, order) < rank($1, order) }
+                ?? near.min { distance($0, to: date) < distance($1, to: date) }
+                ?? list.filter { $0.begin > date }.min { $0.begin < $1.begin }
+        }
         guard let match else { return }
         browser.selectWithoutPlaying(match.id)
+        if match.isPhoto {
+            session.stop()
+            Task { await browser.showPhoto(match, camera: camera) }
+            return
+        }
+        browser.closePhoto()
         playerFocused = true
-        Task { await session.play(match, camera: camera, from: max(date, match.begin)) }
+        let start = min(max(date, match.begin), max(match.end.addingTimeInterval(-1), match.begin))
+        Task { await session.play(match, camera: camera, from: start) }
     }
+
+    private func rank(_ recording: Recording, _ order: [Recording.Kind]) -> Int { order.firstIndex(of: recording.kind) ?? 9 }
 
     private func play(_ recording: Recording) {
         guard let camera else { return }
+        if recording.isPhoto {
+            session.stop()
+            Task { await browser.showPhoto(recording, camera: camera) }
+            return
+        }
+        browser.closePhoto()
         playerFocused = true
         Task { await session.play(recording, camera: camera) }
     }
@@ -450,9 +698,22 @@ struct PlaybackView: View {
     // MARK: - Player
 
     /// Busca o dia do alerta e toca a gravação que contém o momento (começando alguns segundos antes).
+    /// O que o botão Baixar baixa: o vídeo tocando ou a foto aberta.
+    private var downloadTarget: (recording: Recording, camera: Camera)? {
+        if let photo = browser.photoRecording, let camera { return (photo, camera) }
+        if let recording = session.recording, let camera = session.camera { return (recording, camera) }
+        return nil
+    }
+
     private var currentIsDownloaded: Bool {
-        guard let recording = session.recording, let camera = session.camera else { return false }
-        return downloaded.file(of: recording, camera: camera) != nil
+        guard let target = downloadTarget else { return false }
+        return downloaded.file(of: target.recording, camera: target.camera) != nil && !currentIsPartial
+    }
+
+    /// Baixado enquanto ainda gravava: o Baixar volta a baixar.
+    private var currentIsPartial: Bool {
+        guard let target = downloadTarget else { return false }
+        return downloaded.isPartial(target.recording, camera: target.camera)
     }
 
     /// Vídeo que está tocando (ou o escolhido na lista), para as tags.
@@ -542,6 +803,7 @@ struct PlaybackView: View {
                         .onChange(of: proxy.size) { zoom.viewSize = proxy.size }
                 }
                 overlay
+                photoLayer
                 if session.recording != nil { ZoomControls(zoom: zoom) }
             }
             .background(Color.black)
@@ -624,13 +886,20 @@ struct PlaybackView: View {
                       help: String(localized: "Salvar uma foto do que está na tela (com zoom, só a parte ampliada)")) { takePhoto() }
                 .disabled(!hasRecording)
             BarButton(icon: currentIsDownloaded ? "checkmark.circle" : "arrow.down.circle",
-                      title: compact ? nil : (currentIsDownloaded ? String(localized: "Baixado") : String(localized: "Baixar")),
+                      title: compact ? nil : (currentIsDownloaded ? String(localized: "Baixado")
+                                              : currentIsPartial ? String(localized: "Baixar de novo") : String(localized: "Baixar")),
                       help: currentIsDownloaded ? String(localized: "Já está no Mac: mostrar o arquivo no Finder (⌘D)")
-                                                : String(localized: "Baixar esta gravação em MP4 na pasta das Preferências (⌘D)")) {
-                if let recording = session.recording, let camera = session.camera { browser.download(recording, camera: camera) }
+                          : currentIsPartial ? String(localized: "Foi baixada enquanto ainda gravava; baixar de novo com o trecho todo (⌘D)")
+                          : String(localized: "Baixar esta gravação na pasta das Preferências (⌘D)")) {
+                if let target = downloadTarget { browser.download(target.recording, camera: target.camera) }
             }
             .keyboardShortcut(compact ? nil : KeyboardShortcut("d"))
-            .disabled(!hasRecording)
+            .disabled(downloadTarget == nil)
+            if currentIsDownloaded {
+                BarButton(icon: "arrow.clockwise.circle", help: String(localized: "Baixar de novo (outra cópia na pasta das Preferências)")) {
+                    if let target = downloadTarget { browser.download(target.recording, camera: target.camera, again: true) }
+                }
+            }
         }
     }
 
@@ -693,6 +962,40 @@ struct PlaybackView: View {
         return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
     }
 
+    /// Foto aberta da lista ou da linha do tempo, por cima do vídeo parado.
+    @ViewBuilder
+    private var photoLayer: some View {
+        if let recording = browser.photoRecording {
+            ZStack {
+                Color.black
+                if let image = browser.photo {
+                    Image(nsImage: image).resizable().scaledToFit()
+                } else if browser.photoLoading {
+                    ProgressView("Abrindo foto…").tint(.white).foregroundStyle(.white)
+                } else if let message = browser.photoMessage {
+                    Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                }
+                VStack {
+                    HStack {
+                        Text("\(recording.kind.label) · \(recording.begin.formatted(date: .omitted, time: .standard))")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, Space.s).padding(.vertical, Space.xxs)
+                            .background(.black.opacity(0.6), in: Capsule())
+                            .foregroundStyle(.white)
+                        Spacer()
+                        Button { browser.closePhoto() } label: { Image(systemName: "xmark.circle.fill").font(.title2) }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.white.opacity(0.85))
+                            .help("Fechar a foto")
+                            .accessibilityLabel("Fechar a foto")
+                    }
+                    Spacer()
+                }
+                .padding(Space.m)
+            }
+        }
+    }
+
     @ViewBuilder
     private var overlay: some View {
         switch session.status {
@@ -720,17 +1023,30 @@ struct PlaybackView: View {
 private struct RecordingRow: View {
     let recording: Recording
     var downloaded = false
+    /// Baixada enquanto ainda gravava: o arquivo do equipamento cresceu depois.
+    var partial = false
+    /// Baixar (again = outra cópia de um arquivo já baixado).
+    var onDownload: (_ again: Bool) -> Void = { _ in }
+    var onReveal: () -> Void = {}
 
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(recording.begin.formatted(date: .omitted, time: .standard)) – \(recording.end.formatted(date: .omitted, time: .standard))")
+                Text(recording.isPhoto ? recording.begin.formatted(date: .omitted, time: .standard)
+                                       : "\(recording.begin.formatted(date: .omitted, time: .standard)) – \(recording.end.formatted(date: .omitted, time: .standard))")
                     .monospacedDigit()
                 Text(String(format: "%.1f MB", Double(recording.sizeKB) / 1024))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            if downloaded {
+            if partial {
+                Label("Incompleto", systemImage: "clock.arrow.circlepath")
+                    .font(.caption2.weight(.medium))
+                    .padding(.horizontal, Space.s).padding(.vertical, Space.xxs)
+                    .background(Theme.warning.opacity(0.2), in: Capsule())
+                    .foregroundStyle(Theme.warning)
+                    .help("Baixado enquanto ainda gravava; baixe de novo para ter o trecho todo")
+            } else if downloaded {
                 // Selo "No Mac": este vídeo já está baixado aqui.
                 Label("No Mac", systemImage: "internaldrive.fill")
                     .font(.caption2.weight(.medium))
@@ -745,6 +1061,31 @@ private struct RecordingRow: View {
                 .padding(.horizontal, Space.s).padding(.vertical, Space.xxs)
                 .background(color.opacity(0.2), in: Capsule())
                 .foregroundStyle(color)
+            downloadButton
+        }
+    }
+
+    /// Baixar direto da lista; já baixado, o menu tem "Mostrar no Finder" e "Baixar de novo".
+    @ViewBuilder
+    private var downloadButton: some View {
+        if downloaded && !partial {
+            Menu {
+                Button("Mostrar no Finder", action: onReveal)
+                Button("Baixar de novo") { onDownload(true) }
+            } label: {
+                Image(systemName: "checkmark.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .foregroundStyle(Theme.success)
+            .help("Já baixado: mostrar no Finder ou baixar de novo")
+            .accessibilityLabel("Opções do arquivo baixado")
+        } else {
+            Button { onDownload(false) } label: { Image(systemName: "arrow.down.circle") }
+                .buttonStyle(.borderless)
+                .help(partial ? "Baixar de novo, com o trecho todo" : (recording.isPhoto ? "Baixar a foto" : "Baixar em MP4"))
+                .accessibilityLabel(partial ? "Baixar de novo" : "Baixar")
         }
     }
 

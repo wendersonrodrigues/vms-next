@@ -318,6 +318,12 @@ struct ContentView: View {
         SettingsTarget(camera: camera, scope: camera.group == nil ? .camera : .channel)
     }
 
+    /// NVR escolhido na lista (o grupo inteiro), para as Gravações mostrarem todos os canais.
+    private var selectedRecorder: String? {
+        if case let .group(name) = ui.selection { return name }
+        return nil
+    }
+
     /// Câmera em tela única, quando a seleção é uma câmera.
     private var focusedCamera: Camera? {
         switch ui.selection {
@@ -400,7 +406,7 @@ struct ContentView: View {
                     modeToolbar
                 }
         } else if ui.mode == .recordings {
-            PlaybackView(cameraID: focusedCamera?.id, request: $ui.playbackRequest)
+            PlaybackView(cameraID: focusedCamera?.id, recorder: selectedRecorder, request: $ui.playbackRequest)
                 .navigationTitle("Gravações")
                 .toolbar {
                     titleIcon

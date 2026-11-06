@@ -213,7 +213,7 @@ final class PlaybackSession: ObservableObject {
             "Parameter": [
                 "PlayMode": "ByName",
                 "FileName": recording.fileName,
-                "StreamType": 0,
+                "StreamType": recording.stream,
                 "Value": 0,
                 "TransMode": "TCP",
                 "IntelligentPlayBack": 0,
