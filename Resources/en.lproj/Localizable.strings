@@ -1669,3 +1669,34 @@
 "Abrir" = "Open";
 "Baixar a foto" = "Download the photo";
 "Baixar de novo, com o trecho todo" = "Download again, with the whole clip";
+
+/* Câmeras ONVIF (outras marcas) */
+"A câmera não informou nenhum endereço de vídeo." = "The camera didn't report any video address.";
+"A câmera não respondeu pelo ONVIF (%@)." = "The camera didn't answer over ONVIF (%@).";
+"A câmera recusou o pedido: %@" = "The camera refused the request: %@";
+"Ao salvar, o app pede à câmera os endereços RTSP do vídeo principal e do secundário. O caminho do serviço quase sempre é /onvif/device_service." = "When you save, the app asks the camera for the RTSP addresses of the main and secondary video. The service path is almost always /onvif/device_service.";
+"As gravações do cartão de câmeras ONVIF (outras marcas) ainda não aparecem aqui. Para guardar o vídeo dela, use Gravar no ao vivo (gravação no Mac)." = "Card recordings of ONVIF cameras (other brands) don't show here yet. To keep its video, use Record in live view (recording on the Mac).";
+"Caminho do serviço" = "Service path";
+"Câmera ONVIF" = "ONVIF camera";
+"Câmera ONVIF (outra marca)" = "ONVIF camera (other brand)";
+"Câmera de outra marca (ONVIF)" = "Camera from another brand (ONVIF)";
+"Câmera de outra marca, que fala o padrão ONVIF" = "Camera from another brand that speaks the ONVIF standard";
+"Câmera ou NVR Xiongmai (iCSee/XMEye)" = "Xiongmai camera or NVR (iCSee/XMEye)";
+"Esta câmera é de outra marca e está ligada pelo ONVIF. No VMS Next ela tem ao vivo, HD/SD, foto e gravação no Mac. Imagem, detecção, rede e as gravações do cartão dela se ajustam no aplicativo da própria marca." = "This camera is from another brand and is connected over ONVIF. In VMS Next it has live view, HD/SD, photo and recording on the Mac. Image, detection, network and its card recordings are set in the brand's own app.";
+"Fabricante" = "Manufacturer";
+"Firmware" = "Firmware";
+"Ler da câmera agora" = "Read from the camera now";
+"O usuário e a senha do ONVIF da câmera (muitas marcas usam \"admin\" e a senha do aplicativo delas). A senha fica no cofre criptografado do VMS Next." = "The camera's ONVIF user and password (many brands use \"admin\" and the password from their app). The password is kept in the VMS Next encrypted vault.";
+"ONVIF" = "ONVIF";
+"Porta do serviço ONVIF da câmera (a busca na rede já preenche). Comuns: 80, 8899, 5000." = "Port of the camera's ONVIF service (the network search fills it in). Common ones: 80, 8899, 5000.";
+"Principal (HD)" = "Main (HD)";
+"Procura câmeras e NVRs Xiongmai e câmeras de outras marcas que falam ONVIF, na mesma rede do Mac. Ao adicionar, digite o usuário e a senha do equipamento." = "Looks for Xiongmai cameras and NVRs and cameras from other brands that speak ONVIF, on the same network as the Mac. When adding, type the device's user and password.";
+"Resposta ONVIF que o app não entendeu." = "ONVIF response the app didn't understand.";
+"Secundário (SD)" = "Secondary (SD)";
+"Serviço ONVIF" = "ONVIF service";
+"Usuário ou senha recusados pela câmera." = "User or password refused by the camera.";
+"%@ · ONVIF%@ · usuário %@" = "%@ · ONVIF%@ · user %@";
+"câmera ONVIF: função só das câmeras Xiongmai" = "ONVIF camera: this feature is only for Xiongmai cameras";
+"erro %@" = "error %@";
+"igual ao principal" = "same as main";
+"lido ao salvar" = "read when saving";

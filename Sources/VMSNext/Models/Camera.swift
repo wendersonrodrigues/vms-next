@@ -25,6 +25,10 @@ struct Camera: Codable, Identifiable, Hashable {
     var ptz: PTZSupport = .auto
     /// De onde vêm as gravações desta câmera avulsa: do cartão dela ou do NVR (pelo canal ligado em "Mesma câmera").
     var recordingsFrom: RecordingSource = .camera
+    /// Câmera de outra marca, ligada pelo ONVIF (só ao vivo, foto e gravação no Mac); nil = Xiongmai.
+    var onvif: OnvifInfo?
+
+    var isOnvif: Bool { onvif != nil }
 
     /// Nome completo para mosaico e listas: "NVR · Canal 2" ou "Frente".
     var displayName: String { group.map { "\($0) · \(name)" } ?? name }
@@ -60,9 +64,11 @@ struct Camera: Codable, Identifiable, Hashable {
         split = try c.decodeIfPresent(CameraSplit.self, forKey: .split)
         ptz = try c.decodeIfPresent(PTZSupport.self, forKey: .ptz) ?? .auto
         recordingsFrom = try c.decodeIfPresent(RecordingSource.self, forKey: .recordingsFrom) ?? .camera
+        onvif = try c.decodeIfPresent(OnvifInfo.self, forKey: .onvif)
     }
 
     func rtspURL(password: String, quality: StreamQuality) -> String {
+        if let onvif, let url = onvif.rtspURL(host: host, sub: quality == .sub) { return url }
         var path = pathTemplate
             .replacingOccurrences(of: "{user}", with: username)
             .replacingOccurrences(of: "{password}", with: password)

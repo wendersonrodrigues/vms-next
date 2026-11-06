@@ -54,7 +54,8 @@ final class HomeModel: ObservableObject {
             case let .camera(id):
                 guard let camera = store.cameras.first(where: { $0.id == id }),
                       seen.insert("\(camera.host):\(camera.dvripPort)").inserted else { continue }
-                list.append(Device(id: camera.id.uuidString, name: camera.name, address: "\(camera.host):\(camera.dvripPort)",
+                list.append(Device(id: camera.id.uuidString, name: camera.name,
+                                   address: camera.isOnvif ? "\(camera.host) · ONVIF" : "\(camera.host):\(camera.dvripPort)",
                                    isRecorder: false, channels: 1, camera: camera))
             case let .group(name):
                 let channels = store.channels(in: name)
@@ -81,6 +82,20 @@ final class HomeModel: ObservableObject {
         guard store.password(for: device.camera) != nil else {
             device.online = false
             device.error = String(localized: "Senha não definida")
+            return device
+        }
+        if device.camera.isOnvif {
+            // Outra marca: conectada se responder pelo ONVIF com o usuário e a senha salvos (não tem disco para ler).
+            guard let password = store.password(for: device.camera),
+                  var client = OnvifClient(camera: device.camera, password: password) else { return device }
+            await client.syncClock()
+            do {
+                _ = try await client.deviceInformation()
+                device.online = true
+            } catch {
+                device.online = false
+                device.error = error.localizedDescription
+            }
             return device
         }
         do {

@@ -216,6 +216,10 @@ final class RecordingBrowser: ObservableObject {
         message = nil
         recordings = []
         defer { searching = false }
+        guard !camera.isOnvif else {
+            message = String(localized: "As gravações do cartão de câmeras ONVIF (outras marcas) ainda não aparecem aqui. Para guardar o vídeo dela, use Gravar no ao vivo (gravação no Mac).")
+            return
+        }
         let start = Calendar.current.startOfDay(for: day)
         let end = start.addingTimeInterval(86_399)
         do {

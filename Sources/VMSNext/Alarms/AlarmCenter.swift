@@ -252,7 +252,7 @@ final class AlarmCenter: ObservableObject {
     func refresh() {
         guard enabled, let store else { return }
         var devices: [String: Camera] = [:]
-        for camera in store.cameras where devices[deviceKey(camera)] == nil {
+        for camera in store.cameras where !camera.isOnvif && devices[deviceKey(camera)] == nil {
             devices[deviceKey(camera)] = camera
         }
         for (key, camera) in devices {

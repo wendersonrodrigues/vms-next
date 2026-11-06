@@ -37,6 +37,7 @@ final class CameraStore: ObservableObject {
     /// No automático, câmeras avulsas com mais de um canal (várias lentes) usam DVRIP,
     /// porque o RTSP delas devolve a mesma lente para todos os canais.
     func resolvedLiveSource(for camera: Camera) -> LiveSource {
+        if camera.isOnvif { return .rtsp }
         guard camera.liveSource == .auto else { return camera.liveSource }
         let siblings = cameras.filter { $0.group == nil && $0.host == camera.host && $0.dvripPort == camera.dvripPort }
         return camera.group == nil && siblings.count > 1 ? .dvrip : .rtsp

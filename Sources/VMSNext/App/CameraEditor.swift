@@ -13,6 +13,9 @@ struct CameraEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
+                if form.camera.isOnvif {
+                    onvifSections
+                } else {
                 Section("Câmera") {
                     TextField("Nome", text: $form.camera.name)
                     TextField("Endereço IP", text: $form.camera.host)
@@ -115,30 +118,138 @@ struct CameraEditor: View {
                     Text("Automático usa RTSP, exceto em câmeras de várias lentes, que usam o protocolo Xiongmai. Marcadores do caminho: {user}, {password}, {channel}, {stream} (0 = principal, 1 = extra).")
                         .foregroundStyle(.secondary)
                 }
+                }
             }
             .formStyle(.grouped)
 
             HStack {
+                if form.checking { ProgressView().controlSize(.small) }
+                if let error = form.onvifError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Theme.warning)
+                        .lineLimit(3)
+                }
                 Spacer()
                 Button("Cancelar", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("Salvar", action: save)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(form.camera.name.isEmpty || form.camera.host.isEmpty)
+                    .disabled(form.camera.name.isEmpty || form.camera.host.isEmpty || form.checking)
             }
             .padding()
         }
         .frame(width: 460, height: 520)
         .onAppear {
             form.password = store.password(for: form.camera) ?? ""
+            form.onvifKey = "\(form.camera.host)|\(form.camera.onvif?.port ?? 0)|\(form.camera.onvif?.path ?? "")|\(form.camera.username)|\(form.password)"
             form.originalChannel = store.linkedChannel(for: form.camera)?.id
             form.nvrChannel = form.originalChannel
+        }
+    }
+
+    // MARK: - ONVIF
+
+    private var passwordField: some View {
+        HStack {
+            if form.showPassword {
+                TextField("Senha", text: $form.password)
+                    .textSelection(.enabled)
+            } else {
+                SecureField("Senha", text: $form.password)
+            }
+            Button {
+                form.showPassword.toggle()
+            } label: {
+                Image(systemName: form.showPassword ? "eye.slash" : "eye")
+            }
+            .buttonStyle(.borderless)
+            .help(form.showPassword ? String(localized: "Esconder a senha") : String(localized: "Mostrar a senha salva"))
+            .accessibilityLabel(form.showPassword ? String(localized: "Esconder a senha") : String(localized: "Mostrar a senha"))
+        }
+    }
+
+    /// Câmera de outra marca: só o que o ONVIF precisa. Os endereços do vídeo são lidos da câmera ao salvar.
+    @ViewBuilder
+    private var onvifSections: some View {
+        let info = Binding(get: { form.camera.onvif ?? OnvifInfo() }, set: { form.camera.onvif = $0 })
+        Section {
+            TextField("Nome", text: $form.camera.name)
+            TextField("Endereço IP", text: $form.camera.host)
+            TextField("Porta ONVIF", value: info.port, format: .number.grouping(.never))
+                .help("Porta do serviço ONVIF da câmera (a busca na rede já preenche). Comuns: 80, 8899, 5000.")
+        } header: {
+            Text("Câmera ONVIF (outra marca)")
+        }
+        Section {
+            TextField("Usuário", text: $form.camera.username)
+            passwordField
+        } header: {
+            Text("Acesso")
+        } footer: {
+            Text("O usuário e a senha do ONVIF da câmera (muitas marcas usam \"admin\" e a senha do aplicativo delas). A senha fica no cofre criptografado do VMS Next.")
+                .foregroundStyle(.secondary)
+        }
+        Section {
+            LabeledContent("Principal (HD)", value: form.camera.onvif?.mainURI ?? String(localized: "lido ao salvar"))
+                .textSelection(.enabled)
+            if let sub = form.camera.onvif?.subURI {
+                LabeledContent("Secundário (SD)", value: sub).textSelection(.enabled)
+            }
+            if let maker = form.camera.onvif?.manufacturer {
+                LabeledContent("Fabricante", value: [maker, form.camera.onvif?.model].compactMap { $0 }.joined(separator: " · "))
+            }
+            Button("Ler da câmera agora") { Task { _ = await readOnvif() } }
+                .disabled(form.checking || form.camera.host.isEmpty)
+            TextField("Caminho do serviço", text: info.path)
+                .font(.system(.body, design: .monospaced))
+        } header: {
+            Text("Vídeo")
+        } footer: {
+            Text("Ao salvar, o app pede à câmera os endereços RTSP do vídeo principal e do secundário. O caminho do serviço quase sempre é /onvif/device_service.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Lê da câmera o fabricante e os endereços do vídeo. Devolve false (com o motivo na tela) se não deu.
+    private func readOnvif() async -> Bool {
+        guard let current = form.camera.onvif else { return true }
+        form.checking = true
+        form.onvifError = nil
+        defer { form.checking = false }
+        do {
+            let fetched = try await OnvifInfo.fetch(host: form.camera.host.trimmingCharacters(in: .whitespaces),
+                                                    port: current.port, path: current.path,
+                                                    username: form.camera.username, password: form.password)
+            form.camera.onvif = fetched
+            form.camera.rtspPort = fetched.rtspPort
+            return true
+        } catch {
+            form.onvifError = error.localizedDescription
+            return false
         }
     }
 
     private func save() {
         form.camera.name = form.camera.name.trimmingCharacters(in: .whitespaces)
         form.camera.host = form.camera.host.trimmingCharacters(in: .whitespaces)
+        if form.camera.isOnvif {
+            // Endereço, porta, usuário ou senha mudaram (ou o vídeo nunca foi lido): pergunta à câmera antes de salvar.
+            let key = "\(form.camera.host)|\(form.camera.onvif?.port ?? 0)|\(form.camera.onvif?.path ?? "")|\(form.camera.username)|\(form.password)"
+            if form.camera.onvif?.mainURI == nil || key != form.onvifKey {
+                Task {
+                    if await readOnvif() {
+                        form.onvifKey = key
+                        finishSave()
+                    }
+                }
+                return
+            }
+        }
+        finishSave()
+    }
+
+    private func finishSave() {
         store.upsert(form.camera)
         if form.camera.group == nil, form.nvrChannel != form.originalChannel { store.link(form.camera, to: form.nvrChannel) }
         store.setPassword(form.password, for: form.camera)
@@ -153,6 +264,11 @@ final class EditorForm: ObservableObject {
     /// Canal do NVR que é esta câmera (o link fica guardado no canal, por isso é editado à parte).
     @Published var nvrChannel: Camera.ID?
     var originalChannel: Camera.ID?
+    /// ONVIF: lendo os endereços do vídeo da câmera, e o motivo se não deu.
+    @Published var checking = false
+    @Published var onvifError: String?
+    /// Endereço, porta, usuário e senha da última leitura que deu certo (mudou = lê de novo ao salvar).
+    var onvifKey = ""
 
     init(camera: Camera) {
         self.camera = camera

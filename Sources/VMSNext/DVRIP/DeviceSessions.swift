@@ -11,6 +11,9 @@ final class DeviceSessions {
     private var rejected: Set<String> = []
 
     func client(for camera: Camera) async throws -> DVRIPClient {
+        // Câmeras de outras marcas (ONVIF) não falam o protocolo da Xiongmai: as funções que dependem dele
+        // (configurações, gravações do cartão, alertas, PTZ Xiongmai) ficam indisponíveis sem tentar conectar.
+        guard !camera.isOnvif else { throw DVRIPError.connection(String(localized: "câmera ONVIF: função só das câmeras Xiongmai")) }
         let key = "\(camera.keychainAccount):\(camera.dvripPort)"
         guard !rejected.contains(key) else { throw DVRIPError.authFailed }
         if let existing = sessions[key] {

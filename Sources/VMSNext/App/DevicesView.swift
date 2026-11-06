@@ -20,11 +20,19 @@ struct DevicesView: View {
                     .disabled(model.searching)
                     if model.searching { ProgressView().controlSize(.small) }
                     Spacer()
-                    Button {
-                        onEdit(Camera(name: String(localized: "Nova câmera"), host: "192.168.0."))
+                    Menu {
+                        Button("Câmera ou NVR Xiongmai (iCSee/XMEye)") {
+                            onEdit(Camera(name: String(localized: "Nova câmera"), host: "192.168.0."))
+                        }
+                        Button("Câmera de outra marca (ONVIF)") {
+                            var camera = Camera(name: String(localized: "Nova câmera"), host: "192.168.0.")
+                            camera.onvif = OnvifInfo()
+                            onEdit(camera)
+                        }
                     } label: {
                         Label("Adicionar manualmente", systemImage: "plus")
                     }
+                    .fixedSize()
                 }
                 if let message = model.message {
                     Text(message).font(.callout).foregroundStyle(.secondary)
@@ -49,10 +57,38 @@ struct DevicesView: View {
                         }
                     }
                 }
+                ForEach(model.onvifFound) { device in
+                    let added = store.cameras.contains { $0.host == device.ip }
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: Space.xs) {
+                                Text(device.name.isEmpty ? device.ip : device.name)
+                                Text("ONVIF")
+                                    .font(.caption2.weight(.semibold))
+                                    .padding(.horizontal, Space.xs).padding(.vertical, 1)
+                                    .background(Theme.accent.opacity(0.15), in: Capsule())
+                                    .foregroundStyle(Theme.accent)
+                                    .help("Câmera de outra marca, que fala o padrão ONVIF")
+                            }
+                            Text("\(device.ip):\(device.port)\(device.hardware.isEmpty ? "" : " · \(device.hardware)")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                        Spacer()
+                        if added {
+                            Label("Já adicionado", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(Theme.success)
+                                .font(.callout)
+                        } else {
+                            Button("Adicionar…") { onEdit(model.camera(for: device)) }
+                        }
+                    }
+                }
             } header: {
                 Text("Encontrar na rede (IPV4 pesquisar)")
             } footer: {
-                Text("Procura câmeras e NVRs Xiongmai ligados na mesma rede do Mac. Ao adicionar, digite o usuário e a senha do equipamento.")
+                Text("Procura câmeras e NVRs Xiongmai e câmeras de outras marcas que falam ONVIF, na mesma rede do Mac. Ao adicionar, digite o usuário e a senha do equipamento.")
                     .foregroundStyle(.secondary)
             }
 
@@ -91,7 +127,8 @@ struct DevicesView: View {
     private var rows: [Row] {
         var result = store.standaloneCameras.map { camera in
             Row(id: camera.id.uuidString, title: camera.name,
-                subtitle: String(localized: "\(camera.host):\(camera.dvripPort) · usuário \(camera.username)")
+                subtitle: (camera.isOnvif ? String(localized: "\(camera.host) · ONVIF\(camera.onvif?.manufacturer.map { " · \($0)" } ?? "") · usuário \(camera.username)")
+                                          : String(localized: "\(camera.host):\(camera.dvripPort) · usuário \(camera.username)"))
                     + (camera.cloudID.map { " · CloudID \($0)" } ?? ""),
                 camera: camera, isRecorder: false)
         }
@@ -108,17 +145,30 @@ struct DevicesView: View {
 @MainActor
 final class DevicesModel: ObservableObject {
     @Published private(set) var found: [DeviceDiscovery.Found] = []
+    /// Câmeras ONVIF (outras marcas); as Xiongmai, que também respondem ao ONVIF, ficam só na lista de cima.
+    @Published private(set) var onvifFound: [OnvifDiscovery.Found] = []
     @Published private(set) var searching = false
     @Published private(set) var message: String?
 
     func search() async {
         searching = true
         message = nil
-        found = await DeviceDiscovery.search()
+        async let xiongmai = DeviceDiscovery.search()
+        async let onvif = OnvifDiscovery.search()
+        found = await xiongmai
+        let known = Set(found.map(\.ip))
+        onvifFound = await onvif.filter { !known.contains($0.ip) }
         searching = false
-        if found.isEmpty {
+        if found.isEmpty && onvifFound.isEmpty {
             message = String(localized: "Nenhum equipamento respondeu. Confira se o Mac está na mesma rede e se o VMS Next tem permissão de Rede Local (Ajustes do Sistema → Privacidade e Segurança → Rede Local).")
         }
+    }
+
+    func camera(for device: OnvifDiscovery.Found) -> Camera {
+        let label = device.name.isEmpty ? device.hardware : device.name
+        var camera = Camera(name: label.isEmpty ? String(localized: "Câmera \(device.ip)") : label, host: device.ip)
+        camera.onvif = OnvifInfo(port: device.port, path: device.path)
+        return camera
     }
 
     func camera(for device: DeviceDiscovery.Found) -> Camera {

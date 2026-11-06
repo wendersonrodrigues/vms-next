@@ -350,7 +350,9 @@ struct SettingsPane: View {
 
     var body: some View {
         Group {
-            if let target {
+            if let target, target.camera.isOnvif {
+                OnvifInfoView(camera: target.camera)
+            } else if let target {
                 if let category, available.contains(category) {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {
@@ -400,7 +402,7 @@ struct SettingsPane: View {
             }
         }
         .task(id: target.map { "\($0.camera.host):\($0.camera.dvripPort)" }) {
-            guard let target else { return }
+            guard let target, !target.camera.isOnvif else { return }
             state.profile = .empty
             state.profile = await DeviceCapabilities.profile(for: target.camera)
         }
