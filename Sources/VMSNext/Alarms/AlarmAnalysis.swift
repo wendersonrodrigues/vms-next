@@ -152,6 +152,11 @@ enum AlarmPhotos {
                 if let cgImage = CIContext().createCGImage(image, from: image.extent) { return cgImage }
             }
         }
+        if camera.isOnvif {
+            guard let data = await OnvifServices.shared.snapshot(camera),
+                  let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+            return CGImageSourceCreateImageAtIndex(source, 0, nil)
+        }
         guard let client = try? await DeviceSessions.shared.client(for: camera),
               let data = try? await client.snapshot(channel: camera.channel - 1),
               let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }

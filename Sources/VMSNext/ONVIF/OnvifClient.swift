@@ -110,7 +110,7 @@ struct OnvifClient {
     }
 
     /// O endereço que a câmera devolve às vezes traz outro IP (o da rede interna dela): troca pelo IP usado.
-    private func rehosted(_ address: String) -> URL? {
+    func rehosted(_ address: String) -> URL? {
         let first = address.split(separator: " ").first.map(String.init) ?? address
         guard var parts = URLComponents(string: first) else { return nil }
         parts.host = deviceURL.host
@@ -120,12 +120,15 @@ struct OnvifClient {
 
     // MARK: - SOAP
 
-    func call(_ url: URL, body: String, auth: Bool = true, timeout: TimeInterval = 6) async throws -> OnvifXML {
+    /// `headers`: cabeçalhos extras do SOAP (WS-Addressing dos eventos).
+    func call(_ url: URL, body: String, auth: Bool = true, timeout: TimeInterval = 6, headers: String = "") async throws -> OnvifXML {
         let envelope = """
         <?xml version="1.0" encoding="UTF-8"?>
         <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:tds="http://www.onvif.org/ver10/device/wsdl" \
-        xmlns:trt="http://www.onvif.org/ver10/media/wsdl" xmlns:tt="http://www.onvif.org/ver10/schema">\
-        <s:Header>\(auth ? security() : "")</s:Header><s:Body>\(body)</s:Body></s:Envelope>
+        xmlns:trt="http://www.onvif.org/ver10/media/wsdl" xmlns:tt="http://www.onvif.org/ver10/schema" \
+        xmlns:tptz="http://www.onvif.org/ver20/ptz/wsdl" xmlns:tev="http://www.onvif.org/ver10/events/wsdl" \
+        xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2">\
+        <s:Header>\(headers)\(auth ? security() : "")</s:Header><s:Body>\(body)</s:Body></s:Envelope>
         """
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "POST"

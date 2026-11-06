@@ -250,6 +250,7 @@ struct CameraEditor: View {
     }
 
     private func finishSave() {
+        if form.camera.isOnvif { OnvifServices.shared.invalidate(form.camera) }
         store.upsert(form.camera)
         if form.camera.group == nil, form.nvrChannel != form.originalChannel { store.link(form.camera, to: form.nvrChannel) }
         store.setPassword(form.password, for: form.camera)

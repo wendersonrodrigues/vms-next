@@ -1700,3 +1700,13 @@
 "erro %@" = "error %@";
 "igual ao principal" = "same as main";
 "lido ao salvar" = "read when saving";
+
+/* ONVIF fase 2: PTZ e alertas */
+"Diagnóstico ONVIF…" = "ONVIF diagnostic…";
+"Esta câmera não informou PTZ pelo ONVIF." = "This camera didn't report PTZ over ONVIF.";
+"Foco, íris e ronda não existem no PTZ pelo ONVIF." = "Focus, iris and tour aren't part of ONVIF PTZ.";
+"O preset %lld ainda não foi gravado nesta câmera." = "Preset %lld hasn't been saved on this camera yet.";
+"Recebendo alertas (ONVIF)" = "Receiving alerts (ONVIF)";
+"Testa os serviços, o PTZ e os alertas desta câmera e mostra o resultado (sem a senha)" = "Tests this camera's services, PTZ and alerts and shows the result (without the password)";
+"Esta câmera não informou alertas pelo ONVIF." = "This camera didn't report alerts over ONVIF.";
+"Esta câmera não manda alertas pelo ONVIF (só o vídeo)." = "This camera doesn't send alerts over ONVIF (video only).";

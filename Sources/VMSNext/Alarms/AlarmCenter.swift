@@ -183,6 +183,8 @@ final class AlarmCenter: ObservableObject {
     private let defaults = UserDefaults.standard
     private weak var store: CameraStore?
     private var subscribed: [String: DVRIPClient] = [:]
+    /// Câmeras ONVIF (outras marcas): um assinante de eventos por câmera.
+    private var onvifWatchers: [Camera.ID: OnvifEventWatcher] = [:]
     private var timer: Timer?
     private var lastNotified: [String: Date] = [:]
     private var maxEvents: Int { AppPreferences.shared.maxEvents }
@@ -260,6 +262,22 @@ final class AlarmCenter: ObservableObject {
             subscribed[key] = nil
             Task { await subscribe(key: key, camera: camera) }
         }
+        // ONVIF: assina os eventos de cada câmera; câmeras removidas param de ser ouvidas.
+        let onvif = store.cameras.filter(\.isOnvif)
+        for (id, watcher) in onvifWatchers where !onvif.contains(where: { $0.id == id }) {
+            watcher.stop()
+            onvifWatchers[id] = nil
+        }
+        for camera in onvif where onvifWatchers[camera.id] == nil {
+            let watcher = OnvifEventWatcher(camera: camera)
+            let host = camera.host
+            watcher.onStatus = { [weak self] status in self?.deviceStatus[host] = status }
+            watcher.onEvent = { [weak self] event, isStart in
+                self?.record(source: camera, host: host, channel: 1, event: event, isStart: isStart, deviceTime: nil)
+            }
+            onvifWatchers[camera.id] = watcher
+            watcher.start()
+        }
     }
 
     // MARK: - Mesma câmera pela câmera e pelo NVR
@@ -274,6 +292,8 @@ final class AlarmCenter: ObservableObject {
     private func stopAll() {
         subscribed.values.forEach { $0.onPush = nil }
         subscribed.removeAll()
+        onvifWatchers.values.forEach { $0.stop() }
+        onvifWatchers.removeAll()
         deviceStatus.removeAll()
     }
 
@@ -306,6 +326,12 @@ final class AlarmCenter: ObservableObject {
         let isStart = (info["Status"] as? String ?? "Start").lowercased() != "stop"
         let source = store?.cameras.first { $0.host == host && $0.channel == channel }
             ?? store?.cameras.first { $0.host == host && $0.group == nil }
+        record(source: source, host: host, channel: channel, event: event, isStart: isStart, deviceTime: info["StartTime"] as? String)
+    }
+
+    /// Um alerta que chegou (Xiongmai pelo 1504 ou ONVIF pelos eventos): junta repetidos, marca o fim,
+    /// guarda, analisa com a IA e avisa.
+    private func record(source: Camera?, host: String, channel: Int, event: String, isStart: Bool, deviceTime: String?) {
         // Com "juntar repetidos", o canal do NVR aparece como a câmera avulsa (ex.: "Sala") e o segundo aviso some.
         let physical = mergeDuplicates ? source.flatMap(physicalCamera(for:)) : nil
         let camera = physical ?? source
@@ -323,7 +349,7 @@ final class AlarmCenter: ObservableObject {
         }
         let alarm = AlarmEvent(
             date: Date(),
-            deviceTime: info["StartTime"] as? String,
+            deviceTime: deviceTime,
             cameraName: camera?.displayName ?? "\(host) · canal \(channel)",
             cameraID: camera?.id,
             channel: channel,

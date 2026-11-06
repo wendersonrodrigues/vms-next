@@ -35,12 +35,19 @@ struct OnvifInfoView: View {
                     .textSelection(.enabled)
             }
             Section {
+                Button("Diagnóstico ONVIF…") { Task { model.diagnosticText = await model.diagnostic(camera: camera) } }
+                    .help("Testa os serviços, o PTZ e os alertas desta câmera e mostra o resultado (sem a senha)")
+            }
+            Section {
                 Text("Esta câmera é de outra marca e está ligada pelo ONVIF. No VMS Next ela tem ao vivo, HD/SD, foto e gravação no Mac. Imagem, detecção, rede e as gravações do cartão dela se ajustam no aplicativo da própria marca.")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .task(id: camera.id) { await model.load(camera: camera, password: store.password(for: camera)) }
+        .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
+            DiagnosticSheet(text: model.diagnosticText ?? "")
+        }
     }
 }
 
@@ -49,6 +56,43 @@ final class OnvifInfoModel: ObservableObject {
     @Published private(set) var info: OnvifClient.DeviceInfo?
     @Published private(set) var loading = false
     @Published private(set) var error: String?
+    @Published var diagnosticText: String?
+
+    /// Lê de novo os serviços e testa o PTZ (lista de presets) e os alertas (assinatura), mostrando o que respondeu.
+    func diagnostic(camera: Camera) async -> String {
+        var out = "ONVIF: \(camera.displayName) · \(camera.host)\n"
+        OnvifServices.shared.invalidate(camera)
+        do {
+            let entry = try await OnvifServices.shared.entry(for: camera)
+            out += "\nServiço: \(entry.client.deviceURL.absoluteString)\nDiferença de relógio: \(Int(entry.client.clockOffset)) s\n"
+            out += "Mídia: \(entry.media.absoluteString)\nPTZ: \(entry.ptz?.absoluteString ?? "—")\nEventos: \(entry.events?.absoluteString ?? "—")\n"
+            out += "Perfil: \(entry.profile ?? "—")\nFoto: \(entry.snapshot?.absoluteString ?? "—")\n"
+            if let ptz = entry.ptz, let profile = entry.profile {
+                do {
+                    let presets = try await entry.client.presets(ptz, profile: profile)
+                    out += "\n== PTZ: \(presets.count) presets\n" + presets.map { "  \($0.token) · \($0.name)" }.joined(separator: "\n") + "\n"
+                } catch {
+                    out += "\n== PTZ: \(error.localizedDescription)\n"
+                }
+            }
+            for url in [entry.events, entry.client.deviceURL].compactMap({ $0 }) {
+                do {
+                    let reply = try await entry.client.call(url, body: "<tev:CreatePullPointSubscription><tev:InitialTerminationTime>PT60S</tev:InitialTerminationTime></tev:CreatePullPointSubscription>")
+                    out += "\n== Alertas em \(url.path): assinatura criada (\(reply.first("SubscriptionReference")?.value("Address") ?? "sem endereço"))\n"
+                } catch {
+                    out += "\n== Alertas em \(url.path): \(error.localizedDescription)\n"
+                }
+            }
+            if let data = await OnvifServices.shared.snapshot(camera) {
+                out += "\n== Foto: \(data.count / 1024) KB\n"
+            } else {
+                out += "\n== Foto: não veio\n"
+            }
+        } catch {
+            out += "\nFalhou: \(error.localizedDescription)\n"
+        }
+        return out
+    }
 
     func load(camera: Camera, password: String?) async {
         info = nil

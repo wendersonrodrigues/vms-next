@@ -134,6 +134,10 @@ final class PTZController: ObservableObject {
         let camera = camera
         chain = Task { [weak self] in
             await previous?.value
+            if camera.isOnvif {
+                await self?.sendONVIF(command, step: step, preset: preset)
+                return
+            }
             do {
                 let client = try await DeviceSessions.shared.client(for: camera)
                 try await client.command(code: 1400, name: "OPPTZControl", payload: [
@@ -153,6 +157,69 @@ final class PTZController: ObservableObject {
             } catch {
                 self?.message = error.localizedDescription
             }
+        }
+    }
+
+    // MARK: - ONVIF (câmeras de outras marcas)
+
+    /// Mesmos botões pelo PTZ padrão do ONVIF: setas e zoom viram movimento contínuo (velocidade 1–8 → 0,125–1),
+    /// soltar vira Stop; presets pelo número (nome ou token igual ao número; senão, a posição na lista).
+    /// Foco, íris e ronda não fazem parte do PTZ básico do ONVIF.
+    private func sendONVIF(_ command: PTZCommand, step: Int, preset: Int) async {
+        do {
+            let services = try await OnvifServices.shared.entry(for: camera)
+            guard let url = services.ptz, let profile = services.profile else {
+                message = String(localized: "Esta câmera não informou PTZ pelo ONVIF.")
+                return
+            }
+            let client = services.client
+            let speed = Double(max(step, 1)) / 8
+            var x = 0.0, y = 0.0, zoom = 0.0
+            switch command {
+            case .left: x = -speed
+            case .right: x = speed
+            case .up: y = speed
+            case .down: y = -speed
+            case .upLeft: (x, y) = (-speed, speed)
+            case .upRight: (x, y) = (speed, speed)
+            case .downLeft: (x, y) = (-speed, -speed)
+            case .downRight: (x, y) = (speed, -speed)
+            case .zoomIn: zoom = speed
+            case .zoomOut: zoom = -speed
+            case .gotoPreset, .setPreset, .clearPreset:
+                try await presetONVIF(command, number: preset, client: client, url: url, profile: profile)
+                message = nil
+                return
+            default:
+                message = String(localized: "Foco, íris e ronda não existem no PTZ pelo ONVIF.")
+                return
+            }
+            if step == 0 {
+                try await client.stopMove(url, profile: profile)
+            } else {
+                try await client.continuousMove(url, profile: profile, x: x, y: y, zoom: zoom)
+            }
+            message = nil
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func presetONVIF(_ command: PTZCommand, number: Int, client: OnvifClient, url: URL, profile: String) async throws {
+        let list = try await client.presets(url, profile: profile)
+        let label = String(number)
+        let existing = list.first { $0.name == label || $0.token == label }
+        switch command {
+        case .gotoPreset:
+            guard let token = existing?.token ?? (list.indices.contains(number - 1) ? list[number - 1].token : nil) else {
+                message = String(localized: "O preset \(number) ainda não foi gravado nesta câmera.")
+                return
+            }
+            try await client.gotoPreset(url, profile: profile, token: token)
+        case .setPreset:
+            try await client.setPreset(url, profile: profile, name: label, token: existing?.token)
+        default:
+            if let token = existing?.token { try await client.removePreset(url, profile: profile, token: token) }
         }
     }
 }

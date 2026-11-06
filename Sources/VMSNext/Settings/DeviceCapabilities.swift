@@ -79,6 +79,7 @@ enum DeviceCapabilities {
         case .no: return false
         case .auto: break
         }
+        if camera.isOnvif { return await OnvifServices.shared.hasPTZ(camera) }
         var source = camera
         if camera.group != nil {
             guard let id = camera.sameAs, let linked = cameras.first(where: { $0.id == id }) else { return false }
