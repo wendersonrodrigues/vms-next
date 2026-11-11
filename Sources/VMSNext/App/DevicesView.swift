@@ -7,6 +7,7 @@ struct DevicesView: View {
 
     @EnvironmentObject private var store: CameraStore
     @StateObject private var model = DevicesModel()
+    @State private var syncingGroup: String?
 
     var body: some View {
         Form {
@@ -105,6 +106,14 @@ struct DevicesView: View {
                             Text(row.subtitle).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                         }
                         Spacer()
+                        if row.isRecorder, let group = row.camera.group {
+                            Button {
+                                syncingGroup = group
+                            } label: {
+                                Label("Sincronizar canais…", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                            .help("Traz para o app as câmeras que estão no NVR: adiciona, remove e renomeia os canais")
+                        }
                         Button("Editar…") { onEdit(row.camera) }
                         Button("Configurações…") { onSettings(row.camera) }
                     }
@@ -113,6 +122,9 @@ struct DevicesView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("Dispositivos")
+        .sheet(isPresented: Binding(get: { syncingGroup != nil }, set: { if !$0 { syncingGroup = nil } })) {
+            if let group = syncingGroup { RecorderSyncSheet(group: group) }
+        }
     }
 
     private struct Row {

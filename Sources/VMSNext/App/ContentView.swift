@@ -38,6 +38,9 @@ struct ContentView: View {
         .sheet(item: $ui.editing) { camera in
             CameraEditor(camera: camera)
         }
+        .sheet(isPresented: Binding(get: { ui.syncingGroup != nil }, set: { if !$0 { ui.syncingGroup = nil } })) {
+            if let group = ui.syncingGroup { RecorderSyncSheet(group: group) }
+        }
         .task {
             AlarmCenter.shared.start(store: store)
             ClockSync.runIfEnabled(store: store)
@@ -274,6 +277,17 @@ struct ContentView: View {
         case let .group(name):
             if let first = store.channels(in: name).first {
                 Button("Configurações do NVR…") { openSettings(SettingsTarget(camera: first, scope: .recorder)) }
+                Button("Sincronizar canais com o NVR…") { ui.syncingGroup = name }
+                Button("Adicionar canal…") {
+                    var camera = first
+                    camera.id = UUID()
+                    camera.channel = (store.channels(in: name).map(\.channel).max() ?? 0) + 1
+                    camera.name = "Canal \(camera.channel)"
+                    camera.sameAs = nil
+                    camera.split = nil
+                    ui.editing = camera
+                }
+                Divider()
                 Button("Remover NVR", role: .destructive) {
                     if ui.selection == item { ui.selection = .all }
                     store.removeGroup(name)
@@ -829,6 +843,8 @@ final class ContentUIState: ObservableObject {
     @Published var gridSelection: SidebarItem?
     @Published var selection: SidebarItem? = .all { didSet { save() } }
     @Published var editing: Camera?
+    /// NVR cuja lista de canais está sendo comparada com a do próprio NVR.
+    @Published var syncingGroup: String?
     /// Categoria aberta em Configurações (nil = menu de ícones). Fica a mesma ao trocar de câmera.
     @Published var settingsCategory: SettingsCategory?
     @Published var renaming: RenameRequest?

@@ -1727,3 +1727,32 @@
 "Foto não encontrada" = "Photo not found";
 "Salvar foto…" = "Save Photo…";
 "%lld de %lld" = "%1$lld of %2$lld";
+
+/* Atualizar canais do NVR */
+"Sincronizar canais com o NVR…" = "Sync channels with NVR…";
+"Adicionar canal…" = "Add channel…";
+"Sincronizar canais do %@" = "Sync %@ channels";
+"Compara a lista do app com as câmeras que estão configuradas no NVR. Marque o que deve mudar." = "Compares the app's list with the cameras configured on the NVR. Check what should change.";
+"A lista do app já está igual à do NVR." = "The app's list already matches the NVR.";
+"Sincronizar" = "Sync";
+"Adicionar %@" = "Add %@";
+"Remover %@" = "Remove %@";
+"Mesma câmera que: %@" = "Same camera as: %@";
+"Sem câmera avulsa ligada" = "No standalone camera linked";
+"Canal desativado ou vazio no NVR" = "Channel disabled or empty on the NVR";
+"O NVR não informou as câmeras dos canais." = "The NVR did not report the channel cameras.";
+"Sincronizar lista do app…" = "Sync app list…";
+"Compara os canais do app com as câmeras do NVR e adiciona, remove ou renomeia o que mudou" = "Compares the app's channels with the NVR cameras and adds, removes or renames what changed";
+"Pôr uma câmera num canal vazio do NVR." = "Put a camera on an empty NVR channel.";
+"Adicionar câmera…" = "Add camera…";
+"Tirar uma câmera do NVR (o canal fica desativado)." = "Take a camera off the NVR (the channel is disabled).";
+"Remover câmera" = "Remove camera";
+"Remover do NVR" = "Remove from NVR";
+"Remover a câmera do canal D%02d?" = "Remove the camera from channel D%02d?";
+"O canal \"%@\" fica desativado: o NVR para de mostrar e gravar essa câmera. As gravações que já existem continuam no disco." = "Channel \"%@\" will be disabled: the NVR stops showing and recording this camera. Existing recordings stay on the disk.";
+"Canal D%02d desativado no NVR." = "Channel D%02d disabled on the NVR.";
+"Para adicionar, remover ou trocar a câmera de um canal, use as opções abaixo. Depois de mudar o NVR, use \"Sincronizar lista do app…\"." = "To add, remove or replace a channel's camera, use the options below. After changing the NVR, use \"Sync app list…\".";
+"Sincronizar canais…" = "Sync channels…";
+"Sincronizar…" = "Sync…";
+"Traz para o app as câmeras que estão no NVR: adiciona, remove e renomeia os canais" = "Brings the NVR cameras into the app: adds, removes and renames channels";
+"A lista de câmeras do app está diferente do NVR (%lld mudança(s))." = "The app's camera list differs from the NVR (%lld change(s)).";

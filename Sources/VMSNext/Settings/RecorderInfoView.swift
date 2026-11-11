@@ -87,6 +87,59 @@ final class RecorderInfoModel: ObservableObject {
             mac: Self.text(decoder["MacAddr"]), serial: Self.text(decoder["SerialNo"]))
     }
 
+    /// Primeiro canal desativado ou vazio, aberto já como ativo para receber uma câmera nova.
+    var freeChannel: Int? {
+        RecorderChannels.parse(remoteRaw ?? []).first { !$0.enabled || !$0.configured }.map { $0.channel - 1 }
+    }
+
+    func beginAdd() {
+        guard let index = freeChannel else { return }
+        beginEdit(index)
+        editing?.enabled = true
+        if RecorderChannels.parse(remoteRaw ?? [])[index].configured == false {
+            editing?.name = ""
+            editing?.ip = ""
+        }
+    }
+
+    /// Canais com câmera ativa (para "Remover câmera do NVR").
+    var activeChannels: [NVRChannelInfo] {
+        RecorderChannels.parse(remoteRaw ?? []).filter { $0.enabled && $0.configured }
+    }
+
+    @Published var removing: NVRChannelInfo?
+    /// Quantas mudanças a lista do app precisa para ficar igual à do NVR (aviso no topo da tela).
+    @Published var pendingSync = 0
+
+    func checkSync(store: CameraStore) {
+        guard let group = camera.group, let raw = remoteRaw else { pendingSync = 0; return }
+        pendingSync = RecorderSyncModel.plan(nvr: RecorderChannels.parse(raw), channels: store.channels(in: group),
+                                             standalone: store.standaloneCameras).count
+    }
+
+    /// Desativa o canal no NVR (o mesmo que desmarcar "Habilitar"); os dados da câmera ficam guardados nele.
+    func disable(_ info: NVRChannelInfo) async {
+        let index = info.channel - 1
+        guard var list = remoteRaw, list.indices.contains(index), var channel = list[index] as? [String: Any] else { return }
+        saving = true
+        error = nil
+        notice = nil
+        defer { saving = false }
+        channel["Enable"] = false
+        list[index] = channel
+        do {
+            let client = try await DeviceSessions.shared.client(for: camera)
+            try await client.setConfig("NetWork.RemoteDeviceV3", list)
+            AppLog.shared.add(.config, String(format: "Canal D%02d do NVR desativado (%@)", info.channel, info.name),
+                              device: camera.group ?? camera.host)
+            remoteRaw = list
+            notice = String(format: String(localized: "Canal D%02d desativado no NVR."), info.channel)
+            readDigital(list, sync: nil)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     /// Preenche o canal com uma câmera achada pelo "Procurar".
     func use(_ item: Found) {
         guard var edit = editing else { return }
@@ -381,6 +434,8 @@ private extension String {
 
 struct RecorderInfoView: View {
     @StateObject private var model: RecorderInfoModel
+    @EnvironmentObject private var store: CameraStore
+    @State private var syncing = false
 
     init(camera: Camera, category: SettingsCategory) {
         _model = StateObject(wrappedValue: RecorderInfoModel(camera: camera, category: category))
@@ -393,6 +448,17 @@ struct RecorderInfoView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Form {
+                    if model.category == .digitalChannels, model.pendingSync > 0 {
+                        Section {
+                            HStack {
+                                Label(String(format: String(localized: "A lista de câmeras do app está diferente do NVR (%lld mudança(s))."), model.pendingSync),
+                                      systemImage: "arrow.triangle.2.circlepath")
+                                Spacer()
+                                Button("Sincronizar…") { syncing = true }
+                                    .buttonStyle(.borderedProminent)
+                            }
+                        }
+                    }
                     if !model.details.isEmpty {
                         Section {
                             ForEach(Array(model.details.enumerated()), id: \.offset) { _, item in
@@ -421,7 +487,7 @@ struct RecorderInfoView: View {
                                 }
                             }
                         } footer: {
-                            Text(model.category == .digitalChannels ? String(localized: "Para trocar a câmera de um canal, use \"Editar canal\" abaixo.") : String(localized: "Só leitura. Para mudar o modo do NVR, use o VMS antigo: uma troca errada para a gravação de todos os canais."))
+                            Text(model.category == .digitalChannels ? String(localized: "Para adicionar, remover ou trocar a câmera de um canal, use as opções abaixo. Depois de mudar o NVR, use \"Sincronizar lista do app…\".") : String(localized: "Só leitura. Para mudar o modo do NVR, use o VMS antigo: uma troca errada para a gravação de todos os canais."))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -443,6 +509,11 @@ struct RecorderInfoView: View {
                     Label(notice, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
                 }
                 Spacer()
+                if model.category == .digitalChannels, model.camera.group != nil {
+                    Button("Sincronizar lista do app…") { syncing = true }
+                        .help("Compara os canais do app com as câmeras do NVR e adiciona, remove ou renomeia o que mudou")
+                        .disabled(model.loading)
+                }
                 Button("Diagnóstico…") { Task { model.diagnosticText = await model.diagnostic() } }
                     .disabled(model.loading)
                 Button("Recarregar") { Task { await model.load() } }
@@ -453,6 +524,20 @@ struct RecorderInfoView: View {
         }
         .task { await model.load() }
         .sheet(item: $model.editing) { _ in editSheet }
+        .sheet(isPresented: $syncing, onDismiss: { model.checkSync(store: store) }) {
+            RecorderSyncSheet(group: model.camera.group ?? "")
+        }
+        .onChange(of: model.loading) { _, loading in if !loading { model.checkSync(store: store) } }
+        .onChange(of: model.notice) { model.checkSync(store: store) }
+        .onChange(of: store.cameras) { model.checkSync(store: store) }
+        .confirmationDialog(String(format: String(localized: "Remover a câmera do canal D%02d?"), model.removing?.channel ?? 0),
+                            isPresented: Binding(get: { model.removing != nil }, set: { if !$0 { model.removing = nil } }),
+                            presenting: model.removing) { info in
+            Button("Remover do NVR", role: .destructive) { Task { await model.disable(info) } }
+            Button("Cancelar", role: .cancel) {}
+        } message: { info in
+            Text(String(format: String(localized: "O canal \"%@\" fica desativado: o NVR para de mostrar e gravar essa câmera. As gravações que já existem continuam no disco."), info.name))
+        }
         .sheet(isPresented: Binding(get: { model.diagnosticText != nil }, set: { if !$0 { model.diagnosticText = nil } })) {
             DiagnosticSheet(text: model.diagnosticText ?? "")
         }
@@ -463,6 +548,23 @@ extension RecorderInfoView {
     @ViewBuilder
     var editSection: some View {
         Section {
+            HStack {
+                Text("Pôr uma câmera num canal vazio do NVR.")
+                Spacer()
+                Button("Adicionar câmera…") { model.beginAdd() }
+                    .disabled(model.freeChannel == nil || model.saving)
+            }
+            HStack {
+                Text("Tirar uma câmera do NVR (o canal fica desativado).")
+                Spacer()
+                Menu("Remover câmera") {
+                    ForEach(model.activeChannels, id: \.channel) { info in
+                        Button(String(format: "D%02d · %@ · %@", info.channel, info.name, info.ip)) { model.removing = info }
+                    }
+                }
+                .fixedSize()
+                .disabled(model.activeChannels.isEmpty || model.saving)
+            }
             HStack {
                 Text("Trocar a câmera de um canal ou os dados de acesso dela.")
                 Spacer()
