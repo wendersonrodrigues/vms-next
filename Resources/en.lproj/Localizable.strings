@@ -1760,3 +1760,8 @@
 /* Câmera ONVIF gravada no NVR */
 "O canal do NVR que mostra esta câmera. As Gravações e o ▶ dos alertas buscam o vídeo nele, e os alertas repetidos são juntados." = "The NVR channel that shows this camera. Recordings and the alerts' ▶ fetch the video from it, and duplicate alerts are merged.";
 "O app não lê o cartão de câmeras ONVIF. Se o NVR grava esta câmera, escolha o canal dela para ver as gravações pelo NVR." = "The app can't read ONVIF cameras' memory cards. If the NVR records this camera, pick its channel to see the recordings from the NVR.";
+
+/* Ajuda 1.5.0 */
+"Câmeras de outras marcas que falam ONVIF também aparecem na busca. Elas têm ao vivo, foto e gravação no Mac e, nas que aceitam, PTZ e alertas." = "Other-brand cameras that speak ONVIF also show up in the search. They get live view, photo and Mac recording and, where supported, PTZ and alerts.";
+"Mudou câmeras no próprio NVR? Botão direito no NVR → Sincronizar canais com o NVR… atualiza a lista do app." = "Changed cameras on the NVR itself? Right-click the NVR → Sync channels with NVR… updates the app's list.";
+"O botão de foto ao lado do ▶ Play abre a foto do alerta ampliada. Câmeras que não mandam alertas podem ter o movimento detectado pelo Mac (Eventos → Câmeras sem alertas)." = "The photo button next to ▶ Play opens the alert photo enlarged. Cameras that don't send alerts can have motion detected by the Mac (Events → Cameras without alerts).";

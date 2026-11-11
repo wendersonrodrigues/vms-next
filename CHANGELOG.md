@@ -1,5 +1,15 @@
 # Novidades
 
+## 1.5.0 — 11/11/2026
+
+- **Câmeras de outras marcas (ONVIF)**: a busca na rede também acha câmeras ONVIF, incluindo as que não respondem à busca padrão, como a Yoosee. Elas têm ao vivo, HD/SD, foto e gravação no Mac. Nas que aceitam, há também PTZ e presets e alertas de movimento, pessoa e câmera tampada, com foto e IA.
+- **Detecção de movimento no Mac** para câmeras que não mandam alertas: o Mac analisa o vídeo e cria os alertas, com sensibilidade baixa, média ou alta (Eventos → Câmeras sem alertas). Usa o vídeo que já está aberto, para câmeras que aceitam uma conexão só.
+- **Foto do alerta ampliada**: botão ao lado do ▶ Play (ou clique na miniatura) abre a foto grande, com setas para passar de um alerta a outro, Salvar foto… e Play. As fotos novas são guardadas com até 1280 px.
+- **Sincronizar canais com o NVR**: depois de mudar câmeras no próprio NVR, o app compara a lista e adiciona, remove e renomeia os canais, refazendo a ligação "Mesma câmera". Fica no botão direito do NVR, em Dispositivos e num aviso na tela Câmeras do NVR.
+- **Câmeras do NVR**: adicionar uma câmera num canal vazio e remover (desativar) uma câmera do NVR pelo app.
+- **Câmera ONVIF gravada no NVR**: em Editar câmera, escolha o canal do NVR dela, e as Gravações e o ▶ dos alertas buscam o vídeo no NVR.
+- **Gravações**: vídeo principal ou extra, busca de fotos, baixar de novo o que ficou incompleto, zoom na linha do tempo e, com o NVR escolhido na lista, uma linha por canal.
+
 ## 1.4.0 — 27/10/2026
 
 - **Conversa pela câmera**: botão de microfone na câmera em tela única; o que você fala no Mac sai no alto-falante da câmera.

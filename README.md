@@ -5,7 +5,7 @@
 <h1 align="center">VMS Next</h1>
 
 <p align="center">
-  <b>Câmeras e NVRs Xiongmai (iCSee / XMEye) num app nativo para Mac com Apple Silicon.</b><br>
+  <b>Câmeras e NVRs Xiongmai (iCSee / XMEye) e câmeras ONVIF num app nativo para Mac com Apple Silicon.</b><br>
   Ao vivo, gravações, alertas e todas as configurações dos equipamentos,<br>
   feito em Swift e SwiftUI. Código aberto, sem nuvem e seu.
 </p>
@@ -127,7 +127,7 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 
 ## Primeiros passos
 
-1. **Adicionar câmeras:** vá em **Dispositivos → Procurar na rede**. Aparecem as câmeras e NVRs Xiongmai da sua rede; clique em **Adicionar…**, confira o nome e digite o **usuário e a senha do equipamento** (os mesmos do iCSee/XMEye). Também dá para adicionar pelo IP com **+ → Nova câmera**.
+1. **Adicionar câmeras:** vá em **Dispositivos → Procurar na rede**. Aparecem as câmeras e NVRs Xiongmai da sua rede; clique em **Adicionar…**, confira o nome e digite o **usuário e a senha do equipamento** (os mesmos do iCSee/XMEye). Câmeras de outras marcas que falam **ONVIF** também aparecem na busca (ou em **Adicionar manualmente → Câmera de outra marca**). Também dá para adicionar pelo IP com **+ → Nova câmera**.
 2. **Ver ao vivo:** clique em **Ao vivo** (⌘2). Escolha o modelo de tela na barra de baixo e arraste câmeras da lista para os quadros. Cada quadro tem embaixo o nome, o **PTZ** (nas câmeras que têm), o som e o botão **expandir**, que abre a câmera em tela cheia (duplo clique também abre).
 3. **Câmera dupla** (duas imagens uma em cima da outra): botão direito → **Dividir em duas (split virtual)**.
 4. **Gravações:** clique em **Gravações** e escolha a câmera na lista. A linha do tempo mostra o dia; clique num ponto para assistir dali e use a data embaixo para escolher outro dia (o calendário marca os dias com gravação). **Baixar** salva em MP4 direto na pasta das Preferências. Câmera sem cartão que grava no NVR: **Editar câmera → Gravações → NVR**.
@@ -141,7 +141,9 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **NVR recusa o login:** no menu de rede do NVR, deixe **Criptografia de rede** em **"Login remoto precisa de criptografia"**.
 - **A busca na rede não acha nada:** o Mac precisa estar na mesma rede das câmeras e o VMS Next precisa da permissão de **Rede local** (Ajustes do Sistema → Privacidade e Segurança → Rede Local).
 - **Ver de fora de casa:** o VMS Next conecta pelo IP. Use uma VPN para a sua rede (por exemplo Tailscale ou WireGuard no roteador).
-- **As gravações de uma câmera estão no NVR:** em **Editar câmera → Gravações**, escolha **NVR** (ou **Cartão e NVR**) e o canal do NVR que mostra essa câmera.
+- **As gravações de uma câmera estão no NVR:** em **Editar câmera → Gravações**, escolha **NVR** (ou **Cartão e NVR**) e o canal do NVR que mostra essa câmera. Nas câmeras ONVIF, basta escolher o canal do NVR.
+- **Mudei as câmeras no próprio NVR:** botão direito no NVR → **Sincronizar canais com o NVR…** (ou em Dispositivos). O app mostra o que entra, sai e muda de nome antes de aplicar.
+- **Câmera que não manda alertas** (como muitas ONVIF): em **Eventos**, deixe ligado **Detectar movimento no Mac**.
 - **Levar para outro Mac:** **+ → Exportar câmeras** e, no outro Mac, **Importar câmeras**. As senhas não vão no arquivo.
 
 ## Funcionalidades
@@ -162,7 +164,8 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - Câmera em tela cheia com barra de baixo: **som**, **conversa pela câmera** (microfone do Mac no alto-falante dela), **HD/SD**, **foto**, **Gravar** e **PTZ**.
 - **PTZ** no pé da lista de câmeras, uma câmera por vez, no arranjo do VMS antigo: 8 direções, zoom óptico, íris, foco, passo, **presets** e **ronda** (com janela de edição), escolhidos numa lista. Inverter esquerda/direita e cima/baixo por câmera. O botão só aparece nas câmeras com PTZ (automático ou escolhido em Editar câmera).
 - **Áudio** G.711 das câmeras, um som por vez.
-- Lista de câmeras **reordenável** arrastando; NVR como grupo com seus canais.
+- Lista de câmeras **reordenável** arrastando; NVR como grupo com seus canais, que podem ser **sincronizados** com o que está configurado no NVR.
+- **Câmeras ONVIF** (outras marcas): ao vivo, HD/SD, foto, gravação no Mac e, nas que aceitam, **PTZ** e presets.
 - Vídeo H.264 e H.265 por RTSP ou pelo protocolo Xiongmai, com reconexão automática.
 
 ### Gravações
@@ -171,7 +174,8 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **Setas por tipo** (‹ Movimento ›, ‹ Contínua ›) para ir ao trecho anterior ou ao próximo.
 - Barra de data com **‹ ›** de dia em dia, **calendário** que marca os dias com gravação e os dias com vídeo baixado, **Hoje** e a lista de **Arquivos** do dia.
 - **Tags** nos vídeos: criar, buscar e tirar; clicar numa tag lista os vídeos com ela, de qualquer dia. Trechos com tag ganham uma marca na linha do tempo.
-- **Origem das gravações** por câmera: cartão, NVR ou os dois (chave **NVR | Cartão**).
+- **Origem das gravações** por câmera: cartão, NVR ou os dois (chave **NVR | Cartão**); câmeras ONVIF gravadas no NVR buscam no canal dele.
+- Vídeo **principal ou extra**, busca de **fotos**, **zoom na linha do tempo** e **baixar de novo** o que ficou incompleto. Com o NVR escolhido na lista, uma linha por canal.
 - Vindo de um alerta, **marca vermelha** no horário dele e a agulha já posicionada ali.
 - Reprodução com pausa, saltos de 10 s, barra de progresso, velocidade de ½× a 8× e som; a barra se ajusta em janelas estreitas.
 - **Download em MP4** direto na pasta das Preferências, com câmera, dia, horário e tipo no nome (vídeo sem recomprimir e som em AAC). Os baixados ficam com selo **No Mac**, tom mais claro na linha do tempo e **Mostrar no Finder**.
@@ -186,6 +190,8 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - Alertas das câmeras e do NVR, **guardados no Mac** entre aberturas, como um gerenciador de alarmes.
 - **IA no Mac** (Vision do macOS, sem internet e sem baixar modelo): antes de avisar, o app pega uma foto da câmera e procura **pessoas, rostos, veículos, cães e gatos** e placas; o alerta diz o que apareceu ("Pessoa", "Veículo · carro") e a notificação leva a foto.
 - **Gravidade** automática (alta, média, baixa), que dá para trocar à mão; movimento sem nada na foto vira **provável falso alarme** (pode ficar só no histórico).
+- **Alertas ONVIF** (movimento, pessoa, câmera tampada) e **detecção de movimento no Mac** para câmeras que não mandam alertas, com sensibilidade ajustável.
+- **Foto do alerta ampliada** com setas para passar de um alerta a outro e **Salvar foto…**.
 - Em cada alerta: **▶ Play** (gravação com a agulha no horário do alerta), **ao vivo**, **nota** e **soneca** (15 min a até amanhã, de um tipo ou de todos os alertas da câmera).
 - Filtros por gravidade, sem os prováveis falsos alarmes e só os com nota; o fim do alarme vira a duração.
 - **Notificações do macOS** e **som no Mac** por tipo de alerta (sons do sistema ou arquivo próprio).
@@ -193,8 +199,8 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **Registro**: o que aconteceu no app (entradas, configurações alteradas, reinícios, fotos, downloads) e o registro guardado em cada equipamento, com filtro por data e tipo e exportação em CSV.
 
 ### Dispositivos
-- **Procurar na rede** (IPV4 pesquisar): encontra câmeras e NVRs Xiongmai da rede local, com IP, MAC e CloudID.
-- Lista dos equipamentos cadastrados, com editar e configurações.
+- **Procurar na rede** (IPV4 pesquisar): encontra câmeras e NVRs Xiongmai da rede local, com IP, MAC e CloudID, e câmeras **ONVIF** de outras marcas.
+- Lista dos equipamentos cadastrados, com editar, configurações e **Sincronizar canais…** nos NVRs.
 - **Importar e exportar** a lista de câmeras para outro Mac (sem as senhas).
 - Senha salva visível no editor (botão de olho).
 
@@ -208,6 +214,7 @@ Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido 
 - **Volume** do alto-falante e do microfone da câmera, com redução de ruído.
 - **Gravação** com agenda semanal pintável, **Fotos automáticas** e **Disco / cartão**.
 - **Alarmes**: detecção inteligente com área e linha de aviso e a **voz do aviso** (qual voz, repetição e horários), **detecção de rosto**, perda de vídeo, câmera bloqueada, veículos, problemas no equipamento (com reiniciar quando o cartão falhar), saída de alarme e **alarme manual**.
+- **Câmeras do NVR**: câmera de cada canal, **adicionar** câmera num canal vazio, **remover** câmera do NVR, editar o canal e procurar câmeras na rede do NVR.
 - **Equipamento**: sistema e horário (com fuso horário e servidor de horário), manutenção, usuários, restaurar padrão, **rede** no formato TCP/IP do VMS antigo (interface, DHCP, DNS, portas TCP/HTTP/ONVIF, download rápido e política de transmissão), **Wi-Fi** (procurar redes e trocar de rede com segurança), serviços de rede (nuvem, RTSP, filtro de IP, **e-mail e FTP com teste**, **DDNS**, **UPnP**, notificações no celular), **PTZ por cabo** (RS485) e informações.
 - **Diagnóstico** em JSON (sem senhas) em cada tela, e **Capacidades…** e **Varredura completa…** em Informações.
 
@@ -286,7 +293,8 @@ O projeto é um Swift Package (`Package.swift`) e também abre direto no Xcode.
 | DVRIP | `Sources/VMSNext/DVRIP` | Protocolo da Xiongmai (porta 34567): login, comandos, configurações em JSON e busca na rede (porta 34569) |
 | PTZ | `Sources/VMSNext/PTZ` | Comandos `OPPTZControl`, presets e ronda |
 | Reprodução | `Sources/VMSNext/Playback` | Busca (`OPFileQuery`), conexão de mídia, parser dos quadros Xiongmai, player e download em MP4 |
-| Alarmes | `Sources/VMSNext/Alarms` | Alertas (`GUARD`), notificações, sons, histórico e registro |
+| ONVIF | `Sources/VMSNext/ONVIF` | Câmeras de outras marcas: busca (WS-Discovery), SOAP com WS-Security, perfis, RTSP, PTZ e eventos |
+| Alarmes | `Sources/VMSNext/Alarms` | Alertas (`GUARD` e ONVIF), detecção de movimento no Mac, notificações, sons, histórico e registro |
 | Configurações | `Sources/VMSNext/Settings` | Telas de configuração, formulários a partir das capacidades do equipamento e diagnóstico |
 | Modelos | `Sources/VMSNext/Models` | Câmeras (`cameras.json` em Application Support), cofre de senhas (`vault.json`) e modelos de tela |
 

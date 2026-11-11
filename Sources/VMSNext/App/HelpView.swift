@@ -22,6 +22,8 @@ struct HelpView: View {
                 Divider()
                 section(String(localized: "Primeiros passos"), [
                     String(localized: "Dispositivos → Procurar na rede encontra as câmeras e NVRs Xiongmai da sua rede. Clique em Adicionar… e digite o usuário e a senha do equipamento."),
+                    String(localized: "Câmeras de outras marcas que falam ONVIF também aparecem na busca. Elas têm ao vivo, foto e gravação no Mac e, nas que aceitam, PTZ e alertas."),
+                    String(localized: "Mudou câmeras no próprio NVR? Botão direito no NVR → Sincronizar canais com o NVR… atualiza a lista do app."),
                     String(localized: "As senhas ficam num cofre criptografado só deste Mac. Para levar a lista a outro Mac, use + → Exportar câmeras (as senhas não vão junto)."),
                 ])
                 section(String(localized: "Ao vivo"), [
@@ -40,6 +42,7 @@ struct HelpView: View {
                 section(String(localized: "Eventos e alertas"), [
                     String(localized: "Antes de avisar, a IA do Mac (Vision, sem internet) analisa a foto do alerta e diz o que apareceu: pessoa, veículo, animal. Movimento sem nada vira provável falso alarme."),
                     String(localized: "Cada alerta tem gravidade, nota, soneca e ▶ Play, que abre a gravação com a agulha no horário do alerta (marca vermelha na linha do tempo)."),
+                    String(localized: "O botão de foto ao lado do ▶ Play abre a foto do alerta ampliada. Câmeras que não mandam alertas podem ter o movimento detectado pelo Mac (Eventos → Câmeras sem alertas)."),
                     String(localized: "Na barra de menus: últimos alertas, ligar e desligar os avisos e escolher as câmeras silenciadas. Registro mostra o que aconteceu no app e nos equipamentos."),
                 ])
                 section(String(localized: "Configurações e preferências"), [
