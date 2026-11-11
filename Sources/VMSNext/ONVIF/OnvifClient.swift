@@ -121,7 +121,8 @@ struct OnvifClient {
     // MARK: - SOAP
 
     /// `headers`: cabeçalhos extras do SOAP (WS-Addressing dos eventos).
-    func call(_ url: URL, body: String, auth: Bool = true, timeout: TimeInterval = 6, headers: String = "") async throws -> OnvifXML {
+    func call(_ url: URL, body: String, auth: Bool = true, timeout: TimeInterval = 6, headers: String = "",
+              action: String? = nil) async throws -> OnvifXML {
         let envelope = """
         <?xml version="1.0" encoding="UTF-8"?>
         <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:tds="http://www.onvif.org/ver10/device/wsdl" \
@@ -132,7 +133,8 @@ struct OnvifClient {
         """
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "POST"
-        request.setValue("application/soap+xml; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/soap+xml; charset=utf-8" + (action.map { "; action=\"\($0)\"" } ?? ""),
+                         forHTTPHeaderField: "Content-Type")
         request.httpBody = Data(envelope.utf8)
         let data: Data
         let response: URLResponse

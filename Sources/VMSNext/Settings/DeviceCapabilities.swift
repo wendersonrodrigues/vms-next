@@ -84,6 +84,7 @@ enum DeviceCapabilities {
         if camera.group != nil {
             guard let id = camera.sameAs, let linked = cameras.first(where: { $0.id == id }) else { return false }
             if linked.ptz != .auto { return linked.ptz == .yes }
+            if linked.isOnvif { return await hasPTZ(linked, in: cameras) }
             source = linked
         }
         guard let functions = await systemFunction(for: source) else { return false }

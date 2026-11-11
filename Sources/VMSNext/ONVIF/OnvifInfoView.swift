@@ -67,10 +67,13 @@ final class OnvifInfoModel: ObservableObject {
             out += "\nServiço: \(entry.client.deviceURL.absoluteString)\nDiferença de relógio: \(Int(entry.client.clockOffset)) s\n"
             out += "Mídia: \(entry.media.absoluteString)\nPTZ: \(entry.ptz?.absoluteString ?? "—")\nEventos: \(entry.events?.absoluteString ?? "—")\n"
             out += "Perfil: \(entry.profile ?? "—")\nFoto: \(entry.snapshot?.absoluteString ?? "—")\n"
-            if let ptz = entry.ptz, let profile = entry.profile {
+            out += "PTZ (endereços tentados): " + entry.ptzCandidates.map(\.path).joined(separator: ", ") + "\n"
+            if entry.profile != nil {
                 do {
-                    let presets = try await entry.client.presets(ptz, profile: profile)
-                    out += "\n== PTZ: \(presets.count) presets\n" + presets.map { "  \($0.token) · \($0.name)" }.joined(separator: "\n") + "\n"
+                    _ = try await OnvifServices.shared.ptz(camera, action: "GetNodes") { _ in "<tptz:GetNodes/>" }
+                    out += "\n== PTZ: respondeu ao GetNodes\n"
+                    let presets = OnvifPTZ.presetList(try await OnvifServices.shared.ptz(camera, action: "GetPresets") { OnvifPTZ.presets(profile: $0) })
+                    out += "== PTZ: \(presets.count) presets\n" + presets.map { "  \($0.token) · \($0.name)" }.joined(separator: "\n") + "\n"
                 } catch {
                     out += "\n== PTZ: \(error.localizedDescription)\n"
                 }

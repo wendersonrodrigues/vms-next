@@ -9,10 +9,10 @@ struct PTZPanel: View {
     @StateObject private var ptz: PTZController
     @StateObject private var editingTour = HoverFlag()
 
-    init(camera: Camera, onClose: @escaping () -> Void) {
+    init(camera: Camera, nvrChannel: Camera? = nil, onClose: @escaping () -> Void) {
         self.camera = camera
         self.onClose = onClose
-        _ptz = StateObject(wrappedValue: PTZController(camera: camera))
+        _ptz = StateObject(wrappedValue: PTZController(camera: camera, nvrChannel: nvrChannel))
     }
 
     /// Largura da coluna dos nomes ("Passo", "Preset", "Ronda"), para os controles ficarem alinhados.

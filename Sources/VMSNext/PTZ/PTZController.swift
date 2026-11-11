@@ -70,10 +70,17 @@ final class PTZController: ObservableObject {
     }
 
     private let camera: Camera
+    /// Canal do NVR que mostra esta câmera avulsa: o NVR também move a câmera (como no menu PTZ do próprio NVR).
+    private let nvrChannel: Camera?
+    /// A câmera não aceitou o PTZ direto: os próximos comandos vão pelo NVR.
+    private var useNVR = false
     private var chain: Task<Void, Never>?
 
-    init(camera: Camera) {
+    /// O PTZ vai direto para a câmera; o canal do NVR só é usado se a câmera não responder.
+    init(camera: Camera, nvrChannel: Camera? = nil) {
         self.camera = camera
+        self.nvrChannel = camera.group == nil ? nvrChannel : nil
+        useNVR = false
         invertHorizontal = UserDefaults.standard.bool(forKey: "ptz.invertH.\(camera.id)")
         invertVertical = UserDefaults.standard.bool(forKey: "ptz.invertV.\(camera.id)")
     }
@@ -132,13 +139,46 @@ final class PTZController: ObservableObject {
     private func send(_ command: PTZCommand, step: Int, preset: Int, tour: Int = 0) {
         let previous = chain
         let camera = camera
+        let nvrChannel = nvrChannel
         chain = Task { [weak self] in
             await previous?.value
+            guard let self else { return }
+            if self.useNVR, let nvrChannel {
+                do {
+                    try await Self.sendDVRIP(command, to: nvrChannel, step: step, preset: preset, tour: tour)
+                    self.message = nil
+                } catch {
+                    self.message = String(localized: "PTZ pelo NVR: \(error.localizedDescription)")
+                }
+                return
+            }
             if camera.isOnvif {
-                await self?.sendONVIF(command, step: step, preset: preset)
+                await self.sendONVIF(command, step: step, preset: preset)
+                // Sem resposta pelo ONVIF: se houver um canal do NVR com a câmera, tenta por ele.
+                if self.message != nil, let nvrChannel,
+                   (try? await Self.sendDVRIP(command, to: nvrChannel, step: step, preset: preset, tour: tour)) != nil {
+                    self.useNVR = true
+                    self.message = nil
+                }
                 return
             }
             do {
+                try await Self.sendDVRIP(command, to: camera, step: step, preset: preset, tour: tour)
+                self.message = nil
+            } catch {
+                // A câmera recusou: tenta pelo NVR e, dando certo, segue por ele.
+                if let nvrChannel, (try? await Self.sendDVRIP(command, to: nvrChannel, step: step, preset: preset, tour: tour)) != nil {
+                    self.useNVR = true
+                    self.message = nil
+                } else {
+                    self.message = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    /// OPPTZControl (1400) para o canal do equipamento (câmera ou NVR).
+    private static func sendDVRIP(_ command: PTZCommand, to camera: Camera, step: Int, preset: Int, tour: Int) async throws {
                 let client = try await DeviceSessions.shared.client(for: camera)
                 try await client.command(code: 1400, name: "OPPTZControl", payload: [
                     "Command": command.rawValue,
@@ -153,11 +193,6 @@ final class PTZController: ObservableObject {
                         "Tour": tour,
                     ] as [String: Any],
                 ])
-                self?.message = nil
-            } catch {
-                self?.message = error.localizedDescription
-            }
-        }
     }
 
     // MARK: - ONVIF (câmeras de outras marcas)
@@ -166,38 +201,41 @@ final class PTZController: ObservableObject {
     /// soltar vira Stop; presets pelo número (nome ou token igual ao número; senão, a posição na lista).
     /// Foco, íris e ronda não fazem parte do PTZ básico do ONVIF.
     private func sendONVIF(_ command: PTZCommand, step: Int, preset: Int) async {
-        do {
-            let services = try await OnvifServices.shared.entry(for: camera)
-            guard let url = services.ptz, let profile = services.profile else {
-                message = String(localized: "Esta câmera não informou PTZ pelo ONVIF.")
-                return
-            }
-            let client = services.client
-            let speed = Double(max(step, 1)) / 8
-            var x = 0.0, y = 0.0, zoom = 0.0
-            switch command {
-            case .left: x = -speed
-            case .right: x = speed
-            case .up: y = speed
-            case .down: y = -speed
-            case .upLeft: (x, y) = (-speed, speed)
-            case .upRight: (x, y) = (speed, speed)
-            case .downLeft: (x, y) = (-speed, -speed)
-            case .downRight: (x, y) = (speed, -speed)
-            case .zoomIn: zoom = speed
-            case .zoomOut: zoom = -speed
-            case .gotoPreset, .setPreset, .clearPreset:
-                try await presetONVIF(command, number: preset, client: client, url: url, profile: profile)
+        let services = OnvifServices.shared
+        let speed = Double(max(step, 1)) / 8
+        var x = 0.0, y = 0.0, zoom = 0.0
+        switch command {
+        case .left: x = -speed
+        case .right: x = speed
+        case .up: y = speed
+        case .down: y = -speed
+        case .upLeft: (x, y) = (-speed, speed)
+        case .upRight: (x, y) = (speed, speed)
+        case .downLeft: (x, y) = (-speed, -speed)
+        case .downRight: (x, y) = (speed, -speed)
+        case .zoomIn: zoom = speed
+        case .zoomOut: zoom = -speed
+        case .gotoPreset, .setPreset, .clearPreset:
+            do {
+                try await presetONVIF(command, number: preset)
                 message = nil
-                return
-            default:
-                message = String(localized: "Foco, íris e ronda não existem no PTZ pelo ONVIF.")
-                return
+            } catch {
+                message = error.localizedDescription
             }
+            return
+        default:
+            message = String(localized: "Foco, íris e ronda não existem no PTZ pelo ONVIF.")
+            return
+        }
+        do {
             if step == 0 {
-                try await client.stopMove(url, profile: profile)
+                // Parar é o mais importante (senão a câmera segue girando): tenta mais vezes se a conexão cair.
+                let isZoom = command == .zoomIn || command == .zoomOut
+                try await services.stopPTZ(camera, panTilt: !isZoom, zoom: isZoom)
             } else {
-                try await client.continuousMove(url, profile: profile, x: x, y: y, zoom: zoom)
+                try await services.ptz(camera, action: "ContinuousMove", attempts: 3) {
+                    OnvifPTZ.continuousMove(profile: $0, x: x, y: y, zoom: zoom)
+                }
             }
             message = nil
         } catch {
@@ -205,8 +243,9 @@ final class PTZController: ObservableObject {
         }
     }
 
-    private func presetONVIF(_ command: PTZCommand, number: Int, client: OnvifClient, url: URL, profile: String) async throws {
-        let list = try await client.presets(url, profile: profile)
+    private func presetONVIF(_ command: PTZCommand, number: Int) async throws {
+        let services = OnvifServices.shared
+        let list = OnvifPTZ.presetList(try await services.ptz(camera, action: "GetPresets") { OnvifPTZ.presets(profile: $0) })
         let label = String(number)
         let existing = list.first { $0.name == label || $0.token == label }
         switch command {
@@ -215,11 +254,13 @@ final class PTZController: ObservableObject {
                 message = String(localized: "O preset \(number) ainda não foi gravado nesta câmera.")
                 return
             }
-            try await client.gotoPreset(url, profile: profile, token: token)
+            try await services.ptz(camera, action: "GotoPreset") { OnvifPTZ.gotoPreset(profile: $0, token: token) }
         case .setPreset:
-            try await client.setPreset(url, profile: profile, name: label, token: existing?.token)
+            try await services.ptz(camera, action: "SetPreset") { OnvifPTZ.setPreset(profile: $0, name: label, token: existing?.token) }
         default:
-            if let token = existing?.token { try await client.removePreset(url, profile: profile, token: token) }
+            if let token = existing?.token {
+                try await services.ptz(camera, action: "RemovePreset") { OnvifPTZ.removePreset(profile: $0, token: token) }
+            }
         }
     }
 }

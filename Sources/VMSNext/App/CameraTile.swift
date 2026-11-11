@@ -76,7 +76,7 @@ struct CameraTile: View {
         }
         .onDisappear { LiveStreamHub.shared.release(lease.key) }
         .onChange(of: store.passwordRevision) { start(force: true) }
-        .task(id: "\(camera.id)-\(camera.ptz)-\(camera.sameAs?.uuidString ?? "")") {
+        .task(id: "\(camera.id)-\(camera.ptz)-\(camera.sameAs?.uuidString ?? "")-\(store.linkedChannel(for: camera)?.id.uuidString ?? "")") {
             ptzSupport.on = await DeviceCapabilities.hasPTZ(camera, in: store.cameras)
             if single != nil { talkSupport.on = await DeviceCapabilities.hasTalk(camera) }
         }

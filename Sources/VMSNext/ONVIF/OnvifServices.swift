@@ -8,6 +8,9 @@ final class OnvifServices {
         var client: OnvifClient
         let media: URL
         let ptz: URL?
+        /// Endereços para tentar o PTZ: o que a câmera informa no lugar do PTZ (mesmo que pareça trocado, é o que o
+        /// NVR usa) e o que tem "ptz" no caminho.
+        var ptzCandidates: [URL] = []
         let events: URL?
         let profile: String?
         let snapshot: URL?
@@ -19,6 +22,10 @@ final class OnvifServices {
     /// Resultado do teste de PTZ de cada câmera (há câmeras que anunciam PTZ e derrubam a conexão ao usar).
     private var ptzWorks: [Camera.ID: Bool] = [:]
     private var pending: [Camera.ID: Task<Entry, Error>] = [:]
+    /// Endereço e login que deram certo no PTZ de cada câmera.
+    private var ptzRoute: [Camera.ID: (url: URL, auth: Bool)] = [:]
+    /// Câmeras que não aceitam o Stop (Yoosee): param com um ContinuousMove de velocidade zero.
+    private var stopsWithZeroMove: Set<Camera.ID> = []
 
     func entry(for camera: Camera) async throws -> Entry {
         if let entry = cache[camera.id] { return entry }
@@ -51,7 +58,11 @@ final class OnvifServices {
                 let uri = try? await client.call(media, body: "<trt:GetSnapshotUri><trt:ProfileToken>\(profile.xmlEscaped)</trt:ProfileToken></trt:GetSnapshotUri>").value("Uri")
                 snapshot = uri.flatMap(client.rehosted)
             }
-            return Entry(client: client, media: media, ptz: address("PTZ", keyword: "ptz", namespace: "/ptz/"),
+            let named = address("PTZ", keyword: "ptz", namespace: "/ptz/")
+            let reported = caps?.first("Capabilities")?.children.first { $0.name == "PTZ" }?.value("XAddr").flatMap(client.rehosted)
+            var candidates: [URL] = []
+            for url in [reported, named].compactMap({ $0 }) where !candidates.contains(url) { candidates.append(url) }
+            return Entry(client: client, media: media, ptz: named ?? reported, ptzCandidates: candidates,
                          events: address("Events", keyword: "event", namespace: "/events/"), profile: profile, snapshot: snapshot)
         }
         pending[camera.id] = task
@@ -65,14 +76,70 @@ final class OnvifServices {
     func invalidate(_ camera: Camera) {
         cache[camera.id] = nil
         ptzWorks[camera.id] = nil
+        ptzRoute[camera.id] = nil
+        stopsWithZeroMove.remove(camera.id)
+    }
+
+    /// Para o movimento. Tenta o Stop e, se a câmera não aceitar, um ContinuousMove com velocidade zero.
+    func stopPTZ(_ camera: Camera, panTilt: Bool, zoom: Bool) async throws {
+        if !stopsWithZeroMove.contains(camera.id) {
+            do {
+                try await ptz(camera, action: "Stop", attempts: 2) { OnvifPTZ.stop(profile: $0, panTilt: panTilt, zoom: zoom) }
+                return
+            } catch {}
+        }
+        try await ptz(camera, action: "ContinuousMove", attempts: 4) {
+            OnvifPTZ.continuousMove(profile: $0, x: 0, y: 0, zoom: 0, zeroAxes: (panTilt, zoom))
+        }
+        stopsWithZeroMove.insert(camera.id)
+    }
+
+    /// Pedido de PTZ. Há câmeras (Yoosee) que só aceitam o PTZ no endereço que informam no GetCapabilities e sem
+    /// login, e que às vezes derrubam a conexão: tenta cada endereço com e sem login, de novo quando a conexão cai, e
+    /// guarda o que funcionou.
+    @discardableResult
+    func ptz(_ camera: Camera, action: String, attempts: Int = 2, body: (String) -> String) async throws -> OnvifXML {
+        let entry = try await entry(for: camera)
+        guard let profile = entry.profile, !entry.ptzCandidates.isEmpty else {
+            throw OnvifClient.Failure.fault(String(localized: "a câmera não informou o PTZ"))
+        }
+        var routes: [(url: URL, auth: Bool)] = ptzRoute[camera.id].map { [$0] } ?? []
+        for url in entry.ptzCandidates {
+            for auth in [true, false] where !routes.contains(where: { $0.url == url && $0.auth == auth }) {
+                routes.append((url, auth))
+            }
+        }
+        var lastError: Error = OnvifClient.Failure.invalid
+        for route in routes {
+            for attempt in 0 ..< max(attempts, 1) {
+                // A Yoosee derruba pedidos enquanto o motor anda: espera um pouco antes de tentar de novo.
+                if attempt > 0 { try? await Task.sleep(for: .milliseconds(300 * attempt)) }
+                do {
+                    let xml = try await entry.client.call(route.url, body: body(profile), auth: route.auth, timeout: 4,
+                                                          action: "http://www.onvif.org/ver20/ptz/wsdl/\(action)")
+                    ptzRoute[camera.id] = route
+                    return xml
+                } catch let error as OnvifClient.Failure {
+                    lastError = error
+                    if case .unreachable = error { continue }
+                    break
+                }
+            }
+        }
+        throw lastError
     }
 
     /// Tem PTZ de verdade: anuncia o serviço e responde à lista de presets. A Yoosee, por exemplo, anuncia PTZ
     /// mas só responde ao vídeo; o PTZ dela é pelo protocolo da própria marca.
     func hasPTZ(_ camera: Camera) async -> Bool {
         if let known = ptzWorks[camera.id] { return known }
-        guard let entry = try? await entry(for: camera), let url = entry.ptz, let profile = entry.profile else { return false }
-        let works = (try? await entry.client.presets(url, profile: profile)) != nil
+        // GetNodes; se não, um ContinuousMove parado (velocidade zero), que é tudo o que a Yoosee aceita do PTZ.
+        var works = (try? await ptz(camera, action: "GetNodes", attempts: 2) { _ in "<tptz:GetNodes/>" }) != nil
+        if !works {
+            works = (try? await ptz(camera, action: "ContinuousMove", attempts: 3) {
+                OnvifPTZ.continuousMove(profile: $0, x: 0, y: 0, zoom: 0, zeroAxes: (true, false))
+            }) != nil
+        }
         ptzWorks[camera.id] = works
         return works
     }
@@ -105,38 +172,42 @@ final class OnvifServices {
 
 // MARK: - PTZ
 
-extension OnvifClient {
-    /// Movimento contínuo: x, y e zoom de -1 a 1 (0 = parado naquele eixo).
-    func continuousMove(_ url: URL, profile: String, x: Double, y: Double, zoom: Double) async throws {
+/// Corpo dos pedidos de PTZ (o endereço e o login ficam com OnvifServices.ptz).
+enum OnvifPTZ {
+    private static func number(_ value: Double) -> String { String(format: "%.6f", value) }
+
+    /// Movimento contínuo: x, y e zoom de -1 a 1 (0 = parado naquele eixo). Só manda os eixos em uso, como o NVR.
+    /// `zeroAxes`: eixos mandados mesmo com velocidade zero (para parar).
+    static func continuousMove(profile: String, x: Double, y: Double, zoom: Double, zeroAxes: (Bool, Bool) = (false, false)) -> String {
         var velocity = ""
-        if x != 0 || y != 0 { velocity += "<tt:PanTilt x=\"\(x)\" y=\"\(y)\"/>" }
-        if zoom != 0 { velocity += "<tt:Zoom x=\"\(zoom)\"/>" }
-        _ = try await call(url, body: "<tptz:ContinuousMove><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:Velocity>\(velocity)</tptz:Velocity></tptz:ContinuousMove>")
+        if x != 0 || y != 0 || zeroAxes.0 { velocity += "<tt:PanTilt x=\"\(number(x))\" y=\"\(number(y))\"></tt:PanTilt>" }
+        if zoom != 0 || zeroAxes.1 { velocity += "<tt:Zoom x=\"\(number(zoom))\"></tt:Zoom>" }
+        return "<tptz:ContinuousMove><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:Velocity>\(velocity)</tptz:Velocity></tptz:ContinuousMove>"
     }
 
-    func stopMove(_ url: URL, profile: String) async throws {
-        _ = try await call(url, body: "<tptz:Stop><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:PanTilt>true</tptz:PanTilt><tptz:Zoom>true</tptz:Zoom></tptz:Stop>")
+    static func stop(profile: String, panTilt: Bool, zoom: Bool) -> String {
+        "<tptz:Stop><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken>"
+            + (panTilt ? "<tptz:PanTilt>true</tptz:PanTilt>" : "") + (zoom ? "<tptz:Zoom>true</tptz:Zoom>" : "") + "</tptz:Stop>"
     }
 
-    /// Presets da câmera: token e nome.
-    func presets(_ url: URL, profile: String) async throws -> [(token: String, name: String)] {
-        try await call(url, body: "<tptz:GetPresets><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken></tptz:GetPresets>")
-            .all("Preset").compactMap { node in
-                node.attribute("token").map { ($0, node.value("Name") ?? $0) }
-            }
+    static func presets(profile: String) -> String {
+        "<tptz:GetPresets><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken></tptz:GetPresets>"
     }
 
-    func gotoPreset(_ url: URL, profile: String, token: String) async throws {
-        _ = try await call(url, body: "<tptz:GotoPreset><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:PresetToken>\(token.xmlEscaped)</tptz:PresetToken></tptz:GotoPreset>")
+    static func gotoPreset(profile: String, token: String) -> String {
+        "<tptz:GotoPreset><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:PresetToken>\(token.xmlEscaped)</tptz:PresetToken></tptz:GotoPreset>"
     }
 
-    /// Grava a posição atual no preset (com o token, sobrescreve o que já existe).
-    func setPreset(_ url: URL, profile: String, name: String, token: String?) async throws {
+    static func setPreset(profile: String, name: String, token: String?) -> String {
         let tokenXML = token.map { "<tptz:PresetToken>\($0.xmlEscaped)</tptz:PresetToken>" } ?? ""
-        _ = try await call(url, body: "<tptz:SetPreset><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:PresetName>\(name.xmlEscaped)</tptz:PresetName>\(tokenXML)</tptz:SetPreset>")
+        return "<tptz:SetPreset><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:PresetName>\(name.xmlEscaped)</tptz:PresetName>\(tokenXML)</tptz:SetPreset>"
     }
 
-    func removePreset(_ url: URL, profile: String, token: String) async throws {
-        _ = try await call(url, body: "<tptz:RemovePreset><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:PresetToken>\(token.xmlEscaped)</tptz:PresetToken></tptz:RemovePreset>")
+    static func removePreset(profile: String, token: String) -> String {
+        "<tptz:RemovePreset><tptz:ProfileToken>\(profile.xmlEscaped)</tptz:ProfileToken><tptz:PresetToken>\(token.xmlEscaped)</tptz:PresetToken></tptz:RemovePreset>"
+    }
+
+    static func presetList(_ xml: OnvifXML) -> [(token: String, name: String)] {
+        xml.all("Preset").compactMap { node in node.attribute("token").map { ($0, node.value("Name") ?? $0) } }
     }
 }

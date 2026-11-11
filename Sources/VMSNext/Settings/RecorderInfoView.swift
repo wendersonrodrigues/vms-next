@@ -171,7 +171,17 @@ final class RecorderInfoModel: ObservableObject {
         defer { saving = false }
         var decoders = (channel["Decoder"] as? [[String: Any]]) ?? []
         let position = decoderIndex(channel)
-        var decoder = decoders.indices.contains(position) ? decoders[position] : [:]
+        // Canal vazio: o NVR recusa (605) uma câmera sem os outros campos. Parte de uma câmera já configurada
+        // em outro canal e põe por cima o que este canal já tiver.
+        let template = list.lazy.compactMap { ($0 as? [String: Any])?["Decoder"] as? [[String: Any]] }
+            .compactMap { $0.first { !(($0["IPAddress"] as? String) ?? "").isEmpty } }.first ?? [:]
+        var decoder = template
+        decoder["MacAddr"] = ""
+        decoder["SerialNo"] = ""
+        decoder["PassWord"] = ""
+        if decoders.indices.contains(position) {
+            decoder.merge(decoders[position]) { _, own in own }
+        }
         decoder["ConfName"] = edit.name.trimmingCharacters(in: .whitespaces)
         decoder["DevType"] = edit.devType
         decoder["Protocol"] = edit.protocolName
@@ -180,10 +190,15 @@ final class RecorderInfoModel: ObservableObject {
         decoder["Port"] = edit.port
         decoder["UserName"] = edit.user
         if !edit.password.isEmpty { decoder["PassWord"] = edit.password }
-        if decoder["MacAddr"] != nil || !edit.mac.isEmpty { decoder["MacAddr"] = edit.mac }
-        if decoder["SerialNo"] != nil || !edit.serial.isEmpty { decoder["SerialNo"] = edit.serial }
+        decoder["MacAddr"] = edit.mac
+        decoder["SerialNo"] = edit.serial
         if decoders.indices.contains(position) { decoders[position] = decoder } else { decoders.append(decoder) }
         channel["Decoder"] = decoders
+        if let model = list.lazy.compactMap({ $0 as? [String: Any] })
+            .first(where: { (($0["Decoder"] as? [[String: Any]])?.first?["IPAddress"] as? String)?.isEmpty == false }) {
+            for (key, value) in model where channel[key] == nil { channel[key] = value }
+        }
+        if channel["SingleConnId"] == nil || (ConfigValue.int(channel["SingleConnId"]) ?? 0) < 1 { channel["SingleConnId"] = position + 1 }
         channel["Enable"] = edit.enabled
         list[edit.index] = channel
         do {
@@ -614,24 +629,40 @@ extension RecorderInfoView {
                 .formStyle(.grouped)
                 if let error = model.editError {
                     Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
+                } else if model.confirmingSave {
+                    // Confirmação na própria janela: um diálogo dentro da folha não aparece no macOS.
+                    Label("O NVR passa a buscar o vídeo deste canal no endereço informado. Se os dados estiverem errados, o canal fica sem imagem e sem gravação até ser corrigido.",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Theme.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let error = model.error {
+                    Label(error, systemImage: "xmark.octagon.fill").foregroundStyle(Theme.warning)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 HStack {
+                    if model.saving { ProgressView().controlSize(.small) }
                     Spacer()
-                    Button("Cancelar") { model.editing = nil }
+                    Button("Cancelar") {
+                        model.confirmingSave = false
+                        model.editing = nil
+                    }
                         .keyboardShortcut(.cancelAction)
-                    Button("Gravar no NVR") { model.confirmingSave = true }
+                    Button(model.confirmingSave ? String(localized: "Confirmar e gravar") : String(localized: "Gravar no NVR")) {
+                        if model.confirmingSave {
+                            model.confirmingSave = false
+                            Task { await model.saveEdit() }
+                        } else {
+                            model.confirmingSave = true
+                        }
+                    }
                         .keyboardShortcut(.defaultAction)
                         .disabled(model.editError != nil || model.saving)
                 }
             }
             .padding(Space.xl)
             .frame(width: 480)
-            .confirmationDialog(String(format: String(localized: "Gravar o canal D%02d no NVR?"), edit.index + 1), isPresented: $model.confirmingSave) {
-                Button("Gravar") { Task { await model.saveEdit() } }
-                Button("Cancelar", role: .cancel) {}
-            } message: {
-                Text("O NVR passa a buscar o vídeo deste canal no endereço informado. Se os dados estiverem errados, o canal fica sem imagem e sem gravação até ser corrigido.")
-            }
+            .onChange(of: model.editing?.ip) { model.confirmingSave = false }
         }
     }
 

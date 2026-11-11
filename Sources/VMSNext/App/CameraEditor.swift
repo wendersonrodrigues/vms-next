@@ -214,6 +214,13 @@ struct CameraEditor: View {
             Text("O usuário e a senha do ONVIF da câmera (muitas marcas usam \"admin\" e a senha do aplicativo delas). A senha fica no cofre criptografado do VMS Next.")
                 .foregroundStyle(.secondary)
         }
+        Section {
+            Picker(selection: $form.camera.ptz) {
+                ForEach(PTZSupport.allCases, id: \.self) { Text($0.label).tag($0) }
+            } label: {
+                FieldLabel("PTZ (motor)", detail: String(localized: "No automático, aparece se a câmera aceitar o PTZ pelo ONVIF ou se estiver ligada a um canal do NVR (aí o PTZ vai pelo NVR)."))
+            }
+        }
         if !store.groups.isEmpty {
             Section {
                 nvrChannelPicker

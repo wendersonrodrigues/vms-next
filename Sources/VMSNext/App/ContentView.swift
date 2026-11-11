@@ -163,7 +163,7 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 Divider()
                 ScrollView {
-                    PTZPanel(camera: camera) { ui.mosaicPTZCamera = nil }
+                    PTZPanel(camera: camera, nvrChannel: store.linkedChannel(for: camera)) { ui.mosaicPTZCamera = nil }
                         .id(camera.id)
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { ui.ptzPanelHeight = $0 }
                 }

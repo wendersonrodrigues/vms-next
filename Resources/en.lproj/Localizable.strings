@@ -1765,3 +1765,8 @@
 "Câmeras de outras marcas que falam ONVIF também aparecem na busca. Elas têm ao vivo, foto e gravação no Mac e, nas que aceitam, PTZ e alertas." = "Other-brand cameras that speak ONVIF also show up in the search. They get live view, photo and Mac recording and, where supported, PTZ and alerts.";
 "Mudou câmeras no próprio NVR? Botão direito no NVR → Sincronizar canais com o NVR… atualiza a lista do app." = "Changed cameras on the NVR itself? Right-click the NVR → Sync channels with NVR… updates the app's list.";
 "O botão de foto ao lado do ▶ Play abre a foto do alerta ampliada. Câmeras que não mandam alertas podem ter o movimento detectado pelo Mac (Eventos → Câmeras sem alertas)." = "The photo button next to ▶ Play opens the alert photo enlarged. Cameras that don't send alerts can have motion detected by the Mac (Events → Cameras without alerts).";
+
+/* PTZ pelo NVR */
+"PTZ pelo NVR: %@" = "PTZ through the NVR: %@";
+"No automático, aparece se a câmera aceitar o PTZ pelo ONVIF ou se estiver ligada a um canal do NVR (aí o PTZ vai pelo NVR)." = "On automatic, it shows if the camera accepts PTZ over ONVIF or is linked to an NVR channel (then PTZ goes through the NVR).";
+"Confirmar e gravar" = "Confirm and save";
