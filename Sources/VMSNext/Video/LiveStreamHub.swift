@@ -28,12 +28,21 @@ final class LiveStreamHub {
         (users[key] ?? 0) > 0 ? streams[key] : nil
     }
 
+    /// Quantos estão usando o vídeo agora.
+    func users(_ key: String) -> Int { users[key] ?? 0 }
+
     /// Retorna true se este é o primeiro quadro usando o vídeo.
     func acquire(_ key: String, name: String) -> Bool {
         names[key] = names[key] ?? name
         users[key, default: 0] += 1
-        return users[key] == 1
+        let first = users[key] == 1
+        // Avisa quem divide a câmera (a detecção de movimento solta o próprio vídeo antes deste conectar).
+        if first { acquireObservers.values.forEach { $0(key) } }
+        return first
     }
+
+    /// Chamados quando um vídeo novo é aberto (com a chave dele).
+    var acquireObservers: [UUID: (String) -> Void] = [:]
 
     /// Vídeos em uso agora (algum quadro na tela), com o nome.
     var active: [(name: String, stream: LiveStream)] {

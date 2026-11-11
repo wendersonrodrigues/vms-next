@@ -9,6 +9,8 @@ final class OnvifEventWatcher {
     var onEvent: ((_ event: String, _ isStart: Bool) -> Void)?
     /// Situação para a tela de Eventos ("Recebendo alertas" ou o erro).
     var onStatus: ((String) -> Void)?
+    /// A câmera manda (true) ou não manda (false) alertas pelo ONVIF. Sem eles, o Mac detecta o movimento no vídeo.
+    var onSupport: ((Bool) -> Void)?
 
     private let camera: Camera
     private var task: Task<Void, Never>?
@@ -60,6 +62,7 @@ final class OnvifEventWatcher {
                       let subscription = client.rehosted(address) else { throw OnvifClient.Failure.invalid }
                 subscribedOnce = true
                 onStatus?(String(localized: "Recebendo alertas (ONVIF)"))
+                onSupport?(true)
                 var renewed = Date()
                 while !Task.isCancelled {
                     let reply = try await client.call(subscription, body: """
@@ -82,6 +85,7 @@ final class OnvifEventWatcher {
                 // Tenta de novo de vez em quando, sem ficar insistindo.
                 onStatus?(subscribedOnce ? error.localizedDescription
                                          : String(localized: "Esta câmera não manda alertas pelo ONVIF (só o vídeo)."))
+                if !subscribedOnce { onSupport?(false) }
                 OnvifServices.shared.invalidate(camera)
                 try? await Task.sleep(for: .seconds(subscribedOnce ? 30 : 600))
             }

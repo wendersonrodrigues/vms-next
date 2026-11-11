@@ -108,6 +108,22 @@ struct EventsView: View {
                 Text("IA no Mac")
             }
             .disabled(!center.enabled)
+            Section {
+                Toggle(isOn: $center.macMotion) {
+                    FieldLabel(String(localized: "Detectar movimento no Mac"),
+                               detail: String(localized: "Para câmeras que só mandam o vídeo (como as Yoosee pelo ONVIF): o Mac acompanha o vídeo principal e cria o alerta quando algo se mexe. Usa um pouco de rede e processador enquanto o app está aberto."))
+                }
+                Picker("Sensibilidade", selection: $center.macMotionSensitivity) {
+                    ForEach(MacMotionSensitivity.allCases) { Text($0.label).tag($0) }
+                }
+                .disabled(!center.macMotion)
+            } header: {
+                Text("Câmeras sem alertas")
+            } footer: {
+                Text("Mudança de luz na imagem toda (luz acesa, troca para o infravermelho) não conta como movimento.")
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!center.enabled)
             Section("Notificar no macOS") {
                 ForEach(AlarmKind.allCases) { kind in
                     Toggle(isOn: Binding(
@@ -159,7 +175,8 @@ struct EventsView: View {
                         LabeledContent(name) {
                             Text(center.deviceStatus[name] ?? "")
                                 .font(.caption)
-                                .foregroundStyle(center.deviceStatus[name] == String(localized: "Recebendo alertas") ? Theme.success : Theme.warning)
+                                .foregroundStyle([String(localized: "Recebendo alertas"), String(localized: "Recebendo alertas (ONVIF)"), AlarmCenter.macMotionStatus]
+                                    .contains(center.deviceStatus[name] ?? "") ? Theme.success : Theme.warning)
                         }
                     }
                 }
@@ -243,6 +260,16 @@ struct EventsView: View {
                         .listRowSeparator(.visible)
                 }
                 .listStyle(.inset)
+                .sheet(isPresented: Binding(get: { state.viewingPhoto != nil }, set: { if !$0 { state.viewingPhoto = nil } })) {
+                    AlarmPhotoViewer(events: visibleEvents.filter { $0.hasPhoto == true }, state: state,
+                                     cameraName: { event in
+                                         event.cameraID.flatMap { id in store.cameras.first { $0.id == id }?.displayName } ?? event.cameraName
+                                     },
+                                     onPlay: { event in
+                                         state.viewingPhoto = nil
+                                         if let id = event.cameraID { onOpenRecording(id, event.date) }
+                                     })
+                }
             }
             Divider()
             HStack {
@@ -318,6 +345,8 @@ final class EventsUIState: ObservableObject {
     /// Alerta com a nota aberta para editar, e o texto sendo digitado.
     @Published var editingNote: AlarmEvent.ID?
     @Published var noteText = ""
+    /// Alerta com a foto aberta em tamanho grande.
+    @Published var viewingPhoto: AlarmEvent.ID?
 }
 
 extension AlarmSeverity {
@@ -398,6 +427,7 @@ private struct AlarmCard: View {
         }
         .frame(width: 120, height: 68)
         .clipShape(RoundedRectangle(cornerRadius: Radius.small))
+        .onTapGesture { if event.hasPhoto == true { state.viewingPhoto = event.id } }
         .overlay(alignment: .topLeading) {
             Text(event.date.formatted(date: .omitted, time: .standard))
                 .font(.caption2.weight(.semibold).monospacedDigit())
@@ -426,6 +456,15 @@ private struct AlarmCard: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .help("Abrir a gravação no momento deste alerta")
+            }
+            if event.hasPhoto == true {
+                Button { state.viewingPhoto = event.id } label: {
+                    Image(systemName: "photo")
+                }
+                .help("Ver a foto do alerta ampliada")
+                .accessibilityLabel("Ver foto")
+            }
+            if event.cameraID != nil {
                 Button(action: onLive) {
                     Image(systemName: "video")
                 }
@@ -539,5 +578,81 @@ private struct AlarmCard: View {
             parts.append(event.event)
         }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// Foto do alerta em tamanho grande, com as setas do teclado para passar pelos outros alertas da lista.
+private struct AlarmPhotoViewer: View {
+    let events: [AlarmEvent]
+    @ObservedObject var state: EventsUIState
+    let cameraName: (AlarmEvent) -> String
+    let onPlay: (AlarmEvent) -> Void
+
+    private var index: Int? { events.firstIndex { $0.id == state.viewingPhoto } }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let index {
+                let event = events[index]
+                HStack(spacing: Space.s) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(event.title).font(.headline)
+                        Text("\(cameraName(event)) · \(event.date.formatted(date: .abbreviated, time: .standard))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text("\(index + 1) de \(events.count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    Button { move(-1) } label: { Image(systemName: "chevron.left") }
+                        .disabled(index == 0)
+                        .keyboardShortcut(.leftArrow, modifiers: [])
+                        .help("Alerta mais novo")
+                    Button { move(1) } label: { Image(systemName: "chevron.right") }
+                        .disabled(index == events.count - 1)
+                        .keyboardShortcut(.rightArrow, modifiers: [])
+                        .help("Alerta mais antigo")
+                }
+                .padding(Space.m)
+                Divider()
+                ZStack {
+                    Color.black
+                    if let image = NSImage(contentsOf: AlarmPhotos.url(for: event.id)) {
+                        Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
+                    } else {
+                        Text("Foto não encontrada").foregroundStyle(.secondary)
+                    }
+                }
+                Divider()
+                HStack {
+                    if let chips = event.analysis?.chips, !chips.isEmpty {
+                        Image(systemName: "sparkles").foregroundStyle(Theme.accent)
+                        Text(chips.joined(separator: " · ")).font(.caption).lineLimit(1)
+                    }
+                    Spacer()
+                    Button("Salvar foto…") { save(event) }
+                    if event.cameraID != nil {
+                        Button { onPlay(event) } label: { Label("Play", systemImage: "play.fill") }
+                    }
+                    Button("Fechar") { state.viewingPhoto = nil }
+                        .keyboardShortcut(.cancelAction)
+                }
+                .padding(Space.m)
+            }
+        }
+        .frame(minWidth: 720, idealWidth: 960, minHeight: 520, idealHeight: 680)
+    }
+
+    private func move(_ step: Int) {
+        guard let index, events.indices.contains(index + step) else { return }
+        state.viewingPhoto = events[index + step].id
+    }
+
+    private func save(_ event: AlarmEvent) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.jpeg]
+        let stamp = AppPreferences.stamp(event.date)
+        panel.nameFieldStringValue = "\(cameraName(event)) \(stamp).jpg".replacingOccurrences(of: "/", with: "-")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? FileManager.default.removeItem(at: url)
+        try? FileManager.default.copyItem(at: AlarmPhotos.url(for: event.id), to: url)
     }
 }

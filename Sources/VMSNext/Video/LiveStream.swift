@@ -145,6 +145,11 @@ final class LiveStream: ObservableObject {
         client.start()
     }
 
+    /// Recebe cada quadro do vídeo (ainda codificado), na fila da conexão. nil para de receber.
+    func observeFrames(_ id: UUID, _ handler: ((CMSampleBuffer) -> Void)?) {
+        fanout.setObserver(id, handler)
+    }
+
     /// Liga ou desliga o som deste vídeo.
     func setAudio(_ on: Bool) {
         audioGate.isOn = on
@@ -352,6 +357,8 @@ final class AudioGate: @unchecked Sendable {
 final class RendererFanout: @unchecked Sendable {
     private let lock = NSLock()
     private var renderers: [AVSampleBufferVideoRenderer] = []
+    /// Quem mais quer ver cada quadro ainda codificado (a detecção de movimento no Mac).
+    private var observers: [UUID: (CMSampleBuffer) -> Void] = [:]
 
     func add(_ renderer: AVSampleBufferVideoRenderer) {
         lock.lock()
@@ -359,10 +366,18 @@ final class RendererFanout: @unchecked Sendable {
         lock.unlock()
     }
 
+    func setObserver(_ id: UUID, _ handler: ((CMSampleBuffer) -> Void)?) {
+        lock.lock()
+        observers[id] = handler
+        lock.unlock()
+    }
+
     func enqueue(_ sample: CMSampleBuffer) {
         lock.lock()
         let list = renderers
+        let watchers = Array(observers.values)
         lock.unlock()
+        for watcher in watchers { watcher(sample) }
         for renderer in list {
             if renderer.status == .failed { renderer.flush() }
             renderer.enqueue(sample)

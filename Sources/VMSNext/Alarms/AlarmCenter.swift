@@ -164,6 +164,22 @@ final class AlarmCenter: ObservableObject {
     @Published var notifyOnlyWhenFound: Bool {
         didSet { defaults.set(notifyOnlyWhenFound, forKey: "alarms.aiOnlyFound") }
     }
+    /// Câmeras que só mandam o vídeo: o próprio Mac procura movimento na imagem.
+    @Published var macMotion: Bool {
+        didSet {
+            defaults.set(macMotion, forKey: "alarms.macMotion")
+            if !macMotion { stopMotion() }
+            onvifWatchers.values.forEach { $0.stop() }
+            onvifWatchers.removeAll()
+            refresh()
+        }
+    }
+    @Published var macMotionSensitivity: MacMotionSensitivity {
+        didSet {
+            defaults.set(macMotionSensitivity.rawValue, forKey: "alarms.macMotionSensitivity")
+            motionWatchers.values.forEach { $0.setSensitivity(macMotionSensitivity) }
+        }
+    }
     /// Sonecas: "câmera|tipo" (ou "câmera|*" para todos os tipos) → até quando ficam sem avisar.
     @Published private(set) var snoozes: [String: Date] = [:] {
         didSet { defaults.set(snoozes.mapValues(\.timeIntervalSince1970), forKey: "alarms.snoozes") }
@@ -185,6 +201,7 @@ final class AlarmCenter: ObservableObject {
     private var subscribed: [String: DVRIPClient] = [:]
     /// Câmeras ONVIF (outras marcas): um assinante de eventos por câmera.
     private var onvifWatchers: [Camera.ID: OnvifEventWatcher] = [:]
+    private var motionWatchers: [Camera.ID: MacMotionWatcher] = [:]
     private var timer: Timer?
     private var lastNotified: [String: Date] = [:]
     private var maxEvents: Int { AppPreferences.shared.maxEvents }
@@ -201,6 +218,9 @@ final class AlarmCenter: ObservableObject {
         mutedCameras = Set((defaults.stringArray(forKey: "alarms.mutedCameras") ?? []).compactMap(UUID.init(uuidString:)))
         analyzeWithAI = defaults.object(forKey: "alarms.ai") as? Bool ?? true
         notifyOnlyWhenFound = defaults.bool(forKey: "alarms.aiOnlyFound")
+        macMotion = defaults.object(forKey: "alarms.macMotion") as? Bool ?? true
+        macMotionSensitivity = (defaults.object(forKey: "alarms.macMotionSensitivity") as? Int)
+            .flatMap(MacMotionSensitivity.init(rawValue:)) ?? .medium
         snoozes = ((defaults.dictionary(forKey: "alarms.snoozes") as? [String: Double]) ?? [:])
             .mapValues(Date.init(timeIntervalSince1970:)).filter { $0.value > Date() }
         loadSoundSettings()
@@ -268,12 +288,21 @@ final class AlarmCenter: ObservableObject {
             watcher.stop()
             onvifWatchers[id] = nil
         }
+        // Câmera removida ou editada (endereço, vídeo): para; a próxima resposta do ONVIF liga de novo com os dados novos.
+        for (id, watcher) in motionWatchers where onvif.first(where: { $0.id == id }) != watcher.camera {
+            stopMotion(id)
+            onvifWatchers.removeValue(forKey: id)?.stop()
+        }
         for camera in onvif where onvifWatchers[camera.id] == nil {
             let watcher = OnvifEventWatcher(camera: camera)
             let host = camera.host
             watcher.onStatus = { [weak self] status in self?.deviceStatus[host] = status }
             watcher.onEvent = { [weak self] event, isStart in
                 self?.record(source: camera, host: host, channel: 1, event: event, isStart: isStart, deviceTime: nil)
+            }
+            watcher.onSupport = { [weak self] supported in
+                guard let self else { return }
+                if supported { self.stopMotion(camera.id) } else { self.startMotion(camera) }
             }
             onvifWatchers[camera.id] = watcher
             watcher.start()
@@ -294,7 +323,43 @@ final class AlarmCenter: ObservableObject {
         subscribed.removeAll()
         onvifWatchers.values.forEach { $0.stop() }
         onvifWatchers.removeAll()
+        stopMotion()
         deviceStatus.removeAll()
+    }
+
+    // MARK: - Movimento detectado no Mac
+
+    /// Status mostrado em Eventos para quem está sendo vigiado pelo Mac.
+    static var macMotionStatus: String { String(localized: "Detectando movimento no Mac") }
+
+    private func startMotion(_ camera: Camera) {
+        if motionWatchers[camera.id] != nil {
+            deviceStatus[camera.host] = Self.macMotionStatus
+            return
+        }
+        guard enabled, macMotion, let store,
+              let current = store.cameras.first(where: { $0.id == camera.id }),
+              let password = store.password(for: current) else { return }
+        let watcher = MacMotionWatcher(camera: current)
+        let host = current.host
+        watcher.onMotion = { [weak self] active in
+            guard let self, let source = self.store?.cameras.first(where: { $0.id == current.id }) else { return }
+            self.record(source: source, host: host, channel: 1, event: "MacMotionDetect", isStart: active, deviceTime: nil)
+        }
+        motionWatchers[camera.id] = watcher
+        watcher.start(password: password, source: store.resolvedLiveSource(for: current), sensitivity: macMotionSensitivity)
+        deviceStatus[host] = Self.macMotionStatus
+        AppLog.shared.add(.alarm, "Detecção de movimento no Mac ligada", device: current.displayName)
+    }
+
+    private func stopMotion(_ id: Camera.ID) {
+        guard let watcher = motionWatchers.removeValue(forKey: id) else { return }
+        watcher.stop()
+        if deviceStatus[watcher.camera.host] == Self.macMotionStatus { deviceStatus[watcher.camera.host] = nil }
+    }
+
+    private func stopMotion() {
+        for id in Array(motionWatchers.keys) { stopMotion(id) }
     }
 
     private func deviceKey(_ camera: Camera) -> String {

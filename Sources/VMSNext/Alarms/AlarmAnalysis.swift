@@ -145,6 +145,8 @@ enum AlarmPhotos {
     static func url(for id: UUID) -> URL { folder.appendingPathComponent("\(id.uuidString).jpg") }
 
     static func capture(camera: Camera) async -> CGImage? {
+        // Alerta da detecção no Mac: o quadro em que o movimento foi visto.
+        if let image = MacMotion.latestImage(for: camera) { return image }
         for quality in [StreamQuality.main, .sub] {
             guard let stream = LiveStreamHub.shared.existing(LiveStreamHub.key(camera, quality)) else { continue }
             if #available(macOS 14.4, *), let buffer = stream.displayLayer.sampleBufferRenderer.displayedPixelBuffer() {
@@ -163,9 +165,9 @@ enum AlarmPhotos {
         return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 
-    /// Cópia de até 640 px de largura em JPEG, para a lista de Eventos e a notificação.
+    /// Cópia de até 1280 px de largura em JPEG, para a lista de Eventos, a foto ampliada e a notificação.
     static func save(_ image: CGImage, id: UUID) -> URL? {
-        let scale = min(1, 640 / CGFloat(image.width))
+        let scale = min(1, 1280 / CGFloat(image.width))
         let size = NSSize(width: CGFloat(image.width) * scale, height: CGFloat(image.height) * scale)
         let resized = NSImage(size: size)
         resized.lockFocus()
@@ -173,7 +175,7 @@ enum AlarmPhotos {
         NSImage(cgImage: image, size: .zero).draw(in: NSRect(origin: .zero, size: size))
         resized.unlockFocus()
         guard let tiff = resized.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
-              let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.8]) else { return nil }
+              let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.75]) else { return nil }
         let url = url(for: id)
         return (try? data.write(to: url)) != nil ? url : nil
     }

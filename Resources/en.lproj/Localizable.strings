@@ -137,7 +137,7 @@
 "Aparece no vídeo ao vivo (VMS Next, iCSee e monitor)." = "Shown on live video (VMS Next, iCSee and monitor).";
 "Aparência" = "Appearance";
 "Aplicado em todos os canais." = "Applied to all channels.";
-"Aplicar" = "Apply";
+"Sincronizar" = "Sync";
 "Aplicar as mudanças?" = "Apply the changes?";
 "Armazenamento" = "Storage";
 "Arquivo de som…" = "Sound file…";
@@ -1710,3 +1710,20 @@
 "Testa os serviços, o PTZ e os alertas desta câmera e mostra o resultado (sem a senha)" = "Tests this camera's services, PTZ and alerts and shows the result (without the password)";
 "Esta câmera não informou alertas pelo ONVIF." = "This camera didn't report alerts over ONVIF.";
 "Esta câmera não manda alertas pelo ONVIF (só o vídeo)." = "This camera doesn't send alerts over ONVIF (video only).";
+
+/* Detecção de movimento no Mac */
+"Detectando movimento no Mac" = "Detecting motion on the Mac";
+"Detectar movimento no Mac" = "Detect motion on the Mac";
+"Sensibilidade" = "Sensitivity";
+"Câmeras sem alertas" = "Cameras without alerts";
+"Para câmeras que só mandam o vídeo (como as Yoosee pelo ONVIF): o Mac acompanha o vídeo principal e cria o alerta quando algo se mexe. Usa um pouco de rede e processador enquanto o app está aberto." = "For cameras that only send video (such as Yoosee over ONVIF): the Mac watches the main stream and creates an alert when something moves. Uses some network and CPU while the app is open.";
+"Mudança de luz na imagem toda (luz acesa, troca para o infravermelho) não conta como movimento." = "A lighting change across the whole image (a light turning on, switching to infrared) doesn't count as motion.";
+
+/* Foto do alerta ampliada */
+"Ver a foto do alerta ampliada" = "View the alert photo enlarged";
+"Ver foto" = "View photo";
+"Alerta mais novo" = "Newer alert";
+"Alerta mais antigo" = "Older alert";
+"Foto não encontrada" = "Photo not found";
+"Salvar foto…" = "Save Photo…";
+"%lld de %lld" = "%1$lld of %2$lld";
