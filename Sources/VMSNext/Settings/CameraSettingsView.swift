@@ -138,8 +138,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .imageParams, .exposure, .overlay: return .image
         case .encoding, .volume, .recording, .snapshot, .disk: return .storage
         case .smartAlert, .videoLoss, .blind, .vehicle, .face, .abnormality, .alarmOutput, .manualAlarm: return .alarms
-        case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version,
-             .digitalChannels, .channelMode, .channelStatus: return .device
+        case .digitalChannels, .channelMode, .channelStatus: return .channels
+        case .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version: return .device
         }
     }
     /// Funções de SystemFunction que liberam a tela (basta uma). Vazio = sempre aparece.
@@ -210,7 +210,7 @@ enum SettingsScope {
     var categories: [SettingsCategory] {
         switch self {
         case .camera: return [.imageParams, .exposure, .overlay, .encoding, .volume, .recording, .snapshot, .smartAlert, .face, .blind, .videoLoss, .abnormality, .alarmOutput, .manualAlarm, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .wifi, .ptzSerial, .version]
-        case .recorder: return [.smartAlert, .blind, .videoLoss, .vehicle, .face, .abnormality, .alarmOutput, .manualAlarm, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version, .digitalChannels, .channelMode, .channelStatus]
+        case .recorder: return [.digitalChannels, .channelStatus, .channelMode, .smartAlert, .blind, .videoLoss, .vehicle, .face, .abnormality, .alarmOutput, .manualAlarm, .disk, .dateTime, .maintenance, .users, .defaults, .network, .netServices, .version]
         case .channel: return [.imageParams, .exposure, .overlay, .encoding, .recording, .snapshot, .smartAlert, .videoLoss, .blind, .vehicle, .face]
         }
     }
@@ -416,7 +416,7 @@ extension SettingsPane {
             ForEach(SettingsGroup.allCases, id: \.self) { group in
                 let items = available.filter { $0.group == group }
                 if !items.isEmpty {
-                    Section(group.rawValue) {
+                    Section(LocalizedStringKey(group.rawValue)) {
                         ForEach(items) { item in
                             Label(item.title, systemImage: item.icon)
                                 .help("\(item.subtitle). No VMS antigo: \(item.original)")
@@ -455,7 +455,7 @@ struct SettingsMenu: View {
                     let items = categories.filter { $0.group == group }
                     if !items.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text(group.rawValue)
+                            Text(LocalizedStringKey(group.rawValue))
                                 .font(.headline)
                                 .foregroundStyle(.secondary)
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 12)], spacing: 12) {
@@ -506,6 +506,7 @@ struct SettingsMenu: View {
 extension SettingsGroup {
     var color: Color {
         switch self {
+        case .channels: return .purple
         case .image: return .orange
         case .storage: return .green
         case .alarms: return .red

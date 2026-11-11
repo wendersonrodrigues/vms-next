@@ -32,6 +32,8 @@ struct FieldLabel: View {
 
 /// Grupos da barra lateral da janela de configurações.
 enum SettingsGroup: String, CaseIterable {
+    /// NVR: as câmeras de cada canal, o modo e o estado dos canais (vem antes, é o que mais se usa no NVR).
+    case channels = "Câmeras e canais"
     case image = "Imagem"
     case storage = "Gravação e armazenamento"
     case alarms = "Alarmes"

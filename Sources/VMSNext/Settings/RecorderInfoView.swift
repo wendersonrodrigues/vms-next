@@ -9,6 +9,8 @@ final class RecorderInfoModel: ObservableObject {
         let id = UUID()
         var cells: [String]
         var good: Bool?
+        /// Câmeras do NVR: posição do canal (D01 = 0), para os botões da linha.
+        var channel: Int?
     }
 
     @Published private(set) var loading = false
@@ -92,14 +94,20 @@ final class RecorderInfoModel: ObservableObject {
         RecorderChannels.parse(remoteRaw ?? []).first { !$0.enabled || !$0.configured }.map { $0.channel - 1 }
     }
 
-    func beginAdd() {
-        guard let index = freeChannel else { return }
+    func beginAdd(at chosen: Int? = nil) {
+        guard let index = chosen ?? freeChannel else { return }
         beginEdit(index)
         editing?.enabled = true
         if RecorderChannels.parse(remoteRaw ?? [])[index].configured == false {
             editing?.name = ""
             editing?.ip = ""
         }
+    }
+
+    /// Dados do canal (para o botão de remover de cada linha).
+    func channelInfo(_ index: Int) -> NVRChannelInfo? {
+        let list = RecorderChannels.parse(remoteRaw ?? [])
+        return list.indices.contains(index) ? list[index] : nil
     }
 
     /// Canais com câmera ativa (para "Remover câmera do NVR").
@@ -345,7 +353,7 @@ final class RecorderInfoModel: ObservableObject {
                 Self.text(decoder?["DevType"]).nonEmpty ?? "—",
                 decoder.flatMap { Self.text($0["IPAddress"]).nonEmpty ?? NetworkModel.hexToIP($0["Address"]) } ?? "—",
                 decoder.flatMap { ConfigValue.int($0["Channel"]) }.map { String($0 + 1) } ?? "—",
-            ], good: enabled && decoder != nil)
+            ], good: enabled && decoder != nil, channel: index)
         }
         details = []
         if let first = items.first as? [String: Any], let mode = first["ConnType"] as? String {
@@ -486,6 +494,7 @@ struct RecorderInfoView: View {
                             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                                 GridRow {
                                     ForEach(model.columns, id: \.self) { Text($0).font(.caption.weight(.semibold)).foregroundStyle(.secondary) }
+                                    if showsRowActions { Text("").gridCellUnsizedAxes(.horizontal) }
                                 }
                                 Divider()
                                 ForEach(model.rows) { row in
@@ -498,16 +507,16 @@ struct RecorderInfoView: View {
                                                 Text(cell).monospacedDigit()
                                             }
                                         }
+                                        if showsRowActions, let channel = row.channel { rowActions(channel, active: row.good == true) }
                                     }
                                 }
                             }
                         } footer: {
-                            Text(model.category == .digitalChannels ? String(localized: "Para adicionar, remover ou trocar a câmera de um canal, use as opções abaixo. Depois de mudar o NVR, use \"Sincronizar lista do app…\".") : String(localized: "Só leitura. Para mudar o modo do NVR, use o VMS antigo: uma troca errada para a gravação de todos os canais."))
+                            Text(model.category == .digitalChannels ? String(localized: "Em cada canal: + põe uma câmera, a engrenagem troca a câmera ou os dados de acesso e o X tira a câmera do NVR. Depois de mudar o NVR, use \"Sincronizar lista do app…\".") : String(localized: "Só leitura. Para mudar o modo do NVR, use o VMS antigo: uma troca errada para a gravação de todos os canais."))
                                 .foregroundStyle(.secondary)
                         }
                     }
                     if model.category == .digitalChannels {
-                        if model.canEdit { editSection }
                         searchSection
                     }
                     if let error = model.error {
@@ -560,39 +569,30 @@ struct RecorderInfoView: View {
 }
 
 extension RecorderInfoView {
+    /// Botões de cada canal na tabela "Câmeras do NVR" (só quando o NVR deixa editar os canais).
+    var showsRowActions: Bool { model.category == .digitalChannels && model.canEdit }
+
     @ViewBuilder
-    var editSection: some View {
-        Section {
-            HStack {
-                Text("Pôr uma câmera num canal vazio do NVR.")
-                Spacer()
-                Button("Adicionar câmera…") { model.beginAdd() }
-                    .disabled(model.freeChannel == nil || model.saving)
-            }
-            HStack {
-                Text("Tirar uma câmera do NVR (o canal fica desativado).")
-                Spacer()
-                Menu("Remover câmera") {
-                    ForEach(model.activeChannels, id: \.channel) { info in
-                        Button(String(format: "D%02d · %@ · %@", info.channel, info.name, info.ip)) { model.removing = info }
-                    }
+    func rowActions(_ channel: Int, active: Bool) -> some View {
+        let name = String(format: "D%02d", channel + 1)
+        HStack(spacing: Space.s) {
+            if active {
+                Button { model.beginEdit(channel) } label: { Image(systemName: "gearshape") }
+                    .help(String(format: String(localized: "Trocar a câmera ou os dados de acesso do canal %@"), name))
+                    .accessibilityLabel(String(format: String(localized: "Editar o canal %@"), name))
+                Button { model.removing = model.channelInfo(channel) } label: {
+                    Image(systemName: "xmark.circle").foregroundStyle(Theme.warning)
                 }
-                .fixedSize()
-                .disabled(model.activeChannels.isEmpty || model.saving)
+                    .help(String(format: String(localized: "Tirar a câmera do canal %@ (o canal fica desativado)"), name))
+                    .accessibilityLabel(String(format: String(localized: "Remover a câmera do canal %@"), name))
+            } else {
+                Button { model.beginAdd(at: channel) } label: { Image(systemName: "plus.circle").foregroundStyle(Theme.success) }
+                    .help(String(format: String(localized: "Pôr uma câmera no canal %@"), name))
+                    .accessibilityLabel(String(format: String(localized: "Adicionar câmera no canal %@"), name))
             }
-            HStack {
-                Text("Trocar a câmera de um canal ou os dados de acesso dela.")
-                Spacer()
-                Menu("Editar canal") {
-                    ForEach(model.rows.indices, id: \.self) { index in
-                        Button(model.rows[index].cells.prefix(3).joined(separator: " · ")) { model.beginEdit(index) }
-                    }
-                }
-                .fixedSize()
-            }
-        } header: {
-            Text("Editar canal (Config. de canal remoto)")
         }
+        .buttonStyle(.borderless)
+        .disabled(model.saving)
     }
 
     @ViewBuilder

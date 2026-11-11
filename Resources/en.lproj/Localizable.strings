@@ -1770,3 +1770,20 @@
 "PTZ pelo NVR: %@" = "PTZ through the NVR: %@";
 "No automático, aparece se a câmera aceitar o PTZ pelo ONVIF ou se estiver ligada a um canal do NVR (aí o PTZ vai pelo NVR)." = "On automatic, it shows if the camera accepts PTZ over ONVIF or is linked to an NVR channel (then PTZ goes through the NVR).";
 "Confirmar e gravar" = "Confirm and save";
+
+/* Câmeras e canais do NVR */
+"Câmeras e canais" = "Cameras and channels";
+"Gravação e armazenamento" = "Recording and storage";
+"Em cada canal: + põe uma câmera, a engrenagem troca a câmera ou os dados de acesso e o X tira a câmera do NVR. Depois de mudar o NVR, use \"Sincronizar lista do app…\"." = "On each channel: + adds a camera, the gear changes the camera or its login and the X takes the camera off the NVR. After changing the NVR, use \"Sync app list…\".";
+"Trocar a câmera ou os dados de acesso do canal %@" = "Change the camera or login of channel %@";
+"Editar o canal %@" = "Edit channel %@";
+"Tirar a câmera do canal %@ (o canal fica desativado)" = "Take the camera off channel %@ (the channel is disabled)";
+"Remover a câmera do canal %@" = "Remove the camera from channel %@";
+"Pôr uma câmera no canal %@" = "Put a camera on channel %@";
+"Adicionar câmera no canal %@" = "Add a camera on channel %@";
+
+/* Linha do tempo: andar com zoom */
+"Voltar na linha do tempo (ou arraste a linha para os lados)" = "Go back on the timeline (or drag the timeline sideways)";
+"Avançar na linha do tempo (ou arraste a linha para os lados)" = "Go forward on the timeline (or drag the timeline sideways)";
+"Parte do dia à vista. Arraste para os lados para andar na linha do tempo." = "Part of the day in view. Drag sideways to move along the timeline.";
+"Posição da linha do tempo" = "Timeline position";
