@@ -23,6 +23,7 @@ struct HelpView: View {
                 section(String(localized: "Primeiros passos"), [
                     String(localized: "Dispositivos → Procurar na rede encontra as câmeras e NVRs Xiongmai da sua rede. Clique em Adicionar… e digite o usuário e a senha do equipamento."),
                     String(localized: "Câmeras de outras marcas que falam ONVIF também aparecem na busca. Elas têm ao vivo, foto e gravação no Mac e, nas que aceitam, PTZ e alertas."),
+                    String(localized: "Cada mosaico (todas as câmeras e cada NVR) guarda o modelo de tela escolhido nele."),
                     String(localized: "Mudou câmeras no próprio NVR? Botão direito no NVR → Sincronizar canais com o NVR… atualiza a lista do app."),
                     String(localized: "As senhas ficam num cofre criptografado só deste Mac. Para levar a lista a outro Mac, use + → Exportar câmeras (as senhas não vão junto)."),
                 ])
@@ -35,6 +36,7 @@ struct HelpView: View {
                 ])
                 section(String(localized: "Gravações"), [
                     String(localized: "Escolha a câmera na lista: a linha do tempo mostra o dia, com uma faixa e uma cor por tipo (alarme, movimento, manual, contínua). Clique num ponto para assistir dali."),
+                    String(localized: "Com a linha do tempo ampliada, arraste para os lados, use ‹ › ao lado do zoom ou a barra embaixo dela para andar pelo dia."),
                     String(localized: "As setas ‹ › de cada tipo levam ao trecho anterior ou ao próximo. A data abre o calendário, que marca os dias com gravação e os dias com vídeo baixado."),
                     String(localized: "Baixar salva em MP4 direto na pasta das Preferências; os baixados ficam com o selo No Mac. Tags marcam vídeos para achar depois, de qualquer dia."),
                     String(localized: "Câmera sem cartão que grava no NVR: Editar câmera → Gravações → NVR (ou Cartão e NVR, com a chave para trocar)."),

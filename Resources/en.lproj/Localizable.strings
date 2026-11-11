@@ -1787,3 +1787,7 @@
 "Avançar na linha do tempo (ou arraste a linha para os lados)" = "Go forward on the timeline (or drag the timeline sideways)";
 "Parte do dia à vista. Arraste para os lados para andar na linha do tempo." = "Part of the day in view. Drag sideways to move along the timeline.";
 "Posição da linha do tempo" = "Timeline position";
+
+/* Ajuda 1.6.0 */
+"Cada mosaico (todas as câmeras e cada NVR) guarda o modelo de tela escolhido nele." = "Each grid (all cameras and each NVR) keeps the layout chosen for it.";
+"Com a linha do tempo ampliada, arraste para os lados, use ‹ › ao lado do zoom ou a barra embaixo dela para andar pelo dia." = "With the timeline zoomed in, drag it sideways, use ‹ › next to the zoom or the bar below it to move through the day.";

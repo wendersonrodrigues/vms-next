@@ -1,5 +1,18 @@
 # Novidades
 
+## 1.6.0 — 11/11/2026
+
+- **PTZ direto nas câmeras ONVIF que só o NVR conseguia mover** (como a Yoosee): o app manda os comandos como o NVR manda (no endereço de PTZ que a câmera informa, sem login quando ela recusa o login, e para com um movimento de velocidade zero). Sem precisar de NVR. Se a câmera não responder, o PTZ vai pelo canal do NVR ligado a ela.
+- **Câmeras e canais**: categoria própria, a primeira nas configurações do NVR, com Câmeras do NVR, Estado dos canais e Modo dos canais.
+- **Câmeras do NVR** mais simples: em cada canal, **+** põe uma câmera, a engrenagem troca a câmera ou os dados de acesso e o **X** tira a câmera do NVR. Gravar o canal pede a confirmação na própria janela (antes não acontecia nada), e o NVR aceita câmera nova em canal vazio.
+- **Modelo de tela por mosaico**: todas as câmeras e cada NVR guardam o modelo escolhido nele.
+- **Gravações**:
+  - com a linha do tempo ampliada, arraste para os lados, use **‹ ›** ou a barra de posição para andar pelo dia (sem precisar de roda lateral no mouse);
+  - a trilha que não está tocando fica apagada (e, no NVR, os outros canais);
+  - clicar na trilha do movimento toca o vídeo do movimento;
+  - o vídeo não começa mais acelerado e termina junto com o som.
+- Editor da câmera ONVIF com a opção **PTZ (motor)**.
+
 ## 1.5.0 — 11/11/2026
 
 - **Câmeras de outras marcas (ONVIF)**: a busca na rede também acha câmeras ONVIF, incluindo as que não respondem à busca padrão, como a Yoosee. Elas têm ao vivo, HD/SD, foto e gravação no Mac. Nas que aceitam, há também PTZ e presets e alertas de movimento, pessoa e câmera tampada, com foto e IA.

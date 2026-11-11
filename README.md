@@ -165,12 +165,14 @@ O VMS Next usou **cerca de 13 vezes menos memória RAM**, menos da metade das th
 - **PTZ** no pé da lista de câmeras, uma câmera por vez, no arranjo do VMS antigo: 8 direções, zoom óptico, íris, foco, passo, **presets** e **ronda** (com janela de edição), escolhidos numa lista. Inverter esquerda/direita e cima/baixo por câmera. O botão só aparece nas câmeras com PTZ (automático ou escolhido em Editar câmera).
 - **Áudio** G.711 das câmeras, um som por vez.
 - Lista de câmeras **reordenável** arrastando; NVR como grupo com seus canais, que podem ser **sincronizados** com o que está configurado no NVR.
-- **Câmeras ONVIF** (outras marcas): ao vivo, HD/SD, foto, gravação no Mac e, nas que aceitam, **PTZ** e presets.
+- **Câmeras ONVIF** (outras marcas): ao vivo, HD/SD, foto, gravação no Mac e **PTZ**, inclusive nas câmeras que só aceitam o PTZ do jeito do NVR (como a Yoosee).
+- **Modelo de tela por mosaico**: todas as câmeras e cada NVR guardam o modelo escolhido nele.
 - Vídeo H.264 e H.265 por RTSP ou pelo protocolo Xiongmai, com reconexão automática.
 
 ### Gravações
 - A câmera vem da lista ao lado e a busca do dia é automática.
-- **Linha do tempo** de 0 h a 24 h com uma faixa por tipo (alarme, movimento, manual e contínua), hora ao passar o mouse e clique para assistir daquele momento.
+- **Linha do tempo** de 0 h a 24 h com uma faixa por tipo (alarme, movimento, manual e contínua), hora ao passar o mouse e clique para assistir daquele momento; clicar numa faixa toca aquele tipo, e a faixa que não está tocando fica apagada.
+- **Zoom na linha do tempo** com a roda do mouse ou − / +; para andar pelo dia, arraste a linha, use **‹ ›** ou a barra de posição.
 - **Setas por tipo** (‹ Movimento ›, ‹ Contínua ›) para ir ao trecho anterior ou ao próximo.
 - Barra de data com **‹ ›** de dia em dia, **calendário** que marca os dias com gravação e os dias com vídeo baixado, **Hoje** e a lista de **Arquivos** do dia.
 - **Tags** nos vídeos: criar, buscar e tirar; clicar numa tag lista os vídeos com ela, de qualquer dia. Trechos com tag ganham uma marca na linha do tempo.
@@ -214,7 +216,7 @@ Configurações embutidas na janela, para a câmera, o NVR ou o canal escolhido 
 - **Volume** do alto-falante e do microfone da câmera, com redução de ruído.
 - **Gravação** com agenda semanal pintável, **Fotos automáticas** e **Disco / cartão**.
 - **Alarmes**: detecção inteligente com área e linha de aviso e a **voz do aviso** (qual voz, repetição e horários), **detecção de rosto**, perda de vídeo, câmera bloqueada, veículos, problemas no equipamento (com reiniciar quando o cartão falhar), saída de alarme e **alarme manual**.
-- **Câmeras do NVR**: câmera de cada canal, **adicionar** câmera num canal vazio, **remover** câmera do NVR, editar o canal e procurar câmeras na rede do NVR.
+- **Câmeras e canais** (NVR): câmera de cada canal com **+** (pôr câmera), engrenagem (trocar câmera ou acesso) e **X** (tirar do NVR) em cada linha, procurar câmeras na rede do NVR, estado e modo dos canais.
 - **Equipamento**: sistema e horário (com fuso horário e servidor de horário), manutenção, usuários, restaurar padrão, **rede** no formato TCP/IP do VMS antigo (interface, DHCP, DNS, portas TCP/HTTP/ONVIF, download rápido e política de transmissão), **Wi-Fi** (procurar redes e trocar de rede com segurança), serviços de rede (nuvem, RTSP, filtro de IP, **e-mail e FTP com teste**, **DDNS**, **UPnP**, notificações no celular), **PTZ por cabo** (RS485) e informações.
 - **Diagnóstico** em JSON (sem senhas) em cada tela, e **Capacidades…** e **Varredura completa…** em Informações.
 
