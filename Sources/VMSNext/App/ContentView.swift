@@ -47,13 +47,14 @@ struct ContentView: View {
             AutoSnapshot.shared.reschedule()
             LocalRecorder.shared.start(store: store)
             rotation.apply = { step in
-                ui.templateID = step.templateID
                 ui.page = 0
                 if step.context.hasPrefix("group:") {
                     ui.selection = .group(String(step.context.dropFirst(6)))
                 } else {
                     ui.selection = .all
                 }
+                // O rodízio troca o modelo sem mudar o que ficou guardado para cada tela.
+                ui.showTemplate(step.templateID)
                 ui.mode = .live
             }
         }
@@ -831,7 +832,33 @@ struct ContentView: View {
 /// Estado da janela principal (o macro @State do SwiftUI exige o Xcode; ObservableObject funciona só com o Swift).
 final class ContentUIState: ObservableObject {
     /// Modelo de tela do mosaico (ViewTemplate.autoID = automático).
-    @Published var templateID = ViewTemplate.autoID { didSet { save() } }
+    @Published var templateID = ViewTemplate.autoID {
+        didSet {
+            if !applyingContext, let key = gridKey { templateByContext[key] = templateID }
+            save()
+        }
+    }
+    /// Modelo escolhido para cada mosaico: todas as câmeras ("all") e cada NVR ("group:Nome").
+    private var templateByContext: [String: String] = [:] {
+        didSet { UserDefaults.standard.set(templateByContext, forKey: Self.templatesKey) }
+    }
+    private var applyingContext = false
+    private static let templatesKey = "ui.templateByContext"
+
+    /// Mosaico da seleção atual: a própria seleção, ou o mosaico de onde a câmera em tela única veio.
+    private var gridKey: String? {
+        switch selection {
+        case .all?, .group?: return selection?.token
+        default: return gridSelection?.token
+        }
+    }
+
+    /// Troca o modelo na tela sem guardar como escolha daquele mosaico (rodízio).
+    func showTemplate(_ id: String) {
+        applyingContext = true
+        templateID = id
+        applyingContext = false
+    }
     @Published var editingTemplate = false
     @Published var editingRotation = false
     /// Lista de câmeras ao lado: recolhida no Início.
@@ -841,7 +868,15 @@ final class ContentUIState: ObservableObject {
     @Published var pageCount = 1
     /// Para onde "Voltar ao mosaico" leva quando uma câmera está em tela única; nil no mosaico.
     @Published var gridSelection: SidebarItem?
-    @Published var selection: SidebarItem? = .all { didSet { save() } }
+    @Published var selection: SidebarItem? = .all {
+        didSet {
+            // Cada mosaico volta com o modelo que foi escolhido nele.
+            if selection != oldValue, let item = selection, item == .all || item.isGroup {
+                showTemplate(templateByContext[item.token] ?? ViewTemplate.autoID)
+            }
+            save()
+        }
+    }
     @Published var editing: Camera?
     /// NVR cuja lista de canais está sendo comparada com a do próprio NVR.
     @Published var syncingGroup: String?
@@ -870,6 +905,7 @@ final class ContentUIState: ObservableObject {
     init() {
         let prefs = AppPreferences.shared
         singleQuality = prefs.singleQualityHD ? .main : .sub
+        templateByContext = UserDefaults.standard.dictionary(forKey: Self.templatesKey) as? [String: String] ?? [:]
         guard prefs.restoreState, let saved = UserDefaults.standard.dictionary(forKey: Self.stateKey) else { return }
         restoring = true
         if let raw = saved["template"] as? String { templateID = raw }
@@ -927,6 +963,8 @@ enum ViewMode: String {
 enum SidebarItem: Hashable {
     case all
     case group(String)
+
+    var isGroup: Bool { if case .group = self { return true } else { return false } }
     case camera(Camera.ID)
     /// Uma metade de câmera dividida (split virtual).
     case part(Camera.ID, SplitPart)

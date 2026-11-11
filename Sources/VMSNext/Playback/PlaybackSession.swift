@@ -48,6 +48,13 @@ final class PlaybackSession: ObservableObject {
     let audioID = UUID()
     @Published private(set) var hasAudio = false
     private var pacer: Timer?
+    /// Quadros por segundo usados no ritmo atual. Começa no que o arquivo informa e passa a ser o medido pela hora
+    /// dos quadros-chave: muitas câmeras informam 25 e gravam menos, e o vídeo corria no início e terminava antes
+    /// do som.
+    private var pacedFps: Double = 0
+    private var measuredFps: Double?
+    /// Quadros-chave vistos (hora gravada e quantos quadros já tinham passado), para medir o fps real.
+    private var keySamples: [(time: Date, frame: Int)] = []
     private var framesShown = 0
     private var lastKeyTime: Date?
     private var framesSinceKey = 0
@@ -196,6 +203,9 @@ final class PlaybackSession: ObservableObject {
         streamEnded = false
         seekTarget = nil
         gop.removeAll()
+        keySamples.removeAll()
+        measuredFps = nil
+        pacedFps = 0
         clock = nil
         displayLayer.sampleBufferRenderer.flush(removingDisplayedImage: !keepImage, completionHandler: nil)
         status = .idle
@@ -245,9 +255,13 @@ final class PlaybackSession: ObservableObject {
         if queue.count > maxQueued { media?.pause() }
     }
 
+    /// fps do ritmo: o medido, se já houver, senão o informado pelo arquivo.
+    private var currentFps: Double { measuredFps ?? Double(max(parser.fps, 1)) }
+
     private func startPacer() {
         pacer?.invalidate()
-        let interval = 1.0 / (Double(max(parser.fps, 1)) * speed)
+        pacedFps = currentFps
+        let interval = 1.0 / (pacedFps * speed)
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -287,14 +301,30 @@ final class PlaybackSession: ObservableObject {
         if frame.isKeyframe, let time = frame.timestamp {
             lastKeyTime = time
             framesSinceKey = 0
+            measureFps(keyTime: time)
         } else {
             framesSinceKey += 1
         }
         if let key = lastKeyTime {
-            clock = key.addingTimeInterval(Double(framesSinceKey) / Double(max(parser.fps, 1)))
+            clock = key.addingTimeInterval(Double(framesSinceKey) / currentFps)
         }
-        // Se a pausa entre lotes for longa, ajusta o ritmo ao fps real informado.
-        if framesShown == 30 { startPacer() }
+        // O arquivo informou o fps (ou a medida mudou bastante): refaz o ritmo.
+        if abs(currentFps - pacedFps) > 0.5 { startPacer() }
+    }
+
+    /// fps real pela hora (em segundos) dos quadros-chave: quadros mostrados ÷ tempo gravado, numa janela de ~10 s.
+    private func measureFps(keyTime: Date) {
+        keySamples.append((keyTime, framesShown))
+        while let first = keySamples.first, keyTime.timeIntervalSince(first.time) > 12, keySamples.count > 2 {
+            keySamples.removeFirst()
+        }
+        guard let first = keySamples.first else { return }
+        let seconds = keyTime.timeIntervalSince(first.time)
+        // A hora tem resolução de 1 s: só mede com pelo menos 4 s de vídeo.
+        guard seconds >= 4 else { return }
+        let fps = Double(framesShown - first.frame) / seconds
+        guard fps >= 1, fps <= 60 else { return }
+        measuredFps = fps
     }
 
     private func streamDidEnd(token: Int) {
@@ -312,6 +342,8 @@ final class PlaybackSession: ObservableObject {
     private func finish() {
         pacer?.invalidate()
         pacer = nil
+        // O vídeo acabou: o som que ainda estava na fila não continua tocando sozinho.
+        audio.stop()
         status = framesShown > 0 ? .finished : .failed(String(localized: "O equipamento não enviou vídeo para este arquivo."))
     }
 

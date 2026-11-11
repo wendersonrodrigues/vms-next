@@ -433,10 +433,14 @@ struct PlaybackView: View {
                                   alarm: browser.alarmMarker,
                                   tagged: tags.taggedFiles(in: browser.recordings, camera: camera),
                                   downloaded: downloaded.downloadedFiles(in: browser.recordings, camera: camera),
-                                  zoom: timelineZoom) { date, kind, tolerance in
+                                  zoom: timelineZoom, activeKind: session.recording?.kind) { date, kind, tolerance in
                     play(at: date, preferring: kind, tolerance: tolerance)
                 }
                 .padding(.top, Space.xs)
+            }
+            if timelineZoom.isZoomed, isGroup || camera != nil {
+                TimelineScrollbar(zoom: timelineZoom)
+                    .padding(.leading, isGroup ? 130 + Space.s + Space.xs : 0)
             }
             if let message = browser.message {
                 Text(message).font(.caption).foregroundStyle(.secondary)
@@ -478,6 +482,8 @@ struct PlaybackView: View {
                         browser.selectChannel(channel.id)
                         play(at: date, preferring: kind, tolerance: tolerance)
                     }
+                    // Tocando um canal: os outros ficam apagados.
+                    .opacity(chosen || session.recording == nil ? 1 : 0.45)
                 }
                 .padding(.horizontal, Space.xs)
                 .background(RoundedRectangle(cornerRadius: Radius.small).fill(chosen ? Theme.accent.opacity(0.08) : .clear))
@@ -662,8 +668,10 @@ struct PlaybackView: View {
         var match: Recording?
         if let kind {
             let ofKind = list.filter { $0.kind == kind }
+            // Clique na faixa de um tipo: toca aquele tipo, com folga maior (~24 px) para trechos curtos.
+            let slack = tolerance * 3
             match = ofKind.first { $0.begin <= date && date <= $0.end }
-                ?? ofKind.filter { $0.begin.addingTimeInterval(-tolerance) <= date && date <= $0.end.addingTimeInterval(tolerance) }
+                ?? ofKind.filter { $0.begin.addingTimeInterval(-slack) <= date && date <= $0.end.addingTimeInterval(slack) }
                     .min { distance($0, to: date) < distance($1, to: date) }
         }
         if match == nil {

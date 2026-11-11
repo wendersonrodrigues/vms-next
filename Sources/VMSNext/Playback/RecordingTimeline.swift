@@ -20,6 +20,9 @@ extension Recording.Kind {
 /// Posição do mouse sobre a linha do tempo (ObservableObject no lugar de @State, que precisa do Xcode).
 final class TimelineHover: ObservableObject {
     @Published var x: CGFloat?
+    /// Arrastando a linha do tempo ampliada para os lados: onde o mouse estava e se já virou arrasto.
+    var dragX: CGFloat?
+    var panning = false
 }
 
 /// Parte do dia mostrada na linha do tempo (zoom). Compartilhada pelas linhas dos canais do NVR.
@@ -33,6 +36,8 @@ final class TimelineZoom: ObservableObject {
     @Published private(set) var span: TimeInterval = day
 
     var isZoomed: Bool { span < Self.day - 1 }
+    var atStart: Bool { start <= 0.5 }
+    var atEnd: Bool { start + span >= Self.day - 0.5 }
     var end: TimeInterval { start + span }
 
     /// Amplia (fator > 1) ou reduz mantendo parado o ponto `anchor` (0…1 da largura).
@@ -46,9 +51,16 @@ final class TimelineZoom: ObservableObject {
 
     func reset() { set(start: 0, span: Self.day) }
 
+    /// Onde a agulha estava no último aviso: só segue a agulha quando ela sai sozinha da janela (o vídeo andou),
+    /// não quando o usuário arrastou a linha para outra hora.
+    private var lastNeedle: TimeInterval?
+
     /// Mantém o momento à vista (a agulha saiu da janela ampliada).
     func reveal(_ second: TimeInterval) {
+        defer { lastNeedle = second }
         guard isZoomed, second < start || second > end else { return }
+        // A agulha estava à vista e saiu (ou deu um salto): acompanha. Já estava fora: o usuário está olhando outra hora.
+        if let last = lastNeedle, last < start || last > end, abs(second - last) < 30 { return }
         set(start: second - span * 0.25, span: span)
     }
 
@@ -92,6 +104,18 @@ struct TimelineZoomControls: View {
 
     var body: some View {
         HStack(spacing: Space.xxs) {
+            if zoom.isZoomed {
+                // Para quem não tem roda lateral no mouse: anda meia janela para cada lado (ou arraste a linha).
+                button("chevron.left", help: String(localized: "Voltar na linha do tempo (ou arraste a linha para os lados)")) {
+                    zoom.pan(by: -zoom.span / 2)
+                }
+                .disabled(zoom.atStart)
+                button("chevron.right", help: String(localized: "Avançar na linha do tempo (ou arraste a linha para os lados)")) {
+                    zoom.pan(by: zoom.span / 2)
+                }
+                .disabled(zoom.atEnd)
+                Divider().frame(height: 14)
+            }
             button("minus.magnifyingglass", help: String(localized: "Reduzir a linha do tempo")) { zoom.zoom(by: 0.5) }
                 .disabled(!zoom.isZoomed)
             Text(Self.spanText(zoom.span))
@@ -143,6 +167,8 @@ struct RecordingTimeline: View {
     var merged = false
     /// Régua das horas em cima (desligada nas linhas de baixo do NVR).
     var showsRuler = true
+    /// Tipo do vídeo que está tocando: as outras faixas ficam apagadas, para saber qual está tocando.
+    var activeKind: Recording.Kind? = nil
     /// Clique: o momento, o tipo da faixa clicada (nil fora das faixas) e quantos segundos valem ~8 px, para
     /// acertar trechos curtos (um movimento de poucos segundos) sem precisar de mira perfeita.
     let onSelect: (Date, Recording.Kind?, TimeInterval) -> Void
@@ -222,11 +248,25 @@ struct RecordingTimeline: View {
                 case .ended: hover.x = nil
                 }
             }
-            .gesture(DragGesture(minimumDistance: 0).onEnded { value in
-                let lane = merged ? nil : laneIndex(at: value.location.y)
-                onSelect(time(at: value.location.x, width: width), lane.map { lanes[$0] },
-                         visibleSpan * 8 / Double(max(width, 1)))
-            })
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    // Ampliada: arrastar para os lados anda na linha do tempo (sem precisar de roda lateral).
+                    guard let zoom, zoom.isZoomed else { return }
+                    if !hover.panning, abs(value.translation.width) > 5 {
+                        hover.panning = true
+                        hover.dragX = value.startLocation.x
+                    }
+                    guard hover.panning, let last = hover.dragX else { return }
+                    zoom.pan(by: -Double(value.location.x - last) / Double(max(width, 1)) * zoom.span)
+                    hover.dragX = value.location.x
+                }
+                .onEnded { value in
+                    defer { hover.panning = false; hover.dragX = nil }
+                    guard !hover.panning else { return }
+                    let lane = merged ? nil : laneIndex(at: value.location.y)
+                    onSelect(time(at: value.location.x, width: width), lane.map { lanes[$0] },
+                             visibleSpan * 8 / Double(max(width, 1)))
+                })
         }
         .frame(height: height)
         .accessibilityElement()
@@ -241,6 +281,8 @@ struct RecordingTimeline: View {
         if showsRuler { drawRuler(context, width: width) }
         for (index, kind) in lanes.enumerated() {
             let y = laneY(index)
+            var context = context
+            if let activeKind, !merged, kind != activeKind { context.opacity = 0.3 }
             // Fundo da faixa e os trechos gravados.
             context.fill(Path(roundedRect: CGRect(x: 0, y: y, width: width, height: laneHeight), cornerRadius: laneHeight / 2),
                          with: .color(Color.primary.opacity(0.06)))
@@ -407,5 +449,46 @@ struct RecordingKindStepper: View {
         .opacity(enabled ? 1 : 0.35)
         .help(help)
         .accessibilityLabel(help)
+    }
+}
+
+/// Barra embaixo da linha do tempo ampliada: mostra que parte do dia está à vista; arraste para andar.
+struct TimelineScrollbar: View {
+    @ObservedObject var zoom: TimelineZoom
+    @StateObject private var drag = TimelineHover()
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let thumb = max(CGFloat(zoom.span / TimelineZoom.day) * width, 24)
+            let x = CGFloat(zoom.start / max(TimelineZoom.day - zoom.span, 1)) * (width - thumb)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.06))
+                Capsule().fill(Color.primary.opacity(0.28))
+                    .frame(width: thumb)
+                    .offset(x: x.isFinite ? x : 0)
+            }
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    let last = drag.dragX ?? value.startLocation.x
+                    // Clique fora da barrinha: leva a janela até lá; arrastar move junto com o mouse.
+                    if drag.dragX == nil, value.startLocation.x < x || value.startLocation.x > x + thumb {
+                        let fraction = Double(value.location.x / max(width, 1))
+                        zoom.pan(by: fraction * TimelineZoom.day - zoom.span / 2 - zoom.start)
+                    } else {
+                        zoom.pan(by: Double(value.location.x - last) / Double(max(width - thumb, 1)) * (TimelineZoom.day - zoom.span))
+                    }
+                    drag.dragX = value.location.x
+                }
+                .onEnded { _ in drag.dragX = nil })
+        }
+        .frame(height: 6)
+        .help(String(localized: "Parte do dia à vista. Arraste para os lados para andar na linha do tempo."))
+        .accessibilityElement()
+        .accessibilityLabel(String(localized: "Posição da linha do tempo"))
+        .accessibilityAdjustableAction { direction in
+            zoom.pan(by: direction == .increment ? zoom.span / 2 : -zoom.span / 2)
+        }
     }
 }
