@@ -42,37 +42,7 @@ struct CameraEditor: View {
                     }
                 }
                 if form.camera.group == nil, !store.groups.isEmpty {
-                    Section {
-                        Picker(selection: $form.camera.recordingsFrom) {
-                            ForEach(RecordingSource.allCases, id: \.self) { Text($0.label).tag($0) }
-                        } label: {
-                            FieldLabel(String(localized: "Gravações vêm de"),
-                                       detail: String(localized: "Sem cartão: Gravações e o ▶ dos alertas buscam o vídeo no NVR, no canal que mostra esta câmera. Com os dois, as Gravações começam pelo NVR e têm uma chave para trocar."))
-                        }
-                        if form.camera.recordingsFrom != .camera {
-                            Picker(selection: $form.nvrChannel) {
-                                Text("Escolha o canal").tag(Camera.ID?.none)
-                                ForEach(store.groups, id: \.self) { group in
-                                    Section(group) {
-                                        ForEach(store.channels(in: group)) { channel in
-                                            Text(channel.displayName).tag(Optional(channel.id))
-                                        }
-                                    }
-                                }
-                            } label: {
-                                FieldLabel(String(localized: "Canal do NVR"),
-                                           detail: String(localized: "O mesmo canal ligado em Eventos (\"Mesma câmera no NVR\"); também junta os alertas repetidos."))
-                            }
-                            if form.nvrChannel == nil {
-                                Label("Sem um canal escolhido, as gravações continuam vindo do cartão da câmera.",
-                                      systemImage: "exclamationmark.triangle")
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.warning)
-                            }
-                        }
-                    } header: {
-                        Text("Gravações")
-                    }
+                    recordingsSection
                 }
                 Section {
                     TextField("Usuário", text: $form.camera.username)
@@ -148,6 +118,60 @@ struct CameraEditor: View {
         }
     }
 
+    // MARK: - Gravações no NVR
+
+    /// Câmera avulsa Xiongmai: cartão, NVR ou os dois, e o canal do NVR que mostra esta câmera.
+    @ViewBuilder
+    private var recordingsSection: some View {
+            Section {
+                Picker(selection: $form.camera.recordingsFrom) {
+                    ForEach(RecordingSource.allCases, id: \.self) { Text($0.label).tag($0) }
+                } label: {
+                    FieldLabel(String(localized: "Gravações vêm de"),
+                               detail: String(localized: "Sem cartão: Gravações e o ▶ dos alertas buscam o vídeo no NVR, no canal que mostra esta câmera. Com os dois, as Gravações começam pelo NVR e têm uma chave para trocar."))
+                }
+                if form.camera.recordingsFrom != .camera {
+                    Picker(selection: $form.nvrChannel) {
+                        Text("Escolha o canal").tag(Camera.ID?.none)
+                        ForEach(store.groups, id: \.self) { group in
+                            Section(group) {
+                                ForEach(store.channels(in: group)) { channel in
+                                    Text(channel.displayName).tag(Optional(channel.id))
+                                }
+                            }
+                        }
+                    } label: {
+                        FieldLabel(String(localized: "Canal do NVR"),
+                                   detail: String(localized: "O mesmo canal ligado em Eventos (\"Mesma câmera no NVR\"); também junta os alertas repetidos."))
+                    }
+                    if form.nvrChannel == nil {
+                        Label("Sem um canal escolhido, as gravações continuam vindo do cartão da câmera.",
+                              systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(Theme.warning)
+                    }
+                }
+            } header: {
+                Text("Gravações")
+            }
+    }
+
+    private var nvrChannelPicker: some View {
+        Picker(selection: $form.nvrChannel) {
+            Text("Não está no NVR").tag(Camera.ID?.none)
+            ForEach(store.groups, id: \.self) { group in
+                Section(group) {
+                    ForEach(store.channels(in: group)) { channel in
+                        Text(channel.displayName).tag(Optional(channel.id))
+                    }
+                }
+            }
+        } label: {
+            FieldLabel(String(localized: "Canal do NVR"),
+                       detail: String(localized: "O canal do NVR que mostra esta câmera. As Gravações e o ▶ dos alertas buscam o vídeo nele, e os alertas repetidos são juntados."))
+        }
+    }
+
     // MARK: - ONVIF
 
     private var passwordField: some View {
@@ -189,6 +213,16 @@ struct CameraEditor: View {
         } footer: {
             Text("O usuário e a senha do ONVIF da câmera (muitas marcas usam \"admin\" e a senha do aplicativo delas). A senha fica no cofre criptografado do VMS Next.")
                 .foregroundStyle(.secondary)
+        }
+        if !store.groups.isEmpty {
+            Section {
+                nvrChannelPicker
+            } header: {
+                Text("Gravações")
+            } footer: {
+                Text("O app não lê o cartão de câmeras ONVIF. Se o NVR grava esta câmera, escolha o canal dela para ver as gravações pelo NVR.")
+                    .foregroundStyle(.secondary)
+            }
         }
         Section {
             LabeledContent("Principal (HD)", value: form.camera.onvif?.mainURI ?? String(localized: "lido ao salvar"))
@@ -251,6 +285,8 @@ struct CameraEditor: View {
 
     private func finishSave() {
         if form.camera.isOnvif { OnvifServices.shared.invalidate(form.camera) }
+        // ONVIF: as gravações só podem vir do NVR (o cartão dela não é lido).
+        if form.camera.isOnvif { form.camera.recordingsFrom = form.nvrChannel == nil ? .camera : .nvr }
         store.upsert(form.camera)
         if form.camera.group == nil, form.nvrChannel != form.originalChannel { store.link(form.camera, to: form.nvrChannel) }
         store.setPassword(form.password, for: form.camera)

@@ -289,6 +289,8 @@ struct PlaybackView: View {
     private var camera: Camera? {
         guard let selected = selectedCamera else { return nil }
         guard let channel = store.linkedChannel(for: selected) else { return selected }
+        // Câmera ONVIF: o cartão dela não é lido, então as gravações vêm sempre do canal do NVR.
+        if selected.isOnvif { return channel }
         switch selected.recordingsFrom {
         case .camera: return selected
         case .nvr: return channel
@@ -299,7 +301,7 @@ struct PlaybackView: View {
     /// Câmera com gravação nos dois lugares (e um canal do NVR ligado): mostra a chave Cartão | NVR.
     private var hasBothSources: Bool {
         guard let selected = selectedCamera else { return false }
-        return selected.recordingsFrom == .both && store.linkedChannel(for: selected) != nil
+        return !selected.isOnvif && selected.recordingsFrom == .both && store.linkedChannel(for: selected) != nil
     }
 
     private var fromNVR: Bool { camera?.id != selectedCamera?.id }

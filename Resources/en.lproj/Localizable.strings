@@ -1756,3 +1756,7 @@
 "Sincronizar…" = "Sync…";
 "Traz para o app as câmeras que estão no NVR: adiciona, remove e renomeia os canais" = "Brings the NVR cameras into the app: adds, removes and renames channels";
 "A lista de câmeras do app está diferente do NVR (%lld mudança(s))." = "The app's camera list differs from the NVR (%lld change(s)).";
+
+/* Câmera ONVIF gravada no NVR */
+"O canal do NVR que mostra esta câmera. As Gravações e o ▶ dos alertas buscam o vídeo nele, e os alertas repetidos são juntados." = "The NVR channel that shows this camera. Recordings and the alerts' ▶ fetch the video from it, and duplicate alerts are merged.";
+"O app não lê o cartão de câmeras ONVIF. Se o NVR grava esta câmera, escolha o canal dela para ver as gravações pelo NVR." = "The app can't read ONVIF cameras' memory cards. If the NVR records this camera, pick its channel to see the recordings from the NVR.";
